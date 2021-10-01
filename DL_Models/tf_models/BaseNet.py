@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras as keras
-from keras.callbacks import CSVLogger
+from tensorflow.keras.callbacks import CSVLogger
 import numpy as np
 import logging
 

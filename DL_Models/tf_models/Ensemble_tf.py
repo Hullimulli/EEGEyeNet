@@ -1,7 +1,7 @@
 import tensorflow as tf
 from config import config
 from utils.utils import *
-import keras
+import tensorflow.keras as keras
 import logging
 import os
 import re 

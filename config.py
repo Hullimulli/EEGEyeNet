@@ -12,9 +12,9 @@ config = dict()
 # 'LR_task' (dataset: 'antisaccade'):
 # 'Direction_task' (dataset: 'dots' or 'processing_speed'): dots = "Large Grid Dataset" and processing_speed = "Visual Symbol Search"
 # 'Position_task' (dataset: 'dots'):
-config['task'] = 'Position_task'
+config['task'] = 'Direction_task'
 config['dataset'] = 'dots'
-config['preprocessing'] = 'min'  # or min
+config['preprocessing'] = 'max'  # or min
 config['feature_extraction'] = True
 config['include_ML_models'] = True
 config['include_DL_models'] = True
@@ -29,14 +29,14 @@ config['include_dummy_models'] = True
 # Where experiment results are stored.
 config['log_dir'] = './runs/'
 # Path to training, validation and test data folders.
-config['data_dir'] = '../data/'
+config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
 # Path of root
 config['root_dir'] = '.'
 # Retrain or load already trained
 config['retrain'] = True
 config['save_models'] = True
 # If retrain is false we need to provide where to load the experiment files
-config['load_experiment_dir'] = ''
+config['load_experiment_dir'] = 'hilbertTest/'
 # all_EEG_file should specify the name of the file where the prepared data is located (if emp
 def build_file_name():
     all_EEG_file = config['task'] + '_with_' + config['dataset']
@@ -52,7 +52,7 @@ config['all_EEG_file'] = build_file_name() # or use your own specified file name
 ##################################################################
 ##################################################################
 # Specific to models now
-config['framework'] = 'pytorch'
+config['framework'] = 'tensorflow'
 config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
