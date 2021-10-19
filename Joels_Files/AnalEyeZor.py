@@ -34,6 +34,7 @@ class AnalEyeZor():
 
     def __init__(self, task, dataset, preprocessing, featureExtraction = False):
 
+        print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
         config['include_ML_models'] = False
         config['include_DL_models'] = False
         config['include_your_models'] = True

@@ -25,15 +25,14 @@ All configurations (parameters) of this benchmark are specified in config.py
 def main():
     # Setting up logging
 
-    asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', featureExtraction=False)
+    asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='min', featureExtraction=True)
 
-    start_time = time.time()
+    #start_time = time.time()
 
     # For being able to see progress that some methods use verbose (for debugging purposes)
-    asdf.chooseModel(["InceptionTime"], trainBool=False, saveModelBool=False, path="inceptionTimeAntisaccade/")
+    #asdf.chooseModel(["InceptionTime"], trainBool=False, saveModelBool=False, path="inceptionTimeAntisaccade/")
     #asdf.chooseModel(["InceptionTime"], trainBool=False, saveModelBool=False)
-    asdf.PFI()
-    fdsa = 0
+    #asdf.PFI()
     #Load the data
     #trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
 
