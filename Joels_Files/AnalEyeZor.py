@@ -32,9 +32,8 @@ class Tee(object):
 
 class AnalEyeZor():
 
-    def __init__(self, task, dataset, preprocessing, featureExtraction = False):
+    def __init__(self, task, dataset, preprocessing, models, seed=42, featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
 
-        print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
         config['include_ML_models'] = False
         config['include_DL_models'] = False
         config['include_your_models'] = True
@@ -42,8 +41,7 @@ class AnalEyeZor():
         config['feature_extraction'] = featureExtraction
 
         self.inputShape = (1, 258) if config['feature_extraction'] else (500, 129)
-        self.modelsChosenBool = False
-        self.numberOfVotingNetworks = 1
+        self.numberOfVotingNetworks = 5
         config['task'] = task
         config['dataset'] = dataset
         config['preprocessing'] = preprocessing
@@ -56,11 +54,10 @@ class AnalEyeZor():
 
         config['all_EEG_file'] = build_file_name()
 
-
-
-    def chooseModel(self, models, trainBool = True, saveModelBool = True, path=None):
-
+        #########################################Loading_or_Training_Model####################################################
         your_models[config['task']] = {config['dataset']:{config['preprocessing']:{}}}
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
         for i in models:
 
             if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
@@ -79,35 +76,39 @@ class AnalEyeZor():
 
         all_models.pop(config['task'], None)
         all_models[config['task']] = your_models[config['task']]
+
+        def initFolder():
+            create_folder()
+            logging.basicConfig(filename=config['info_log'], level=logging.INFO)
+            logging.info('Started the Logging')
+            logging.info("Num GPUs Available: {}".format(len(tf.config.list_physical_devices('GPU'))))
+            f = open(config['model_dir'] + '/console.out', 'w')
+            sys.stdout = Tee(sys.stdout, f)
+
         if trainBool:
             config['retrain'] = trainBool
             config['save_models'] = saveModelBool
-            create_folder()
-            logging.basicConfig(filename=config['info_log'], level=logging.INFO)
-            logging.info('Started the Logging')
-            f = open(config['model_dir'] + '/console.out', 'w')
-            sys.stdout = Tee(sys.stdout, f)
+            initFolder()
+            logging.info("------------------------------Loading the Data------------------------------")
             trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
+            logging.info("------------------------------Calling Benchmark------------------------------")
             benchmark(trainX, trainY)
+            logging.info("------------------------------Finished Training------------------------------")
         else:
             if path==None:
                 print("Configure the Path, where to find the network in runs.")
-                return
+                raise Exception()
             config['load_experiment_dir'] = path
             config['retrain'] = trainBool
-            create_folder()
-            logging.basicConfig(filename=config['info_log'], level=logging.INFO)
-            logging.info('Started the Logging')
-            f = open(config['model_dir'] + '/console.out', 'w')
-            sys.stdout = Tee(sys.stdout, f)
+            initFolder()
+            logging.info("------------------------------Selected Model------------------------------")
 
-        self.modelsChosenBool = True
 
 
     def PFI(self, scale = False):
-
-        if self.modelsChosenBool != True:
-            print("No Model Selected.")
+        logging.info("------------------------------PFI------------------------------")
+        if config['feature_extraction'] == True:
+            print("No PFI for Transformed Data")
             return
 
         config['retrain'] = False
@@ -129,15 +130,13 @@ class AnalEyeZor():
         modelLosses = dict()
         electrodeLosses = np.zeros(dataShape[2])
         models = all_models[config['task']][config['dataset']][config['preprocessing']]
-
         for name, model in models.items():
             start_time = time.time()
             for i in range(self.numberOfVotingNetworks):
-                #trainer = model[0](**model[1])
                 path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
                 trainer = tf.keras.models.load_model(path+name)
                 print("Evaluating {}, run {}".format(name,i+1))
-                for j in tqdm(range(int(dataShape[2]/4))):
+                for j in tqdm(range(int(dataShape[2]))):
 
                     valX = trainX.copy()
                     np.random.shuffle(valX[:,:,j])
@@ -152,8 +151,9 @@ class AnalEyeZor():
             modelLosses[name] = electrodeLosses / self.numberOfVotingNetworks
             runtime = (time.time() - start_time)
             logging.info("--- Sorted Electrodes of {} According to Influence:".format(name))
-            logging.info((np.argsort(modelLosses[name]))[::-1])
+            logging.info(1+(np.argsort(modelLosses[name]))[::-1])
             logging.info("--- Runtime: %s for seconds ---" % runtime)
+        logging.info("------------------------------Evaluated Electrodes------------------------------")
         return modelLosses
 
     def meanSquareError(self,y,yPred):
