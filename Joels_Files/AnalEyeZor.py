@@ -56,8 +56,6 @@ class AnalEyeZor():
 
         #########################################Loading_or_Training_Model####################################################
         your_models[config['task']] = {config['dataset']:{config['preprocessing']:{}}}
-        tf.random.set_seed(seed)
-        np.random.seed(seed)
         for i in models:
 
             if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
@@ -150,8 +148,10 @@ class AnalEyeZor():
                         electrodeLosses[j] += self.euclideanDistance(valY, trainer.predict(valX))
             modelLosses[name] = electrodeLosses / self.numberOfVotingNetworks
             runtime = (time.time() - start_time)
-            logging.info("--- Sorted Electrodes of {} According to Influence:".format(name))
+            logging.info("--- Sorted Electrodes According to Influence for {}:".format(name))
             logging.info(1+(np.argsort(modelLosses[name]))[::-1])
+            logging.info("--- Losses of each Electrode for {}:".format(name))
+            logging.info(modelLosses[name][((np.argsort(modelLosses[name]))[::-1])])
             logging.info("--- Runtime: %s for seconds ---" % runtime)
         logging.info("------------------------------Evaluated Electrodes------------------------------")
         return modelLosses

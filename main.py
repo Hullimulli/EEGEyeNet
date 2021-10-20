@@ -25,7 +25,8 @@ All configurations (parameters) of this benchmark are specified in config.py
 def main():
     # Setting up logging
 
-    asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='min', models=["InceptionTime"],featureExtraction=True)
+    asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='min', models=["InceptionTime"],featureExtraction=False)
+    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', models=["InceptionTime"],featureExtraction=False)
 
     #start_time = time.time()
 
