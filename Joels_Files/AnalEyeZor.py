@@ -13,6 +13,9 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 import tensorflow as tf
+import shutil
+import pandas as pd
+import re
 
 import numpy as np
 
@@ -32,7 +35,7 @@ class Tee(object):
 
 class AnalEyeZor():
 
-    def __init__(self, task, dataset, preprocessing, models, seed=42, featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
+    def __init__(self, task, dataset, preprocessing, models, featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
 
         config['include_ML_models'] = False
         config['include_DL_models'] = False
@@ -42,6 +45,7 @@ class AnalEyeZor():
 
         self.inputShape = (1, 258) if config['feature_extraction'] else (500, 129)
         self.numberOfVotingNetworks = 5
+        self.currentFolderPath = ""
         config['task'] = task
         config['dataset'] = dataset
         config['preprocessing'] = preprocessing
@@ -80,13 +84,17 @@ class AnalEyeZor():
             logging.basicConfig(filename=config['info_log'], level=logging.INFO)
             logging.info('Started the Logging')
             logging.info("Num GPUs Available: {}".format(len(tf.config.list_physical_devices('GPU'))))
-            f = open(config['model_dir'] + '/console.out', 'w')
+            if os.path.exists(config['model_dir'] + '/console.out'):
+                f = open(config['model_dir'] + '/console.out', 'a')
+            else:
+                f = open(config['model_dir'] + '/console.out', 'w')
             sys.stdout = Tee(sys.stdout, f)
 
         if trainBool:
             config['retrain'] = trainBool
             config['save_models'] = saveModelBool
             initFolder()
+            self.currentFolderPath = config['model_dir']
             logging.info("------------------------------Loading the Data------------------------------")
             trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
             logging.info("------------------------------Calling Benchmark------------------------------")
@@ -96,6 +104,7 @@ class AnalEyeZor():
             if path==None:
                 print("Configure the Path, where to find the network in runs.")
                 raise Exception()
+            self.currentFolderPath = config['log_dir'] + path
             config['load_experiment_dir'] = path
             config['retrain'] = trainBool
             initFolder()
@@ -155,6 +164,59 @@ class AnalEyeZor():
             logging.info("--- Runtime: %s for seconds ---" % runtime)
         logging.info("------------------------------Evaluated Electrodes------------------------------")
         return modelLosses
+
+    #def electrodePlot(self, values):
+
+    def moveModels(self, newFolderName, modelName, originalPath, getEpochMetricsBool=True):
+        try:
+            os.mkdir(config['log_dir']+newFolderName)
+        except:
+            print("Folder already exists.")
+            return
+        if not os.path.isdir(originalPath+"checkpoint/"):
+            print("Original Folder not found.")
+            return
+
+        runNames = os.listdir(originalPath+"checkpoint/")
+        for runName in runNames:
+            if not runName == ".DS_Store":
+                networkNames = os.listdir(originalPath+"checkpoint/"+runName+"/")
+                for networkName in networkNames:
+                    if modelName.lower() in networkName.lower():
+                        shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName)
+
+        allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
+        if os.path.exists(originalPath+"console.out") and getEpochMetricsBool:
+            i = 1
+            with open(os.path.join(originalPath,"console.out")) as f:
+                readingValuesBool = False
+                metrics = np.zeros([1,4])
+                for line in f:
+                    if i > len(allModelNames):
+                        break
+                    if "after" in line:
+                        readingValuesBool = True
+                    if "loss" in line and readingValuesBool:
+                        metricToAppend = np.array(re.findall(r"[-+]?\d*\.\d+|\d+", line)).astype(np.float)
+                        metrics = np.concatenate((metrics, np.expand_dims(metricToAppend[3:],0)), axis=0)
+                    if "before" in line and readingValuesBool==True:
+                        readingValuesBool = False
+                        np.savetxt(config['log_dir']+newFolderName+"/"+str(allModelNames.values[i-1][0])+'_{}.csv'.format(i), metrics[1:,:], fmt='%s',
+                                   delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
+                        i+=1
+                        metrics = np.zeros([1, 4])
+                np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i-1][0]) + '_{}.csv'.format(i),
+                           metrics[1:, :], fmt='%s',
+                           delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
+
+        if os.path.exists(originalPath + "runs.csv"):
+            shutil.move(originalPath+"runs.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "statistics.csv"):
+            shutil.move(originalPath + "statistics.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "info.log"):
+            shutil.move(originalPath + "info.log", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "config.csv"):
+            shutil.move(originalPath + "config.csv", config['log_dir'] + newFolderName)
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))

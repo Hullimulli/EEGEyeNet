@@ -25,9 +25,16 @@ All configurations (parameters) of this benchmark are specified in config.py
 def main():
     # Setting up logging
 
-    asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='min', models=["InceptionTime"],featureExtraction=False)
-    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', models=["InceptionTime"],featureExtraction=False)
+    #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
 
+
+
+    #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
+
+    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="1634814504/",models=["InceptionTime"],featureExtraction=True)
+    asdf.moveModels(newFolderName="InceptionTimeLRMin",originalPath=asdf.currentFolderPath,modelName="InceptionTime")
+    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', trainBool=False, path="1634817877/",models=["InceptionTime"],featureExtraction=True)
+    asdf.moveModels(newFolderName="InceptionTimeLRMax",originalPath=asdf.currentFolderPath,modelName="InceptionTime")
     #start_time = time.time()
 
     # For being able to see progress that some methods use verbose (for debugging purposes)
