@@ -16,6 +16,7 @@ import tensorflow as tf
 import shutil
 import pandas as pd
 import re
+import cv2
 
 import numpy as np
 
@@ -150,7 +151,6 @@ class AnalEyeZor():
 
                     if config['task'] == 'LR_task':
                         electrodeLosses[j] += self.accuracyLoss(valY, trainer.predict(valX))
-                        print(electrodeLosses[j])
                     elif config['task'] == 'Direction_task':
                         electrodeLosses[j] += self.meanSquareError(valY, trainer.predict(valX))
                     elif config['task'] == 'Position_task':
@@ -163,9 +163,28 @@ class AnalEyeZor():
             logging.info(modelLosses[name][((np.argsort(modelLosses[name]))[::-1])])
             logging.info("--- Runtime: %s for seconds ---" % runtime)
         logging.info("------------------------------Evaluated Electrodes------------------------------")
+        results = np.arange(1,modelLosses.items()[0].shape[0]+1)
+        legend = 'Electrode Number'
+        for i in modelLosses.keys():
+            legend += ','+i
+            results = np.concatenate(results,modelLosses[i])
+
+        np.savetxt(config['log_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
-    #def electrodePlot(self, values):
+    def electrodePlot(self, colourValues, name="Electrode Configuration", pathForOriginalRelativeToExecutable="/Joel_Files/forPlot/"):
+        img = cv2.imread(pathForOriginalRelativeToExecutable+'blank.png', cv2.IMREAD_COLOR)
+        overlay = img.copy()
+        coord = pd.read_csv(pathForOriginalRelativeToExecutable+'coord.csv', index_col='electrode', dtype=int)
+
+        for i in range(colourValues.shape[1]):
+            pt = coord.loc[i]
+            x, y, r = pt['posX'], pt['posY'], pt['radius']
+            cv2.circle(overlay, (x, y), r, colourValues[:,i], -1)
+
+        alpha = 0.4
+        img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
+        cv2.imwrite(name, img)
 
     def moveModels(self, newFolderName, modelName, originalPath, getEpochMetricsBool=True):
         try:
@@ -205,9 +224,10 @@ class AnalEyeZor():
                                    delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
                         i+=1
                         metrics = np.zeros([1, 4])
-                np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i-1][0]) + '_{}.csv'.format(i),
-                           metrics[1:, :], fmt='%s',
-                           delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
+                if i <= len(allModelNames):
+                    np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i-1][0]) + '_{}.csv'.format(i),
+                               metrics[1:, :], fmt='%s',
+                               delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
 
         if os.path.exists(originalPath + "runs.csv"):
             shutil.move(originalPath+"runs.csv", config['log_dir'] + newFolderName)
