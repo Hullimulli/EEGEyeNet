@@ -142,7 +142,8 @@ class AnalEyeZor():
             start_time = time.time()
             for i in range(self.numberOfVotingNetworks):
                 path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
-                trainer = tf.keras.models.load_model(path+name)
+                matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
+                trainer = tf.keras.models.load_model(path+matching[0])
                 print("Evaluating {}, run {}".format(name,i+1))
                 for j in tqdm(range(int(dataShape[2]))):
 
@@ -163,13 +164,13 @@ class AnalEyeZor():
             logging.info(modelLosses[name][((np.argsort(modelLosses[name]))[::-1])])
             logging.info("--- Runtime: %s for seconds ---" % runtime)
         logging.info("------------------------------Evaluated Electrodes------------------------------")
-        results = np.arange(1,modelLosses.items()[0].shape[0]+1)
+        results = np.expand_dims(np.arange(1,list(modelLosses.values())[0].shape[0]+1),0).astype(np.int)
         legend = 'Electrode Number'
-        for i in modelLosses.keys():
+        for i,j in modelLosses.items():
             legend += ','+i
-            results = np.concatenate(results,modelLosses[i])
+            results = np.concatenate((results,np.expand_dims(j,0)),axis=0)
 
-        np.savetxt(config['log_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
+        np.savetxt(config['model_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
     def electrodePlot(self, colourValues, name="Electrode Configuration", pathForOriginalRelativeToExecutable="/Joel_Files/forPlot/"):
@@ -202,7 +203,7 @@ class AnalEyeZor():
                 networkNames = os.listdir(originalPath+"checkpoint/"+runName+"/")
                 for networkName in networkNames:
                     if modelName.lower() in networkName.lower():
-                        shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName)
+                        shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+networkName)
 
         allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
         if os.path.exists(originalPath+"console.out") and getEpochMetricsBool:
@@ -237,6 +238,12 @@ class AnalEyeZor():
             shutil.move(originalPath + "info.log", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "config.csv"):
             shutil.move(originalPath + "config.csv", config['log_dir'] + newFolderName)
+
+        config['load_experiment_dir'] = newFolderName
+        config['model_dir'] = config['log_dir'] + config['load_experiment_dir']
+        stamp = str(int(time.time()))
+        config['info_log'] = config['model_dir'] + '/' + 'inference_info_' + stamp + '.log'
+        config['batches_log'] = config['model_dir'] + '/' + 'inference_batches_' + stamp + '.log'
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))

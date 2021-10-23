@@ -31,10 +31,10 @@ def main():
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
 
-    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="1634814504/",models=["InceptionTime"],featureExtraction=True)
-    asdf.moveModels(newFolderName="InceptionTimeLRMin",originalPath=asdf.currentFolderPath,modelName="InceptionTime")
-    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', trainBool=False, path="1634817877/",models=["InceptionTime"],featureExtraction=True)
-    asdf.moveModels(newFolderName="InceptionTimeLRMax",originalPath=asdf.currentFolderPath,modelName="InceptionTime")
+    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="InceptionTimeLRMin/",models=["InceptionTime"],featureExtraction=False)
+    asdf.PFI()
+    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', trainBool=False, path="InceptionTimeLRMax/",models=["InceptionTime"],featureExtraction=False)
+    asdf.PFI()
     #start_time = time.time()
 
     # For being able to see progress that some methods use verbose (for debugging purposes)
