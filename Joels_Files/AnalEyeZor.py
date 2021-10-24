@@ -173,19 +173,17 @@ class AnalEyeZor():
         np.savetxt(config['model_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
-    def electrodePlot(self, colourValues, name="Electrode Configuration", pathForOriginalRelativeToExecutable="/Joel_Files/forPlot/"):
+    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
         img = cv2.imread(pathForOriginalRelativeToExecutable+'blank.png', cv2.IMREAD_COLOR)
         overlay = img.copy()
         coord = pd.read_csv(pathForOriginalRelativeToExecutable+'coord.csv', index_col='electrode', dtype=int)
-
-        for i in range(colourValues.shape[1]):
-            pt = coord.loc[i]
+        for i in range(colourValues.shape[0]):
+            pt = coord.loc[i+1]
             x, y, r = pt['posX'], pt['posY'], pt['radius']
-            cv2.circle(overlay, (x, y), r, colourValues[:,i], -1)
+            cv2.circle(overlay, (x, y), r, colourValues[i,:], -1)
 
-        alpha = 0.4
         img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
-        cv2.imwrite(name, img)
+        cv2.imwrite(config['model_dir']+name, img)
 
     def moveModels(self, newFolderName, modelName, originalPath, getEpochMetricsBool=True):
         try:
@@ -244,6 +242,21 @@ class AnalEyeZor():
         stamp = str(int(time.time()))
         config['info_log'] = config['model_dir'] + '/' + 'inference_info_' + stamp + '.log'
         config['batches_log'] = config['model_dir'] + '/' + 'inference_batches_' + stamp + '.log'
+
+    def colourCode(self,values, electrodes=np.arange(1,130), colour="red", minValue=5):
+        colours = np.zeros((values.shape[0],3))
+
+        if colour=="green":
+            i = 1
+        elif colour=="blue":
+            i = 2
+        else:
+            i=0
+        values = 10*np.log(values+1)
+        originalValueSpan = np.max(values[electrodes-1]) - np.min(values[electrodes-1])
+        newValueSpan = 255 - minValue
+        colours[electrodes-1,i] = ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue)
+        return colours
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
