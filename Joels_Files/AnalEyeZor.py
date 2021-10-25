@@ -199,7 +199,7 @@ class AnalEyeZor():
         np.savetxt(config['model_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
-    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
+    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4,pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
         if not os.path.exists(pathForOriginalRelativeToExecutable+'blank.png'):
             print(pathForOriginalRelativeToExecutable+'blank.png'+" does not exist.")
             return
