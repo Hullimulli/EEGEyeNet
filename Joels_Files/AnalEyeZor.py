@@ -37,15 +37,15 @@ class Tee(object):
 
 class AnalEyeZor():
 
-    def __init__(self, task, dataset, preprocessing, models, featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
+    def __init__(self, task, dataset, preprocessing, models, electrodes = 1+np.arange(129),featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
 
         config['include_ML_models'] = False
         config['include_DL_models'] = False
         config['include_your_models'] = True
         config['include_dummy_models'] = False
         config['feature_extraction'] = featureExtraction
-
-        self.inputShape = (1, 258) if config['feature_extraction'] else (500, 129)
+        self.electrodes = electrodes
+        self.inputShape = (1, 258) if config['feature_extraction'] else (500, electrodes.shape[0])
         self.numberOfVotingNetworks = 5
         self.currentFolderPath = ""
         config['task'] = task
@@ -100,7 +100,7 @@ class AnalEyeZor():
             logging.info("------------------------------Loading the Data------------------------------")
             trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
             logging.info("------------------------------Calling Benchmark------------------------------")
-            benchmark(trainX, trainY)
+            benchmark(trainX[:, :, self.electrodes.astype(np.int)-1], trainY)
             logging.info("------------------------------Finished Training------------------------------")
         else:
             if path==None:
@@ -148,7 +148,6 @@ class AnalEyeZor():
                 path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
                 matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
                 trainer = tf.keras.models.load_model(path + matching[0])
-                asdf = trainer.predict(trainX)
                 prediction += np.squeeze(trainer.predict(trainX))
 
             if config['task'] == 'LR_task':
