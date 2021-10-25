@@ -137,9 +137,9 @@ class AnalEyeZor():
         del trainIndices, valIndices, testIndices, trainY
 
         modelLosses = dict()
-        electrodeLosses = np.zeros(dataShape[2])
         models = all_models[config['task']][config['dataset']][config['preprocessing']]
         for name, model in models.items():
+            electrodeLosses = np.zeros(dataShape[2])
             start_time = time.time()
             offset = 0
             prediction = np.zeros(valY.shape)

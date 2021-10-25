@@ -34,6 +34,7 @@ def main():
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
 
     asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="InceptionTimeLRMin/",models=["InceptionTime"],featureExtraction=False)
+    asdf.PFI()
     lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI.csv', usecols=['InceptionTime']).to_numpy()
     goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
     goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:32]] = 1
