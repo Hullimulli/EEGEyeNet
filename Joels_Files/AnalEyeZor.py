@@ -202,6 +202,7 @@ class AnalEyeZor():
     def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
         if not os.path.exists(pathForOriginalRelativeToExecutable+'blank.png'):
             print(pathForOriginalRelativeToExecutable+'blank.png'+" does not exist.")
+            return
         img = cv2.imread(pathForOriginalRelativeToExecutable+'blank.png', cv2.IMREAD_COLOR)
         overlay = img.copy()
         coord = pd.read_csv(pathForOriginalRelativeToExecutable+'coord.csv', index_col='electrode', dtype=int)
