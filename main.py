@@ -34,17 +34,19 @@ def main():
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
 
     asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="InceptionTimeLRMin/",models=["InceptionTime"],featureExtraction=False)
-    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_MinLR.csv', usecols=['InceptionTime']).to_numpy()
+    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI.csv', usecols=['InceptionTime']).to_numpy()
     goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
     goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:32]] = 1
     asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues)),alpha=1)
     asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices), name='best32Electrode.png', alpha=0.4)
+    #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
     asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', trainBool=False, path="InceptionTimeLRMax/",models=["InceptionTime"],featureExtraction=False)
-    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_MaxLR.csv', usecols=['InceptionTime']).to_numpy()
+    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI.csv', usecols=['InceptionTime']).to_numpy()
     goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
     goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:64]] = 1
     asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues)),alpha=1)
     asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices), name='best64Electrode.png',alpha=0.4)
+    #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
     #start_time = time.time()
 
