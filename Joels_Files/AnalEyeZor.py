@@ -182,7 +182,7 @@ class AnalEyeZor():
                         prediction = prediction / self.numberOfVotingNetworks
                         electrodeLosses[j] += self.euclideanDistance(valY, prediction)
 
-            modelLosses[name] = electrodeLosses / iterations - offset
+            modelLosses[name] = np.divide((electrodeLosses / iterations), offset) - 1
             runtime = (time.time() - start_time)
             logging.info("--- Sorted Electrodes According to Influence for {}:".format(name))
             logging.info(1+(np.argsort(modelLosses[name]))[::-1])
