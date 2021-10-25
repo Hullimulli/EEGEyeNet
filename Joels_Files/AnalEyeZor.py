@@ -149,7 +149,7 @@ class AnalEyeZor():
                 matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
                 trainer = tf.keras.models.load_model(path + matching[0])
                 asdf = trainer.predict(trainX)
-                prediction += trainer.predict(np.squeeze(trainX))
+                prediction += np.squeeze(trainer.predict(trainX))
 
             if config['task'] == 'LR_task':
                 prediction = np.rint(prediction / self.numberOfVotingNetworks)
