@@ -148,7 +148,8 @@ class AnalEyeZor():
                 path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
                 matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
                 trainer = tf.keras.models.load_model(path + matching[0])
-                prediction += trainer.predict(trainX)
+                asdf = trainer.predict(trainX)
+                prediction += trainer.predict(np.squeeze(trainX))
 
             if config['task'] == 'LR_task':
                 prediction = np.rint(prediction / self.numberOfVotingNetworks)
