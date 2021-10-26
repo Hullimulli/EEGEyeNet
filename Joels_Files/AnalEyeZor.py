@@ -9,7 +9,7 @@ from benchmark import benchmark, split
 from utils.tables_utils import print_table
 from hyperparameters import our_DL_models, our_ML_models, your_models, all_models
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, log_loss
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 import tensorflow as tf
@@ -114,7 +114,7 @@ class AnalEyeZor():
 
 
 
-    def PFI(self, scale = False, iterations=5):
+    def PFI(self, scale = False, iterations=5, useAccuracyBool=True):
         logging.info("------------------------------PFI------------------------------")
         if config['feature_extraction'] == True:
             print("No PFI for Transformed Data")
@@ -151,8 +151,11 @@ class AnalEyeZor():
                 prediction += np.squeeze(trainer.predict(trainX))
 
             if config['task'] == 'LR_task':
-                prediction = np.rint(prediction / self.numberOfVotingNetworks)
-                offset = self.accuracyLoss(valY, prediction)
+                if useAccuracyBool:
+                    prediction = np.rint(prediction / self.numberOfVotingNetworks)
+                else:
+                    prediction = prediction / self.numberOfVotingNetworks
+                offset = self.binaryCrossEntropyLoss(valY, prediction)
             elif config['task'] == 'Direction_task':
                 prediction = prediction / self.numberOfVotingNetworks
                 offset = self.meanSquareError(valY, prediction)
@@ -173,8 +176,11 @@ class AnalEyeZor():
                         prediction += np.squeeze(trainer.predict(valX))
 
                     if config['task'] == 'LR_task':
-                        prediction = np.rint(prediction / self.numberOfVotingNetworks)
-                        electrodeLosses[j] += self.accuracyLoss(valY, prediction)
+                        if useAccuracyBool:
+                            prediction = np.rint(prediction / self.numberOfVotingNetworks)
+                        else:
+                            prediction = prediction / self.numberOfVotingNetworks
+                        electrodeLosses[j] += self.binaryCrossEntropyLoss(valY, prediction)
                     elif config['task'] == 'Direction_task':
                         prediction = prediction / self.numberOfVotingNetworks
                         electrodeLosses[j] += self.meanSquareError(valY, prediction)
@@ -311,8 +317,9 @@ class AnalEyeZor():
     def euclideanDistance(self,y,yPred):
         return np.linalg.norm(y - yPred, axis=1).mean()
 
-    def accuracyLoss(self,y,yPred):
-        return 1-np.mean(y==np.rint(np.squeeze(yPred)).astype(int))
+    def binaryCrossEntropyLoss(self,y,yPred):
+        #return 1-np.mean(np.abs(y-yPred))
+        return log_loss(y,yPred, normalize=True)
 
 
 
