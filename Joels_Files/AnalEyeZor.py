@@ -318,7 +318,6 @@ class AnalEyeZor():
         return np.linalg.norm(y - yPred, axis=1).mean()
 
     def binaryCrossEntropyLoss(self,y,yPred):
-        #return 1-np.mean(np.abs(y-yPred))
         return log_loss(y,yPred, normalize=True)
 
 
