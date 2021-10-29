@@ -46,7 +46,7 @@ class AnalEyeZor():
         config['feature_extraction'] = featureExtraction
         self.electrodes = electrodes
         self.inputShape = (1, 258) if config['feature_extraction'] else (500, electrodes.shape[0])
-        self.numberOfVotingNetworks = 5
+        self.numberOfNetworks = 5
         self.currentFolderPath = ""
         config['task'] = task
         config['dataset'] = dataset
@@ -99,8 +99,9 @@ class AnalEyeZor():
             self.currentFolderPath = config['model_dir']
             logging.info("------------------------------Loading the Data------------------------------")
             trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
+            trainX = trainX[:, :, self.electrodes.astype(np.int)-1]
             logging.info("------------------------------Calling Benchmark------------------------------")
-            benchmark(trainX[:, :, self.electrodes.astype(np.int)-1], trainY)
+            benchmark(trainX, trainY)
             logging.info("------------------------------Finished Training------------------------------")
         else:
             if path==None:
@@ -114,7 +115,7 @@ class AnalEyeZor():
 
 
 
-    def PFI(self, scale = False, iterations=5, useAccuracyBool=True):
+    def PFI(self, scale = False, iterations=5, useAccuracyBool=False):
         logging.info("------------------------------PFI------------------------------")
         if config['feature_extraction'] == True:
             print("No PFI for Transformed Data")
@@ -142,26 +143,25 @@ class AnalEyeZor():
             electrodeLosses = np.zeros(dataShape[2])
             start_time = time.time()
             offset = 0
+            trainer = model[0](**model[1])
             prediction = np.zeros(valY.shape)
             print("Evaluating Base of {}".format(name))
-            for i in range(self.numberOfVotingNetworks):
+            for i in range(self.numberOfNetworks):
                 path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
-                matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
-                trainer = tf.keras.models.load_model(path + matching[0])
-                prediction += np.squeeze(trainer.predict(trainX))
+                trainer.ensemble.load_file_pattern = re.compile(name + '_nb_*', re.IGNORECASE)
+                trainer.load(path)
+                trainer.type = 'regressor'
+                prediction = np.squeeze(trainer.predict(trainX))
 
-            if config['task'] == 'LR_task':
-                if useAccuracyBool:
-                    prediction = np.rint(prediction / self.numberOfVotingNetworks)
-                else:
-                    prediction = prediction / self.numberOfVotingNetworks
-                offset = self.binaryCrossEntropyLoss(valY, prediction)
-            elif config['task'] == 'Direction_task':
-                prediction = prediction / self.numberOfVotingNetworks
-                offset = self.meanSquareError(valY, prediction)
-            elif config['task'] == 'Position_task':
-                prediction = prediction / self.numberOfVotingNetworks
-                offset = self.euclideanDistance(valY, prediction)
+                if config['task'] == 'LR_task':
+                    if useAccuracyBool:
+                        prediction = np.rint(prediction)
+                    offset += self.binaryCrossEntropyLoss(valY, prediction)
+                elif config['task'] == 'Direction_task':
+                    offset += self.meanSquareError(valY, prediction)
+                elif config['task'] == 'Position_task':
+                    offset += self.euclideanDistance(valY, prediction)
+            offset = offset / self.numberOfNetworks
 
             print("Evaluating PFI of {}".format(name))
             for k in range(iterations):
@@ -169,26 +169,23 @@ class AnalEyeZor():
                     valX = trainX.copy()
                     np.random.shuffle(valX[:, :, j])
                     prediction = np.zeros(valY.shape)
-                    for i in range(self.numberOfVotingNetworks):
+                    for i in range(self.numberOfNetworks):
                         path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
-                        matching = [s for s in os.listdir(path) if name.lower() in s.lower()]
-                        trainer = tf.keras.models.load_model(path + matching[0])
+                        trainer.ensemble.load_file_pattern = re.compile(name + '_nb_*', re.IGNORECASE)
+                        trainer.load(path)
+                        trainer.type = 'regressor'
                         prediction += np.squeeze(trainer.predict(valX))
 
-                    if config['task'] == 'LR_task':
-                        if useAccuracyBool:
-                            prediction = np.rint(prediction / self.numberOfVotingNetworks)
-                        else:
-                            prediction = prediction / self.numberOfVotingNetworks
-                        electrodeLosses[j] += self.binaryCrossEntropyLoss(valY, prediction)
-                    elif config['task'] == 'Direction_task':
-                        prediction = prediction / self.numberOfVotingNetworks
-                        electrodeLosses[j] += self.meanSquareError(valY, prediction)
-                    elif config['task'] == 'Position_task':
-                        prediction = prediction / self.numberOfVotingNetworks
-                        electrodeLosses[j] += self.euclideanDistance(valY, prediction)
+                        if config['task'] == 'LR_task':
+                            if useAccuracyBool:
+                                prediction = np.rint(prediction)
+                            electrodeLosses[j] += self.binaryCrossEntropyLoss(valY, prediction)
+                        elif config['task'] == 'Direction_task':
+                            electrodeLosses[j] += self.meanSquareError(valY, prediction)
+                        elif config['task'] == 'Position_task':
+                            electrodeLosses[j] += self.euclideanDistance(valY, prediction)
 
-            modelLosses[name] = np.divide((electrodeLosses / iterations), offset) - 1
+            modelLosses[name] = np.divide((electrodeLosses / (iterations*self.numberOfNetworks)), offset) - 1
             runtime = (time.time() - start_time)
             logging.info("--- Sorted Electrodes According to Influence for {}:".format(name))
             logging.info(1+(np.argsort(modelLosses[name]))[::-1])
@@ -205,7 +202,7 @@ class AnalEyeZor():
         np.savetxt(config['model_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
-    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4,pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
+    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
         if not os.path.exists(pathForOriginalRelativeToExecutable+'blank.png'):
             print(pathForOriginalRelativeToExecutable+'blank.png'+" does not exist.")
             return
@@ -235,27 +232,32 @@ class AnalEyeZor():
             if not runName == ".DS_Store":
                 networkNames = os.listdir(originalPath+"checkpoint/"+runName+"/")
                 for networkName in networkNames:
-                    if modelName.lower() in networkName.lower():
-                        shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+networkName)
+                    for name in modelName:
+                        if name.lower() in networkName.lower():
+                            shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+"/"+networkName)
 
         allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
         if os.path.exists(originalPath+"console.out") and getEpochMetricsBool:
             i = 1
             with open(os.path.join(originalPath,"console.out")) as f:
                 readingValuesBool = False
-                metrics = np.zeros([1,4])
+                metrics = np.zeros([1,5])
+                currentEpoch=0
                 for line in f:
                     if i > len(allModelNames):
                         break
                     if "after" in line:
                         readingValuesBool = True
+                    if "Epoch" in line:
+                        currentEpoch = np.array(re.findall(r"[-+]?\d*\.\d+|\d+", line)).astype(np.float)[0]
                     if "loss" in line and readingValuesBool:
                         metricToAppend = np.array(re.findall(r"[-+]?\d*\.\d+|\d+", line)).astype(np.float)
-                        metrics = np.concatenate((metrics, np.expand_dims(metricToAppend[3:],0)), axis=0)
+                        metricToAppend = np.append(currentEpoch,metricToAppend[3:])
+                        metrics = np.concatenate((metrics, np.expand_dims(metricToAppend,0)), axis=0)
                     if "before" in line and readingValuesBool==True:
                         readingValuesBool = False
                         np.savetxt(config['log_dir']+newFolderName+"/"+str(allModelNames.values[i-1][0])+'_{}.csv'.format(i), metrics[1:,:], fmt='%s',
-                                   delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
+                                   delimiter=',', header='Epoch,Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
                         i+=1
                         metrics = np.zeros([1, 4])
                 if i <= len(allModelNames):
@@ -278,7 +280,7 @@ class AnalEyeZor():
         config['info_log'] = config['model_dir'] + '/' + 'inference_info_' + stamp + '.log'
         config['batches_log'] = config['model_dir'] + '/' + 'inference_batches_' + stamp + '.log'
 
-    def colourCode(self,values, electrodes=np.arange(1,130), colour="red", minValue=5):
+    def colourCode(self, values, electrodes=np.arange(1,130), colour="red", minValue=5, epsilon = 0.001):
         colours = np.zeros((values.shape[0],3))
 
         if colour=="green":
@@ -287,7 +289,9 @@ class AnalEyeZor():
             i = 0
         else:
             i=2
-        values = 10*np.log(values+1)
+        #For Decibel, use epsilon = 1, for good colour visualisation use small epsilon > 0
+        values[np.where(values < 0)] = 0
+        values = 10*np.log(values + epsilon)
         originalValueSpan = np.max(values[electrodes-1]) - np.min(values[electrodes-1])
         newValueSpan = 255 - minValue
         colours[electrodes-1,i] = ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue)

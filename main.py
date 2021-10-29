@@ -7,17 +7,6 @@ from Joels_Files.AnalEyeZor import AnalEyeZor
 import pandas as pd
 import numpy as np
 
-class Tee(object):
-    def __init__(self, *files):
-        self.files = files
-    def write(self, obj):
-        for f in self.files:
-            f.write(obj)
-            f.flush() # If you want the output to be visible immediately
-    def flush(self) :
-        for f in self.files:
-            f.flush()
-
 """
 Main entry of the program
 Creates the logging files, loads the data and starts the benchmark.
@@ -28,26 +17,48 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
+    if local:
 
-    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, path="InceptionTimeLRMin/",models=["InceptionTime"],featureExtraction=False)
-    asdf.PFI(useAccuracyBool=False)
-    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI.csv', usecols=['InceptionTime']).to_numpy()
-    goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
-    goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:32]] = 1
-    asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue"),alpha=1, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/")
-    asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), name='best32Electrode.png', alpha=0.4)
-    #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
-    asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='max', trainBool=False, path="InceptionTimeLRMax/",models=["InceptionTime"],featureExtraction=False)
-    asdf.PFI(useAccuracyBool=False)
-    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI.csv', usecols=['InceptionTime']).to_numpy()
-    goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
-    goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:64]] = 1
-    asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue"),alpha=1)
-    asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), name='best64Electrode.png',alpha=0.4,pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/")
+        def plot(filename):
+            asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False,
+                             path="InceptionTimeLRMin/", models=["InceptionTime"], featureExtraction=False)
+            lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=['InceptionTime']).to_numpy()
+            goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
+            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:2]] = 1
+            #asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue"),name='Electrode_Configuration_'+filename+'.png',alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), name='best2Electrode_'+filename+'.png', alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:4]] = 1
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colour="blue"),
+                               name='best4Electrode_'+filename+'.png', alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+
+        def train(filename,electrodes,prep):
+            asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing=prep, trainBool=False
+                              , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
+            asdf.moveModels(newFolderName=filename,modelName=["InceptionTime"],originalPath=asdf.currentFolderPath)
+
+        train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
+        train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
+        train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
+        train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
+
+
+
+    if not local:
+
+        def train(filename,electrodes,prep):
+            asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing=prep, trainBool=False
+                              , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
+            asdf.moveModels(newFolderName=filename,modelName=["InceptionTime"],originalPath=asdf.currentFolderPath)
+
+        train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
+        train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
+        train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
+        train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
+
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
     #start_time = time.time()
