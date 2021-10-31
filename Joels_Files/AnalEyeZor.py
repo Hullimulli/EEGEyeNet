@@ -96,7 +96,7 @@ class AnalEyeZor():
             config['retrain'] = trainBool
             config['save_models'] = saveModelBool
             initFolder()
-            self.currentFolderPath = config['model_dir']
+            self.currentFolderPath = config['model_dir'] + "/"
             logging.info("------------------------------Loading the Data------------------------------")
             trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
             trainX = trainX[:, :, self.electrodes.astype(np.int)-1]

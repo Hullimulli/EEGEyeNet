@@ -53,10 +53,11 @@ def main():
             asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing=prep, trainBool=True
                               , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,modelName=["InceptionTime"],originalPath=asdf.currentFolderPath)
+            del asdf
 
-        train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
-        train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
-        train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
+        #train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
+        #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
+        #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
         train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
