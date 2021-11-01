@@ -259,7 +259,7 @@ class AnalEyeZor():
                         np.savetxt(config['log_dir']+newFolderName+"/"+str(allModelNames.values[i-1][0])+'_{}.csv'.format(i), metrics[1:,:], fmt='%s',
                                    delimiter=',', header='Epoch,Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
                         i+=1
-                        metrics = np.zeros([1, 4])
+                        metrics = np.zeros([1, 5])
                 if i <= len(allModelNames):
                     np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i-1][0]) + '_{}.csv'.format(i),
                                metrics[1:, :], fmt='%s',

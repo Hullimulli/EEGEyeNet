@@ -58,7 +58,15 @@ def main():
         #train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
         #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
         #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
-        train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
+        #train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
+        train('LRMax_InceptionTime_All', 1 + np.arange(129), 'max')
+        train('LRMax_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'max')
+        train('LRMax_InceptionTime_FrontExt', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120,26, 22, 127, 15, 126, 9, 2]), 'max')
+        train('LRMax_InceptionTime_Back', np.array([59, 60, 65, 66, 67, 70, 71, 76, 77, 83, 84, 85, 90, 91]), 'max')
+        train('LRMax_InceptionTime_BackExt', np.array([59, 60, 65, 66, 67, 70, 71, 76, 77, 83, 84, 85, 90, 91,57, 58, 64, 69, 89, 95, 96, 100]), 'max')
+        train('LRMax_InceptionTime_FrontBack', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120,59, 60, 65, 66, 67, 70, 71, 76, 77, 83, 84, 85, 90, 91]), 'max')
+        train('LRMax_InceptionTime_FrontBackExt', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120,26, 22, 127, 15, 126, 9, 2,59, 60, 65, 66, 67, 70, 71, 76, 77, 83, 84, 85, 90, 91,57, 58, 64, 69, 89, 95, 96, 100]), 'max')
+
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
