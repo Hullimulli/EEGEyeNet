@@ -36,7 +36,7 @@ class BaseNet:
             self.model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(), metrics=['accuracy'])
         elif self.loss == 'mse':
             self.model.compile(loss='mean_squared_error', optimizer=keras.optimizers.Adam(), metrics=['mean_squared_error'])
-        elif self.loss == 'angle_loss':
+        elif self.loss == 'angle-loss':
             from DL_Models.tf_models.utils.losses import angle_loss
             self.model.compile(loss=angle_loss, optimizer=keras.optimizers.Adam())
         else:
