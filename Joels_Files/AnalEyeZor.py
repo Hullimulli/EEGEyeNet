@@ -18,6 +18,8 @@ import pandas as pd
 import re
 import cv2
 import matplotlib.pyplot as plt
+import scipy.io as sio
+import mne
 
 import numpy as np
 
@@ -59,23 +61,45 @@ class AnalEyeZor():
             return all_EEG_file
 
         config['all_EEG_file'] = build_file_name()
-
+        asdf = our_DL_models[config['task']][config['dataset']][config['preprocessing']]
         #########################################Loading_or_Training_Model####################################################
         your_models[config['task']] = {config['dataset']:{config['preprocessing']:{}}}
         for i in models:
-
-            if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
-                print("{} not yet configured.".format(i))
-            else:
-                if i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]:
-                    your_models[config['task']][config['dataset']][config['preprocessing']] = {i:{}}
-                    your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
-                    our_DL_models[config['task']][config['dataset']][config['preprocessing']][i]
+            if config['task'] == 'Direction_task':
+                if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] \
+                and i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
+                    print("{} not yet configured.".format(i))
                 else:
-                    your_models[config['task']][config['dataset']][config['preprocessing']] = {i: {}}
-                    your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
-                    our_ML_models[config['task']][config['dataset']][config['preprocessing']][i]
-                your_models[config['task']][config['dataset']][config['preprocessing']][i][1]["input_shape"] = self.inputShape
+                    if i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {i:{}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i] = \
+                        our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i]
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {i: {}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i] = \
+                        our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i]
+                    else:
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {i:{}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i] = \
+                        our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i]
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {i: {}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i] = \
+                        our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i]
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i][1]["input_shape"] = self.inputShape
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i][1]["input_shape"] = self.inputShape
+            else:
+
+                if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
+                    print("{} not yet configured.".format(i))
+                else:
+                    if i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]:
+                        your_models[config['task']][config['dataset']][config['preprocessing']] = {i:{}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
+                        our_DL_models[config['task']][config['dataset']][config['preprocessing']][i]
+                    else:
+                        your_models[config['task']][config['dataset']][config['preprocessing']] = {i: {}}
+                        your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
+                        our_ML_models[config['task']][config['dataset']][config['preprocessing']][i]
+                    your_models[config['task']][config['dataset']][config['preprocessing']][i][1]["input_shape"] = self.inputShape
 
 
         all_models.pop(config['task'], None)
@@ -298,11 +322,15 @@ class AnalEyeZor():
         return colours
 
     def plotTraining(self, name, modelFileName, columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], returnPlotBool=False, format="pdf"):
-        data = pd.read_csv(config['model_dir'] + modelFileName, usecols=columns).to_numpy()
-        xAxis = np.arange(data.shape[0])+1
+
+        data = pd.read_csv(config['model_dir'] + modelFileName, usecols=["Epoch"]+columns).to_numpy()
+        xAxis = np.arange(int(np.max(data[0])))+1
+        values = np.zeros([xAxis.shape[0],data.shape[1]-1])
+
+
         fig = plt.figure()
         plt.xlabel("Epoch")
-        for i in range(data.shape[1]):
+        for i in range(1,data.shape[1]):
             plt.plot(xAxis, data[:,i], label=columns[i])
         plt.legend()
         fig.savefig(config['model_dir'] + name+".{}".format(format), format=format, transparent=True)
@@ -310,7 +338,19 @@ class AnalEyeZor():
             return fig
         plt.close()
 
-
+    def topoPlot(self, values, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/", epsilon=0.001):
+        electrodePositions = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['pos'][0][0]
+        values[np.where(values < 0)] = 0
+        values = 10 * np.log(values + epsilon)
+        fig = plt.figure()
+        im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],show=False,cmap='Reds')
+        clb = fig.colorbar(im)
+        if epsilon==1:
+            clb.ax.set_title("Loss in Db")
+        else:
+            clb.ax.set_title("10x Log-Ratio-Loss with eps={}".format(epsilon))
+        plt.legend()
+        plt.close()
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))

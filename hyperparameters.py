@@ -234,8 +234,8 @@ our_ML_dummy_models = {
     }
 }
 
-nb_models = 5
-batch_size = 64
+nb_models = 1
+batch_size = 16
 input_shape = (1, 258) if config['feature_extraction'] else (500, 129)
 depth = 12
 epochs = 50
