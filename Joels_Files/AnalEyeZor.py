@@ -39,7 +39,7 @@ class Tee(object):
 
 class AnalEyeZor():
 
-    def __init__(self, task, dataset, preprocessing, models, electrodes = 1+np.arange(129),featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
+    def __init__(self, task, dataset, preprocessing, model, electrodes = 1+np.arange(129),featureExtraction = False, trainBool = True, saveModelBool = True, path=None):
 
         config['include_ML_models'] = False
         config['include_DL_models'] = False
@@ -64,47 +64,45 @@ class AnalEyeZor():
         asdf = our_DL_models[config['task']][config['dataset']][config['preprocessing']]
         #########################################Loading_or_Training_Model####################################################
         your_models[config['task']] = {config['dataset']:{config['preprocessing']:{}}}
-        for i in models:
-            if config['task'] == 'Direction_task':
-                if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] \
-                and i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
-                    print("{} not yet configured.".format(i))
-                else:
-                    if i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {i:{}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i] = \
-                        our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i]
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {i: {}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i] = \
-                        our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i]
-                    else:
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {i:{}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i] = \
-                        our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i]
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {i: {}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i] = \
-                        our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i]
-                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][i][1]["input_shape"] = self.inputShape
-                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][i][1]["input_shape"] = self.inputShape
+        if config['task'] == 'Direction_task':
+            if model not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and model not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] \
+            and model not in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'] and model not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
+                print("{} not yet configured.".format(model))
             else:
-
-                if i not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and i not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
-                    print("{} not yet configured.".format(i))
+                if model in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] and model in our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle']:
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {model:{}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][model] = \
+                    our_DL_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][model]
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {model: {}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][model] = \
+                    our_DL_models[config['task']][config['dataset']][config['preprocessing']]['angle'][model]
                 else:
-                    if i in our_DL_models[config['task']][config['dataset']][config['preprocessing']]:
-                        your_models[config['task']][config['dataset']][config['preprocessing']] = {i:{}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
-                        our_DL_models[config['task']][config['dataset']][config['preprocessing']][i]
-                    else:
-                        your_models[config['task']][config['dataset']][config['preprocessing']] = {i: {}}
-                        your_models[config['task']][config['dataset']][config['preprocessing']][i] = \
-                        our_ML_models[config['task']][config['dataset']][config['preprocessing']][i]
-                    your_models[config['task']][config['dataset']][config['preprocessing']][i][1]["input_shape"] = self.inputShape
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'] = {model:{}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][model] = \
+                    our_ML_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][model]
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'] = {model: {}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][model] = \
+                    our_ML_models[config['task']][config['dataset']][config['preprocessing']]['angle'][model]
+                your_models[config['task']][config['dataset']][config['preprocessing']]['angle'][model][1]["input_shape"] = self.inputShape
+                your_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][model][1]["input_shape"] = self.inputShape
+        else:
+
+            if model not in our_DL_models[config['task']][config['dataset']][config['preprocessing']] and model not in our_ML_models[config['task']][config['dataset']][config['preprocessing']]:
+                print("{} not yet configured.".format(model))
+            else:
+                if model in our_DL_models[config['task']][config['dataset']][config['preprocessing']]:
+                    your_models[config['task']][config['dataset']][config['preprocessing']] = {model:{}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']][model] = \
+                    our_DL_models[config['task']][config['dataset']][config['preprocessing']][model]
+                else:
+                    your_models[config['task']][config['dataset']][config['preprocessing']] = {model: {}}
+                    your_models[config['task']][config['dataset']][config['preprocessing']][model] = \
+                    our_ML_models[config['task']][config['dataset']][config['preprocessing']][model]
+                your_models[config['task']][config['dataset']][config['preprocessing']][model][1]["input_shape"] = self.inputShape
 
 
         all_models.pop(config['task'], None)
         all_models[config['task']] = your_models[config['task']]
-
         def initFolder():
             create_folder()
             logging.basicConfig(filename=config['info_log'], level=logging.INFO)
@@ -289,9 +287,17 @@ class AnalEyeZor():
                                metrics[1:, :], fmt='%s',
                                delimiter=',', header='Loss,Accuracy,Val_Loss,Val_Accuracy', comments='')
 
+        if os.path.exists(originalPath + "runs_angle.csv"):
+            shutil.move(originalPath+"runs_angle.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "runs_amplitude.csv"):
+            shutil.move(originalPath+"runs_amplitude.csv", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "runs.csv"):
             shutil.move(originalPath+"runs.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "statistics_amplitude.csv"):
+            shutil.move(originalPath + "statistics_amplitude.csv", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "statistics.csv"):
+            shutil.move(originalPath + "statistics_angle.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "statistics_angle.csv"):
             shutil.move(originalPath + "statistics.csv", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "info.log"):
             shutil.move(originalPath + "info.log", config['log_dir'] + newFolderName)

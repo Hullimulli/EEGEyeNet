@@ -49,18 +49,26 @@ def main():
 
     if not local:
 
-        def train(filename,electrodes,prep,task):
+        def train(filename,network,electrodes,prep,task):
             asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=True
-                              , models=["InceptionTime","CNN","EEGNet","PyramidalCNN","Xception"], electrodes=electrodes,featureExtraction=False)
-            asdf.moveModels(newFolderName=filename,modelName=["InceptionTime","CNN","EEGNet","PyramidalCNN","Xception"],originalPath=asdf.currentFolderPath)
+                              , model=network, electrodes=electrodes,featureExtraction=False)
+            asdf.moveModels(newFolderName=filename,modelName=network,originalPath=asdf.currentFolderPath)
             del asdf
 
         #train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
         #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
         #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
         #train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
-        train('Direction_All', 1 + np.arange(129), 'min', "Direction_task")
-        train('Position_All', 1 + np.arange(129), 'min', 'Position_task')
+        train('Direction_CNN', "CNN",1 + np.arange(129), 'min', "Direction_task")
+        train('Direction_EEGNET', "EEGNet", 1 + np.arange(129), 'min', "Direction_task")
+        train('Direction_PyramidalCNN', "PyramidalCNN", 1 + np.arange(129), 'min', "Direction_task")
+        train('Direction_InceptionTime', "InceptionTime", 1 + np.arange(129), 'min', "Direction_task")
+        train('Direction_Xception', "Xception", 1 + np.arange(129), 'min', "Direction_task")
+        train('Position_Xception', "Xception",1 + np.arange(129), 'min', 'Position_task')
+        train('Position_PyramidalCNN', "PyramidalCNN", 1 + np.arange(129), 'min', 'Position_task')
+        train('Position_EEGNet', "EEGNet", 1 + np.arange(129), 'min', 'Position_task')
+        train('Position_CNN', "CNN", 1 + np.arange(129), 'min', 'Position_task')
+        train('Position_InceptionTime', "InceptionTime", 1 + np.arange(129), 'min', 'Position_task')
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
