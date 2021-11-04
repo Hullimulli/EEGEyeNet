@@ -256,8 +256,16 @@ class AnalEyeZor():
                 for networkName in networkNames:
                     if modelName.lower() in networkName.lower():
                         shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+"/"+networkName)
+        if os.path.exists(originalPath + "runs.csv"):
+            allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
+        elif os.path.exists(originalPath + "runs_amplitude.csv"):
+            allModelNames = pd.read_csv(originalPath + "runs_amplitude.csv", usecols=["Model"])
+        elif os.path.exists(originalPath + "runs_angle.csv"):
+            allModelNames = pd.read_csv(originalPath + "runs_angle.csv", usecols=["Model"])
+        else:
+            print("run not found")
+            return
 
-        allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
         if os.path.exists(originalPath+"console.out") and getEpochMetricsBool:
             i = 1
             with open(os.path.join(originalPath,"console.out")) as f:
@@ -295,9 +303,9 @@ class AnalEyeZor():
         if os.path.exists(originalPath + "statistics_amplitude.csv"):
             shutil.move(originalPath + "statistics_amplitude.csv", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "statistics.csv"):
-            shutil.move(originalPath + "statistics_angle.csv", config['log_dir'] + newFolderName)
-        if os.path.exists(originalPath + "statistics_angle.csv"):
             shutil.move(originalPath + "statistics.csv", config['log_dir'] + newFolderName)
+        if os.path.exists(originalPath + "statistics_angle.csv"):
+            shutil.move(originalPath + "statistics_angle.csv", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "info.log"):
             shutil.move(originalPath + "info.log", config['log_dir'] + newFolderName)
         if os.path.exists(originalPath + "config.csv"):
