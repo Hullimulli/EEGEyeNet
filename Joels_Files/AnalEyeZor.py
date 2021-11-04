@@ -254,9 +254,8 @@ class AnalEyeZor():
             if not runName == ".DS_Store":
                 networkNames = os.listdir(originalPath+"checkpoint/"+runName+"/")
                 for networkName in networkNames:
-                    for name in modelName:
-                        if name.lower() in networkName.lower():
-                            shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+"/"+networkName)
+                    if modelName.lower() in networkName.lower():
+                        shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+"/"+networkName)
 
         allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
         if os.path.exists(originalPath+"console.out") and getEpochMetricsBool:
