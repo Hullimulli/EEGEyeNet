@@ -49,17 +49,24 @@ def main():
 
     if not local:
 
-        def train(filename,network,electrodes,prep,task):
+        def train(filename,network,electrodes,prep,task,trail=False):
             asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=True
-                              , models=network, electrodes=electrodes,featureExtraction=False)
+                               ,models=network, electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
+            if trail:
+                asdf.PFI(saveTrail=trail, nameSuffix=trail)
+                asdf.PFI(saveTrail=trail, nameSuffix=trail)
+            else:
+                asdf.PFI()
             del asdf
 
         #train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
         #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
         #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
         #train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
-        train('Direction_CNN', ["CNN","EEGNet","PyramidalCNN","InceptionTime","Xception"],1 + np.arange(129), 'min', "Direction_task")
+        train('Direction_Xception_PFI', ["Xception"],1 + np.arange(129), 'min', "Direction_task",trail=True)
+        train('Direction_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task",trail=True)
+        train('Position_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task")
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 

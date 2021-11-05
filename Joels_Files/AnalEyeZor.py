@@ -171,7 +171,7 @@ class AnalEyeZor():
 
 
 
-    def PFI(self, scale = False, iterations=5, useAccuracyBool=False, saveTrail=''):
+    def PFI(self, scale = False, nameSuffix='',iterations=5, useAccuracyBool=False, saveTrail=''):
         """
         Function that uses the folder which is defined when initialised to perform PFI with all contained networks.
         @param scale: Set to true, if the input has to be scaled.
@@ -207,7 +207,13 @@ class AnalEyeZor():
         del trainIndices, valIndices, testIndices, trainY
 
         modelLosses = dict()
-        models = all_models[config['task']][config['dataset']][config['preprocessing']]
+        if saveTrail == 'angle':
+            models = all_models[config['task']][config['dataset']][config['preprocessing']]['angle']
+        elif saveTrail == 'angle':
+            models = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude']
+        else:
+            models = all_models[config['task']][config['dataset']][config['preprocessing']]
+
         for name, model in models.items():
             electrodeLosses = np.zeros(dataShape[2])
             start_time = time.time()
@@ -268,7 +274,7 @@ class AnalEyeZor():
             legend += ','+i
             results = np.concatenate((results,np.expand_dims(j,0)),axis=0)
 
-        np.savetxt(config['model_dir'] +  'PFI.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
+        np.savetxt(config['model_dir'] +  'PFI' + nameSuffix + '.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
 
     def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
@@ -314,8 +320,12 @@ class AnalEyeZor():
                 networkNames = os.listdir(originalPath+"checkpoint/"+runName+"/")
                 for networkName in networkNames:
                     for modelName in self.modelNames:
-                        if modelName.lower() in networkName.lower():
+                        specialCaseBool = 'pyramidal' in networkName.lower()
+                        if modelName.lower() in networkName.lower() and not specialCaseBool:
                             shutil.move(originalPath+"checkpoint/"+runName+"/"+networkName,config['log_dir']+newFolderName+"/checkpoint/"+runName+"/"+networkName)
+                        #Special case since CNN and PyramidalCNN both contain the word CNN
+                        elif modelName.lower() in networkName.lower() and specialCaseBool and 'pyramidal' in modelName.lower():
+                            shutil.move(originalPath + "checkpoint/" + runName + "/" + networkName, config['log_dir'] + newFolderName + "/checkpoint/" + runName + "/" + networkName)
         #Get how many networks exists in this run.
         if os.path.exists(originalPath + "runs.csv"):
             allModelNames = pd.read_csv(originalPath+"runs.csv", usecols=["Model"])
@@ -346,13 +356,13 @@ class AnalEyeZor():
                     if "loss" in line and readingValuesBool:
                         metricToAppend = np.array(re.findall(r"[-+]?\d*\.\d+|\d+", line)).astype(np.float)
                         metricToAppend = np.append(currentEpoch,metricToAppend[3:])
-                        if metrics == None:
+                        if metrics is None:
                             metrics = np.expand_dims(metricToAppend,0)
-                            if metrics.shape[1] == 4:
+                            if metrics.shape[1] == 2:
                                 header = 'Epoch,Loss'
-                            elif metrics.shape[1] == 5:
+                            elif metrics.shape[1] == 3:
                                 header = 'Epoch,Loss,Accuracy'
-                            elif metrics.shape[1] == 6:
+                            elif metrics.shape[1] == 4:
                                 header = 'Epoch,Loss,Accuracy,Val_Loss'
                             else:
                                 header = 'Epoch,Loss,Accuracy,Val_Loss,Val_Accuracy'
@@ -360,13 +370,13 @@ class AnalEyeZor():
                             metrics = np.concatenate((metrics, np.expand_dims(metricToAppend,0)), axis=0)
                     if "before" in line and readingValuesBool==True:
                         readingValuesBool = False
-                        np.savetxt(config['log_dir']+newFolderName+"/"+str(allModelNames.values[i-1][0])+'_{}.csv'.format(i), metrics[1:,:], fmt='%s',
+                        np.savetxt(config['log_dir']+newFolderName+"/"+str(allModelNames.values[i%len(allModelNames)-1][0])+'_{}.csv'.format(i), metrics, fmt='%s',
                                    delimiter=',', header=header, comments='')
                         i+=1
-                        metrics = np.zeros([1, 5])
+                        metrics = None
                 if i <= len(allModelNames)*multiplier:
-                    np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i-1][0]) + '_{}.csv'.format(i),
-                               metrics[1:, :], fmt='%s',
+                    np.savetxt(config['log_dir'] + newFolderName + "/" + str(allModelNames.values[i%len(allModelNames)-1][0]) + '_{}.csv'.format(i),
+                               metrics, fmt='%s',
                                delimiter=',', header=header, comments='')
 
         #Move important files.
@@ -394,6 +404,8 @@ class AnalEyeZor():
         stamp = str(int(time.time()))
         config['info_log'] = config['model_dir'] + '/' + 'inference_info_' + stamp + '.log'
         config['batches_log'] = config['model_dir'] + '/' + 'inference_batches_' + stamp + '.log'
+
+        self.currentFolderPath = config['log_dir'] + newFolderName + "/"
 
     def colourCode(self, values, electrodes=np.arange(1,130), colour="red", minValue=5, epsilon = 0.001):
         colours = np.zeros((values.shape[0],3))
