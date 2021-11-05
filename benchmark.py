@@ -70,7 +70,7 @@ def try_models(trainX, trainY, ids, models, N=5, scoring=None, scale=False, save
                 trainer.load(path)
 
             if config['save_models']:
-                trainer.save(path)
+                trainer.save(path+save_trail[1:]+'_')
 
             #pred = trainer.predict(X_test)
             #print(y_test.shape)
