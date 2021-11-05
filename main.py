@@ -54,8 +54,8 @@ def main():
                                ,models=network, electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
-                asdf.PFI(saveTrail=trail, nameSuffix=trail)
-                asdf.PFI(saveTrail=trail, nameSuffix=trail)
+                asdf.PFI(saveTrail='angle', nameSuffix='angle')
+                asdf.PFI(saveTrail='amplitude', nameSuffix='amplitude')
             else:
                 asdf.PFI()
             del asdf

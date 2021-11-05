@@ -169,8 +169,6 @@ class AnalEyeZor():
             initFolder()
             logging.info("------------------------------Selected Model------------------------------")
 
-
-
     def PFI(self, scale = False, nameSuffix='',iterations=5, useAccuracyBool=False, saveTrail=''):
         """
         Function that uses the folder which is defined when initialised to perform PFI with all contained networks.
@@ -209,7 +207,7 @@ class AnalEyeZor():
         modelLosses = dict()
         if saveTrail == 'angle':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['angle']
-        elif saveTrail == 'angle':
+        elif saveTrail == 'amplitude':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude']
         else:
             models = all_models[config['task']][config['dataset']][config['preprocessing']]
@@ -233,8 +231,10 @@ class AnalEyeZor():
                     if useAccuracyBool:
                         prediction = np.rint(prediction)
                     offset += self.binaryCrossEntropyLoss(valY, prediction)
-                elif config['task'] == 'Direction_task':
+                elif config['task'] == 'Direction_task' and saveTrail == 'amplitude':
                     offset += self.meanSquareError(valY, prediction)
+                elif config['task'] == 'Direction_task' and saveTrail == 'angle':
+                    offset += self.angleError(valY, prediction)
                 elif config['task'] == 'Position_task':
                     offset += self.euclideanDistance(valY, prediction)
             offset = offset / self.numberOfNetworks
@@ -255,8 +255,10 @@ class AnalEyeZor():
                             if useAccuracyBool:
                                 prediction = np.rint(prediction)
                             electrodeLosses[j] += self.binaryCrossEntropyLoss(valY, prediction)
-                        elif config['task'] == 'Direction_task':
+                        elif config['task'] == 'Direction_task' and saveTrail=='amplitude':
                             electrodeLosses[j] += self.meanSquareError(valY, prediction)
+                        elif config['task'] == 'Direction_task' and saveTrail=='angle':
+                            electrodeLosses[j] += self.angleError(valY, prediction)
                         elif config['task'] == 'Position_task':
                             electrodeLosses[j] += self.euclideanDistance(valY, prediction)
 
