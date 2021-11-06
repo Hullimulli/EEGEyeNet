@@ -201,14 +201,16 @@ class AnalEyeZor():
             scaler = StandardScaler()
             scaler.fit(trainX[trainIndices])
             trainX = scaler.transform(trainX[valIndices])
-        trainX, valY = trainX[valIndices], trainY[valIndices,1]
+        trainX, valY = trainX[valIndices], trainY[valIndices,1:]
         del trainIndices, valIndices, testIndices, trainY
 
         modelLosses = dict()
         if saveTrail == 'angle':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['angle']
+            valY = valY[:, 1]
         elif saveTrail == 'amplitude':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude']
+            valY = valY[:, 0]
         else:
             models = all_models[config['task']][config['dataset']][config['preprocessing']]
 
@@ -462,7 +464,7 @@ class AnalEyeZor():
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
 
     def angleError(self,y,yPred):
-        np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - yPred.ravel()), np.cos(y - yPred.ravel())))))
+        return np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - yPred.ravel()), np.cos(y - yPred.ravel())))))
 
     def euclideanDistance(self,y,yPred):
         return np.linalg.norm(y - yPred, axis=1).mean()
