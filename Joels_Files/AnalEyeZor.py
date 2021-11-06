@@ -403,6 +403,7 @@ class AnalEyeZor():
 
         config['load_experiment_dir'] = newFolderName
         config['model_dir'] = config['log_dir'] + config['load_experiment_dir']
+        config['checkpoint_dir'] = config['model_dir'] + 'checkpoint/'
         stamp = str(int(time.time()))
         config['info_log'] = config['model_dir'] + '/' + 'inference_info_' + stamp + '.log'
         config['batches_log'] = config['model_dir'] + '/' + 'inference_batches_' + stamp + '.log'
