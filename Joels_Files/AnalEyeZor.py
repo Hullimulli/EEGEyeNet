@@ -513,7 +513,77 @@ class AnalEyeZor():
         else:
             clb.ax.set_title("10x Log-Ratio-Loss, eps={}".format(epsilon))
         plt.legend()
-        fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+        if saveBool:
+            fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
+
+    def visualizePrediction(self, modelName, run = 1, nrOfPoints=9, filename='predictionVisualisation', format='pdf',saveBool=True, scale=False):
+
+        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = trainY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+        if scale:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+            logging.info('Standard Scaling')
+            scaler = StandardScaler()
+            scaler.fit(trainX[trainIndices])
+            trainX = scaler.transform(trainX[valIndices])
+        else:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
+            trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
+        valY = trainY[testIndices,1:]
+        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+        del trainIndices, valIndices, testIndices, trainY
+        if config['task'] == 'Direction_task':
+            modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+            modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+
+            trainerAmp = modelAmp[0](**modelAmp[1])
+            trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
+            trainerAmp.load(path)
+            predictionAmp = np.squeeze(trainerAmp.predict(trainX))
+
+            trainerAngle = modelAngle[0](**modelAngle[1])
+            trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+            trainerAngle.load(path)
+            predictionAngle = np.squeeze(trainerAngle.predict(trainX))
+
+            prediction = np.zeros([predictionAngle.shape[0],2])
+            prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
+            prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
+
+            truth = np.zeros([predictionAngle.shape[0], 2])
+            truth[:,0] = np.multiply(valY[:,0],np.cos(valY[:,1]))
+            truth[:, 1] = np.multiply(valY[:,0], np.sin(valY[:,1]))
+        elif config['task'] == 'Position_task':
+            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+            trainer = model[0](**model[1])
+            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+            trainer.load(path)
+            prediction = np.squeeze(trainer.predict(trainX))
+            truth = valY
+        else:
+            print("Task not yet configured.")
+            return
+        steps = np.linspace(0.3,1,num=int(nrOfPoints/3)+1)
+        colour = np.zeros((nrOfPoints,3))
+        for i in range(3):
+            length = colour[int(i*nrOfPoints/3):int((1+i)*nrOfPoints/3),i].shape[0]
+            colour[int(i*nrOfPoints/3):int((1+i)*nrOfPoints/3),i] =  steps[:length]
+
+        fig = plt.figure()
+        plt.scatter(truth[:,0],truth[:,1],c=colour, marker='o',label="Ground Truth")
+        plt.scatter(prediction[:, 0], prediction[:, 1], c=colour, marker='x',label="Prediction")
+        plt.legend()
+        if saveBool:
+            fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
         plt.close()
 
     def meanSquareError(self,y,yPred):

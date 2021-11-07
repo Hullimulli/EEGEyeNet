@@ -17,7 +17,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = False
+    local = True
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -43,7 +43,15 @@ def main():
                               , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,modelName=["InceptionTime"],originalPath=asdf.currentFolderPath)
 
-        plot("Min_BCLoss_IncreaseInPercent")
+        #plot("Min_BCLoss_IncreaseInPercent")
+
+        def visualize(task, model):
+            asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
+                              path=task+"_"+model+"/", models=[model], featureExtraction=False)
+            asdf.visualizePrediction(modelName=model, run=3)
+        #visualize("Position_PyramidalCNN","PyramidalCNN")
+        visualize("Direction", "Xception")
+
 
 
 
