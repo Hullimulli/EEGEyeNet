@@ -178,7 +178,7 @@ class AnalEyeZor():
         @type iterations: Int
         @param useAccuracyBool: If True, uses accuracy instead of bce for LR-Task scoring.
         @type useAccuracyBool: Bool
-        @param saveTrail: The string, with which the save-folder begins before stating the networks name.
+        @param saveTrail: The string, with which the save-folder begins before stating the networks name. Should be either '', '_amplitude' or '_angle'
         @type saveTrail: String
         @return: Returns the ratio of loss between the prediction when one electrode is permutated and when nothing is permutated.
         This is done for each electrode. Electrode number is the index + 1.
@@ -205,10 +205,10 @@ class AnalEyeZor():
         del trainIndices, valIndices, testIndices, trainY
 
         modelLosses = dict()
-        if saveTrail == 'angle':
+        if saveTrail == '_angle':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['angle']
             valY = valY[:, 1]
-        elif saveTrail == 'amplitude':
+        elif saveTrail == '_amplitude':
             models = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude']
             valY = valY[:, 0]
         else:
@@ -280,6 +280,16 @@ class AnalEyeZor():
 
         np.savetxt(config['model_dir'] +  'PFI' + nameSuffix + '.csv', results.transpose(), fmt='%s', delimiter=',', header=legend, comments='')
         return modelLosses
+
+    def electrodeBarPlot(self,values,name="Electrode_Loss.png",format='pdf',colour='red'):
+        values[np.where(values < 0)] = 0
+        xAxis = np.arange(values.shape[0]) + 1
+        fig = plt.figure()
+        plt.xlabel("Electrode Number")
+        plt.bar(xAxis, np.squeeze(values), color=colour)
+        plt.legend()
+        fig.savefig(config['model_dir'] + name + ".{}".format(format), format=format, transparent=True)
+        plt.close()
 
     def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
         if not os.path.exists(pathForOriginalRelativeToExecutable+'blank.png'):
@@ -426,14 +436,14 @@ class AnalEyeZor():
         values = 10*np.log(values + epsilon)
         originalValueSpan = np.max(values[electrodes-1]) - np.min(values[electrodes-1])
         newValueSpan = 255 - minValue
-        colours[electrodes-1,i] = ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue)
+        colours[electrodes-1,:] = 255 - ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue)
+        colours[electrodes - 1, i] = 255
         return colours
 
     def plotTraining(self, name, modelFileName, columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], returnPlotBool=False, format="pdf"):
 
         data = pd.read_csv(config['model_dir'] + modelFileName, usecols=["Epoch"]+columns).to_numpy()
         xAxis = np.arange(int(np.max(data[0])))+1
-        values = np.zeros([xAxis.shape[0],data.shape[1]-1])
 
 
         fig = plt.figure()
@@ -446,18 +456,60 @@ class AnalEyeZor():
             return fig
         plt.close()
 
-    def topoPlot(self, values, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/", epsilon=0.001):
+    def topoPlot(self, values, filename='topoPlot', format='pdf',pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/", saveBool=True, cmap='Reds',epsilon=0.001):
+        """
+
+        @param values: Array of length 129, where the index + 1 equals the electrode number and a value, which will be colour coded. All values < 0 will be set to 0.
+        @type values: Numpy Array
+        @param filename: Name of the file as which the plot will be saved.
+        @type filename: String
+        @param format: Format of the save file.
+        @type format: String
+        @param pathForOriginalRelativeToExecutable: Depending from where the main.py script is called, this has to be adjusted to be the path relative to the starting file.
+        @type pathForOriginalRelativeToExecutable: String
+        @param saveBool: If True, the plot will be saved. Else it will be shown.
+        @type saveBool: Bool
+        @param cmap: Matplotlib colourmap
+        @type cmap: String
+        @param epsilon: Number to adjust weighting in the log plot. Has to be larger than 0.
+        @type epsilon: float
+        @return: None
+        @rtype: None
+        """
+
+        if cmap not in plt.colormaps():
+            print("Colourmap does not exist in Matplotlib.")
+            cmap = "Reds"
+        if epsilon <= 0:
+            print("Epsilon too small, using epsilon = 1")
+            epsilon = 1
+        if values.shape[0] != 129:
+            print("Wrong array dimensions")
+            return
+
         electrodePositions = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['pos'][0][0]
+        outline = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['outline'][0][0]
+        mask = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['mask'][0][0]
         values[np.where(values < 0)] = 0
         values = 10 * np.log(values + epsilon)
-        fig = plt.figure()
-        im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],show=False,cmap='Reds')
+        fig = plt.figure(figsize=(7,4.5))
+        #Generating outline dictionary for mne topoplot
+        outlines = dict()
+        outlines["mask_pos"] = (mask[0,0][:,0],mask[0,0][:,1])
+        outlines["head"] = (outline[0, 0][:,0],outline[0, 0][:,1])
+        outlines["nose"] = (outline[0, 1][:,0],outline[0, 1][:,1])
+        outlines["ear_left"] = (outline[0, 2][:,0],outline[0, 2][:,1])
+        outlines["ear_right"] = (outline[0, 3][:,0],outline[0, 3][:,1])
+        outlines['clip_radius'] = (0.5,) * 2
+        outlines['clip_origin'] = (0,0.07)
+        im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],outlines=outlines,show=False,cmap=cmap)
         clb = fig.colorbar(im)
         if epsilon==1:
             clb.ax.set_title("Loss in Db")
         else:
-            clb.ax.set_title("10x Log-Ratio-Loss with eps={}".format(epsilon))
+            clb.ax.set_title("10x Log-Ratio-Loss, eps={}".format(epsilon))
         plt.legend()
+        fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
         plt.close()
 
     def meanSquareError(self,y,yPred):

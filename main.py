@@ -30,7 +30,8 @@ def main():
             goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
             #goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:1]] = 1
             goodElectrodeIndices[0] = 1
-            asdf.topoPlot(lossValues,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            #asdf.electrodeBarPlot(values=lossValues)
+            asdf.topoPlot(lossValues,cmap='Blues',pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=1)
             #asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue"),name='Electrode_Configuration_'+filename+'.png',alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
             #asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), name='best2Electrode_'+filename+'.png', alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
             #goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:4]] = 1
@@ -51,7 +52,7 @@ def main():
 
         def train(filename,network,electrodes,prep,task,trail=False, trainBool=True):
             asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
-                               ,models=network, electrodes=electrodes,featureExtraction=False)
+                               ,path="Direction_Xception_PFI/",models=network, electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
                 asdf.PFI(saveTrail='_angle', nameSuffix='angle')
@@ -64,7 +65,7 @@ def main():
         #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
         #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
         #train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
-        train('Direction_Xception_PFI', ["Xception"],1 + np.arange(129), 'min', "Direction_task",trail=True)
+        train('Direction_Xception_PFI', ["Xception"],1 + np.arange(129), 'min', "Direction_task",trail=True, trainBool=False)
         train('Direction_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task",trail=True)
         train('Position_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task")
 
