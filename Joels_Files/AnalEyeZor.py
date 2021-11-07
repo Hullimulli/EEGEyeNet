@@ -233,12 +233,15 @@ class AnalEyeZor():
                     if useAccuracyBool:
                         prediction = np.rint(prediction)
                     offset += self.binaryCrossEntropyLoss(valY, prediction)
-                elif config['task'] == 'Direction_task' and saveTrail == 'amplitude':
+                elif config['task'] == 'Direction_task' and saveTrail == '_amplitude':
                     offset += self.meanSquareError(valY, prediction)
-                elif config['task'] == 'Direction_task' and saveTrail == 'angle':
+                elif config['task'] == 'Direction_task' and saveTrail == '_angle':
                     offset += self.angleError(valY, prediction)
                 elif config['task'] == 'Position_task':
                     offset += self.euclideanDistance(valY, prediction)
+                else:
+                    print("No corresponding error function")
+                    return
             offset = offset / self.numberOfNetworks
 
             print("Evaluating PFI of {}".format(name))
@@ -257,9 +260,9 @@ class AnalEyeZor():
                             if useAccuracyBool:
                                 prediction = np.rint(prediction)
                             electrodeLosses[j] += self.binaryCrossEntropyLoss(valY, prediction)
-                        elif config['task'] == 'Direction_task' and saveTrail=='amplitude':
+                        elif config['task'] == 'Direction_task' and saveTrail=='_amplitude':
                             electrodeLosses[j] += self.meanSquareError(valY, prediction)
-                        elif config['task'] == 'Direction_task' and saveTrail=='angle':
+                        elif config['task'] == 'Direction_task' and saveTrail=='_angle':
                             electrodeLosses[j] += self.angleError(valY, prediction)
                         elif config['task'] == 'Position_task':
                             electrodeLosses[j] += self.euclideanDistance(valY, prediction)
@@ -500,6 +503,7 @@ class AnalEyeZor():
         outlines["nose"] = (outline[0, 1][:,0],outline[0, 1][:,1])
         outlines["ear_left"] = (outline[0, 2][:,0],outline[0, 2][:,1])
         outlines["ear_right"] = (outline[0, 3][:,0],outline[0, 3][:,1])
+        #This cuts out parts of the colour circle
         outlines['clip_radius'] = (0.5,) * 2
         outlines['clip_origin'] = (0,0.07)
         im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],outlines=outlines,show=False,cmap=cmap)
