@@ -17,40 +17,41 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = False
+    local = True
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
     if local:
 
         def plot(filename):
-            asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False,
-                             path="LRMin_InceptionTime_All/", models=["InceptionTime"], featureExtraction=False)
-            lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=['InceptionTime']).to_numpy()
+            asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
+                             path="Direction_Xception_PFI/", models=["Xception"], featureExtraction=False)
+            #asdf.visualizePrediction(modelName="Xception", filename="PredictionVisualisation_"+filename,run=1)
+            lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI'+filename+'.csv', usecols=['Xception']).to_numpy()
             goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
-            #goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:1]] = 1
-            goodElectrodeIndices[0] = 1
-            #asdf.electrodeBarPlot(values=lossValues)
-            asdf.topoPlot(lossValues,cmap='Blues',pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=1)
-            #asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue"),name='Electrode_Configuration_'+filename+'.png',alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
-            #asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), name='best2Electrode_'+filename+'.png', alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
-            #goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:4]] = 1
-            #asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colour="blue"),
-            #                  name='best4Electrode_'+filename+'.png', alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:2]] = 1
+            asdf.electrodeBarPlot(values=lossValues, colour='blue',name="Electrode_Loss_"+filename)
+            asdf.topoPlot(lossValues,cmap='Blues',filename="Topoplot_"+filename,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=0.01)
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colour="blue",epsilon=0.01),filename='Electrode_Losses_'+filename,alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colour="blue"), filename='best2Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:4]] = 1
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colour="blue"),
+                              filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
         def train(filename,electrodes,prep):
             asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing=prep, trainBool=True
                               , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
-            asdf.moveModels(newFolderName=filename,modelName=["InceptionTime"],originalPath=asdf.currentFolderPath)
+            asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
 
-        #plot("Min_BCLoss_IncreaseInPercent")
+        plot("amplitude")
+        plot("angle")
 
         def visualize(task, model):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
                               path=task+"_"+model+"/", models=[model], featureExtraction=False)
-            asdf.visualizePrediction(modelName=model, run=3)
+            asdf.visualizePrediction(modelName=model, run=1)
         #visualize("Position_PyramidalCNN","PyramidalCNN")
-        visualize("Direction", "Xception")
+        #visualize("Direction", "Xception")
 
 
 

@@ -294,7 +294,7 @@ class AnalEyeZor():
         fig.savefig(config['model_dir'] + name + ".{}".format(format), format=format, transparent=True)
         plt.close()
 
-    def electrodePlot(self, colourValues, name="Electrode_Configuration.png", alpha=0.4, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
+    def electrodePlot(self, colourValues, filename="Electrode_Configuration", alpha=0.4, pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/"):
         if not os.path.exists(pathForOriginalRelativeToExecutable+'blank.png'):
             print(pathForOriginalRelativeToExecutable+'blank.png'+" does not exist.")
             return
@@ -307,7 +307,7 @@ class AnalEyeZor():
             cv2.circle(overlay, (x, y), r, colourValues[i,:], -1)
 
         img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
-        cv2.imwrite(config['model_dir']+name, img)
+        cv2.imwrite(config['model_dir']+filename+'.png', img)
 
     def moveModels(self, newFolderName, originalPath, getEpochMetricsBool=True):
         """
@@ -439,11 +439,11 @@ class AnalEyeZor():
         values = 10*np.log(values + epsilon)
         originalValueSpan = np.max(values[electrodes-1]) - np.min(values[electrodes-1])
         newValueSpan = 255 - minValue
-        colours[electrodes-1,:] = 255 - ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue)
+        colours[electrodes-1,:] = np.expand_dims(255 - ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue), axis=1)
         colours[electrodes - 1, i] = 255
         return colours
 
-    def plotTraining(self, name, modelFileName, columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], returnPlotBool=False, format="pdf"):
+    def plotTraining(self, modelFileName, filename='TrainingMetrics', columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], returnPlotBool=False, format="pdf"):
 
         data = pd.read_csv(config['model_dir'] + modelFileName, usecols=["Epoch"]+columns).to_numpy()
         xAxis = np.arange(int(np.max(data[0])))+1
@@ -454,7 +454,7 @@ class AnalEyeZor():
         for i in range(1,data.shape[1]):
             plt.plot(xAxis, data[:,i], label=columns[i])
         plt.legend()
-        fig.savefig(config['model_dir'] + name+".{}".format(format), format=format, transparent=True)
+        fig.savefig(config['model_dir'] + filename+".{}".format(format), format=format, transparent=True)
         if returnPlotBool:
             return fig
         plt.close()
