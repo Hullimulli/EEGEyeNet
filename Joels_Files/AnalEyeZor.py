@@ -416,7 +416,7 @@ class AnalEyeZor():
         if os.path.exists(originalPath + "console.out"):
             shutil.copy(originalPath + "console.out", config['log_dir'] + newFolderName)
 
-        config['load_experiment_dir'] = newFolderName
+        config['load_experiment_dir'] = newFolderName + "/"
         config['model_dir'] = config['log_dir'] + config['load_experiment_dir']
         config['checkpoint_dir'] = config['model_dir'] + 'checkpoint/'
         stamp = str(int(time.time()))
