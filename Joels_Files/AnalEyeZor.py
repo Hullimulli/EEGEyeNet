@@ -20,6 +20,9 @@ import cv2
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import mne
+from texttable import Texttable
+from tabulate import tabulate
+import latextable
 
 import numpy as np
 
@@ -585,6 +588,43 @@ class AnalEyeZor():
         else:
             plt.show()
         plt.close()
+
+    def generateTable(self,modelFileName,filename='tableLatex',addNrOfParams=True,caption="Performance of each Network"):
+
+        data = pd.read_csv(config['model_dir'] + modelFileName,header=None)
+        data = data.astype(str).values.tolist()
+        if addNrOfParams:
+            data[0] = data[0] + ["#Parameters"]
+            for i in range(1,len(data)):
+                modelName=data[i][0]
+                if 'amplitude' in modelFileName.lower():
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+                    saveTrail='_amplitude'
+                elif 'angle' in modelFileName.lower():
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+                    saveTrail = '_angle'
+                else:
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                    saveTrail = ''
+
+                path = config['checkpoint_dir'] + 'run' + str(1) + '/'
+
+                trainer = model[0](**model[1])
+                trainer.ensemble.load_file_pattern = re.compile(saveTrail + modelName + '_nb_*', re.IGNORECASE)
+                trainer.load(path)
+
+
+                trainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].trainable_weights])
+                nonTrainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].non_trainable_weights])
+                totalParams = trainableParams + nonTrainableParams
+                data[i] = data[i] + [str(totalParams*trainer.ensemble.nb_models)]
+
+        table = Texttable()
+        table.set_cols_align(["c"] * len(data[0]))
+        table.set_deco(Texttable.HEADER | Texttable.VLINES)
+        table.add_rows(data)
+        with open(config['model_dir']+filename+'.txt', 'w') as f:
+            f.write(latextable.draw_latex(table, caption=caption))
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
