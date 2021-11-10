@@ -77,6 +77,13 @@ def main():
 
         def train(filename,network,electrodes,prep,task,trail=False, trainBool=True):
             asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
+                               ,models=network, electrodes=electrodes,featureExtraction=False)
+            asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
+            del asdf
+
+
+        def PFI(filename,network,electrodes,prep,task,trail=False, trainBool=True):
+            asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
             #asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
@@ -105,10 +112,13 @@ def main():
         #train('Position_PyramidalCNN_Top2', ["PyramidalCNN"], np.array([1,32]), 'min', "Position_task")
         #train('Position_PyramidalCNN_Top6', ["PyramidalCNN"], np.array([1,32,125,126,127,128]), 'min', "Position_task")
 
+        train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,
+              trainBool=True)
+
         for i in ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"]:
-            train('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
+            PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
                   trainBool=False)
-            train('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
+            PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
                   trainBool=False)
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
