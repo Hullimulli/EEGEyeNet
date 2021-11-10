@@ -18,6 +18,8 @@ import pandas as pd
 import re
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import scipy.io as sio
 import mne
 from texttable import Texttable
@@ -428,41 +430,35 @@ class AnalEyeZor():
 
         self.currentFolderPath = config['log_dir'] + newFolderName + "/"
 
-    def colourCode(self, values, electrodes=np.arange(1,130), colour="red", minValue=5, epsilon = 0.001):
-        colours = np.zeros((values.shape[0],3))
-
-        if colour=="green":
-            i = 1
-        elif colour=="blue":
-            i = 0
-        else:
-            i=2
+    def colourCode(self, values, electrodes=np.arange(1,130), colourMap="Reds", minValue=5, epsilon = 0.01):
         #For Decibel, use epsilon = 1, for good colour visualisation use small epsilon > 0
         values[np.where(values < 0)] = 0
         values = 10*np.log(values + epsilon)
-        originalValueSpan = np.max(values[electrodes-1]) - np.min(values[electrodes-1])
-        newValueSpan = 255 - minValue
-        colours[electrodes-1,:] = np.expand_dims(255 - ((values[electrodes-1] - np.min(values[electrodes-1])) * (newValueSpan / originalValueSpan) + minValue), axis=1)
-        colours[electrodes - 1, i] = 255
+        cmap = cm.get_cmap(colourMap)
+        norm = colors.Normalize(vmin=np.min(values[electrodes-1]), vmax=np.max(values[electrodes-1]))
+        colours = cmap(norm(values))[:,0:3]
         return colours
 
-    def plotTraining(self, modelFileName, filename='TrainingMetrics', columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], returnPlotBool=False, format="pdf"):
+    def plotTraining(self, modelFileName, filename='TrainingMetrics', columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], savePlotBool=True, format="pdf"):
+        columns = ["Epoch"]+columns
+        data = pd.read_csv(config['model_dir'] + modelFileName, usecols=columns).to_numpy()
+        xAxis = np.arange(int(np.max(data[:,0])))+1
 
-        data = pd.read_csv(config['model_dir'] + modelFileName, usecols=["Epoch"]+columns).to_numpy()
-        xAxis = np.arange(int(np.max(data[0])))+1
-
-
+        #if columns[2]=="Accuracy":
+        #    columns[2] = "Val_Loss"
         fig = plt.figure()
         plt.xlabel("Epoch")
         for i in range(1,data.shape[1]):
             plt.plot(xAxis, data[:,i], label=columns[i])
         plt.legend()
-        fig.savefig(config['model_dir'] + filename+".{}".format(format), format=format, transparent=True)
-        if returnPlotBool:
-            return fig
+
+        if savePlotBool:
+            fig.savefig(config['model_dir'] + filename+".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
         plt.close()
 
-    def topoPlot(self, values, filename='topoPlot', format='pdf',pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/", saveBool=True, cmap='Reds',epsilon=0.001):
+    def topoPlot(self, values, filename='topoPlot', format='pdf',pathForOriginalRelativeToExecutable="./EEGEyeNet/Joels_Files/forPlot/", saveBool=True, cmap='Reds',epsilon=0.01):
         """
 
         @param values: Array of length 129, where the index + 1 equals the electrode number and a value, which will be colour coded. All values < 0 will be set to 0.
@@ -582,6 +578,13 @@ class AnalEyeZor():
         fig = plt.figure()
         plt.scatter(truth[:,0],truth[:,1],c=colour, marker='o',label="Ground Truth")
         plt.scatter(prediction[:, 0], prediction[:, 1], c=colour, marker='x',label="Prediction")
+
+        for i in range(prediction.shape[0]):
+            plt.plot(np.array([prediction[i,0],truth[i,0]]),np.array([prediction[i,1],truth[i,1]]),c=colour[i])
+
+        plt.axhline(0, color='black',linewidth=0.1)
+        plt.axvline(0, color='black',linewidth=0.1)
+
         plt.legend()
         if saveBool:
             fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
@@ -594,7 +597,7 @@ class AnalEyeZor():
         data = pd.read_csv(config['model_dir'] + modelFileName,header=None)
         data = data.astype(str).values.tolist()
         if addNrOfParams:
-            data[0] = data[0] + ["#Parameters"]
+            data[0] = data[0] + ["\#Parameters"]
             for i in range(1,len(data)):
                 modelName=data[i][0]
                 if 'amplitude' in modelFileName.lower():
