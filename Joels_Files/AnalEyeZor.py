@@ -437,7 +437,7 @@ class AnalEyeZor():
                 f.write("Electrodes used:\n")
                 f.write(self.electrodes)
 
-    def colourCode(self, values, electrodes=np.arange(1,130), colourMap="Reds", minValue=5, epsilon = 0.01):
+    def colourCode(self, values, electrodes=np.arange(1,130), colourMap="Reds", epsilon = 0.01):
         #For Decibel, use epsilon = 1, for good colour visualisation use small epsilon > 0
         values[np.where(values < 0)] = 0
         values = 10*np.log(values + epsilon)
@@ -637,13 +637,70 @@ class AnalEyeZor():
         with open(config['model_dir']+filename+'.txt', 'w') as f:
             f.write(latextable.draw_latex(table, caption=caption))
 
-    def combineResults(self,modelFileName,directories,filename,columns=["Model","Mean_score","Std_score","Mean_runtime","Std_runtime"],nameColumn="Model",nameStartIndex=0):
-        config['log_dir']
-        data = pd.read_csv(config['model_dir'] + directories[0] + modelFileName, header=None, usecols=columns)
-        data[nameColumn] = directories[0][nameStartIndex:] + data[nameColumn].astype(str)
+    def combineResults(self,modelFileName,directories,filename,columns=["Model","Mean_score","Std_score","Mean_runtime","Std_runtime"],nameColumn="Model",nameStartIndex=0,addNrOfParams=False):
+        data = pd.read_csv(config['log_dir'] + directories[0] + modelFileName, header=None, usecols=columns)
+
+        if addNrOfParams:
+            networkList = data[nameColumn].astype(str).values.tolist()
+            for i in range(1,len(networkList)):
+                modelName=networkList[i]
+                if 'amplitude' in modelFileName.lower():
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+                    saveTrail='_amplitude'
+                elif 'angle' in modelFileName.lower():
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+                    saveTrail = '_angle'
+                else:
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                    saveTrail = ''
+
+                path = config['log_dir'] + directories[0] + "checkpoint/run1/"
+
+                trainer = model[0](**model[1])
+                trainer.ensemble.load_file_pattern = re.compile(saveTrail + modelName + '_nb_*', re.IGNORECASE)
+                trainer.load(path)
+
+
+                trainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].trainable_weights])
+                nonTrainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].non_trainable_weights])
+                totalParams = trainableParams + nonTrainableParams
+                data["\#Parameters"][i] = str(totalParams*trainer.ensemble.nb_models)
+
+
+        data[nameColumn] = directories[0][nameStartIndex:] + "_" + data[nameColumn].astype(str)
 
         for i in range(1,len(directories)):
-            toAppend = pd.read_csv(config['model_dir'] + directories[i] + modelFileName, usecols=columns)
+            toAppend = pd.read_csv(config['log_dir'] + directories[i] + modelFileName, usecols=columns)
+
+            if addNrOfParams:
+                networkList = toAppend[nameColumn].astype(str).values.tolist()
+                for j in range(1, len(networkList)):
+                    modelName = networkList[j]
+                    if 'amplitude' in modelFileName.lower():
+                        model = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][
+                            modelName]
+                        saveTrail = '_amplitude'
+                    elif 'angle' in modelFileName.lower():
+                        model = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][
+                            modelName]
+                        saveTrail = '_angle'
+                    else:
+                        model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                        saveTrail = ''
+
+                    path = config['log_dir'] + directories[i] + "checkpoint/run1/"
+
+                    trainer = model[0](**model[1])
+                    trainer.ensemble.load_file_pattern = re.compile(saveTrail + modelName + '_nb_*', re.IGNORECASE)
+                    trainer.load(path)
+
+                    trainableParams = np.sum(
+                        [np.prod(v.get_shape()) for v in trainer.ensemble.models[0].trainable_weights])
+                    nonTrainableParams = np.sum(
+                        [np.prod(v.get_shape()) for v in trainer.ensemble.models[0].non_trainable_weights])
+                    totalParams = trainableParams + nonTrainableParams
+                    toAppend["\#Parameters"][j] = str(totalParams * trainer.ensemble.nb_models)
+
             toAppend[nameColumn] = directories[i][nameStartIndex:] + "_" + toAppend[nameColumn].astype(str)
             data.append(toAppend)
 
