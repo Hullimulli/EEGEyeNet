@@ -421,6 +421,8 @@ class AnalEyeZor():
         if os.path.exists(originalPath + "console.out"):
             shutil.copy(originalPath + "console.out", config['log_dir'] + newFolderName)
 
+
+
         config['load_experiment_dir'] = newFolderName + "/"
         config['model_dir'] = config['log_dir'] + config['load_experiment_dir']
         config['checkpoint_dir'] = config['model_dir'] + 'checkpoint/'
@@ -430,6 +432,11 @@ class AnalEyeZor():
 
         self.currentFolderPath = config['log_dir'] + newFolderName + "/"
 
+        if self.electrodes.shape[0] != 129:
+            with open(config['model_dir'] + "electrodes" + '.txt', 'w') as f:
+                f.write("Electrodes used:\n")
+                f.write(self.electrodes)
+
     def colourCode(self, values, electrodes=np.arange(1,130), colourMap="Reds", minValue=5, epsilon = 0.01):
         #For Decibel, use epsilon = 1, for good colour visualisation use small epsilon > 0
         values[np.where(values < 0)] = 0
@@ -437,7 +444,8 @@ class AnalEyeZor():
         cmap = cm.get_cmap(colourMap)
         norm = colors.Normalize(vmin=np.min(values[electrodes-1]), vmax=np.max(values[electrodes-1]))
         colours = cmap(norm(values))[:,0:3]
-        return colours
+        colours[:,[2, 0]] = colours[:,[0, 2]]
+        return colours * 255
 
     def plotTraining(self, modelFileName, filename='TrainingMetrics', columns=["Loss","Accuracy","Val_Loss","Val_Accuracy"], savePlotBool=True, format="pdf"):
         columns = ["Epoch"]+columns
@@ -628,6 +636,18 @@ class AnalEyeZor():
         table.add_rows(data)
         with open(config['model_dir']+filename+'.txt', 'w') as f:
             f.write(latextable.draw_latex(table, caption=caption))
+
+    def combineResults(self,modelFileName,directories,filename,columns=["Model","Mean_score","Std_score","Mean_runtime","Std_runtime"],nameColumn="Model",nameStartIndex=0):
+        config['log_dir']
+        data = pd.read_csv(config['model_dir'] + directories[0] + modelFileName, header=None, usecols=columns)
+        data[nameColumn] = directories[0][nameStartIndex:] + data[nameColumn].astype(str)
+
+        for i in range(1,len(directories)):
+            toAppend = pd.read_csv(config['model_dir'] + directories[i] + modelFileName, usecols=columns)
+            toAppend[nameColumn] = directories[i][nameStartIndex:] + "_" + toAppend[nameColumn].astype(str)
+            data.append(toAppend)
+
+        data.to_csv(config['model_dir'] + filename, sep='\t')
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
