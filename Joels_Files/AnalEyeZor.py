@@ -435,7 +435,7 @@ class AnalEyeZor():
         if self.electrodes.shape[0] != 129:
             with open(config['model_dir'] + "electrodes" + '.txt', 'w') as f:
                 f.write("Electrodes used:\n")
-                f.write(self.electrodes)
+                f.write(np.array2string(self.electrodes,separator=','))
 
     def colourCode(self, values, electrodes=np.arange(1,130), colourMap="Reds", epsilon = 0.01):
         #For Decibel, use epsilon = 1, for good colour visualisation use small epsilon > 0

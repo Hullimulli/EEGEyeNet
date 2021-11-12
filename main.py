@@ -118,7 +118,7 @@ def main():
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")
-        train('Direction_Xception_Top4_Amplitude_Real', ["Xception"], np.array([27,38,121,123]), 'min', "Direction_task")
+        #train('Direction_Xception_Top4_Amplitude_Real', ["Xception"], np.array([27,38,121,123]), 'min', "Direction_task")
         #train('Direction_Xception_SideFronts', ["Xception"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
         train('Position_Xception_Top2', ["Xception"], np.array([1,32]), 'min', "Position_task")
         train('Position_Xception_Top6', ["Xception"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
