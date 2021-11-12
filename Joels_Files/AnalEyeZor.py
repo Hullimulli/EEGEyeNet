@@ -452,8 +452,9 @@ class AnalEyeZor():
         data = pd.read_csv(config['model_dir'] + modelFileName, usecols=columns).to_numpy()
         xAxis = np.arange(int(np.max(data[:,0])))+1
 
-        #if columns[2]=="Accuracy":
-        #    columns[2] = "Val_Loss"
+
+        if columns[2]=="Accuracy" and len(columns)==3:
+            columns[2] = "Val_Loss"
         fig = plt.figure()
         plt.xlabel("Epoch")
         for i in range(1,data.shape[1]):
@@ -637,12 +638,12 @@ class AnalEyeZor():
         with open(config['model_dir']+filename+'.txt', 'w') as f:
             f.write(latextable.draw_latex(table, caption=caption))
 
-    def combineResults(self,modelFileName,directories,filename,columns=["Model","Mean_score","Std_score","Mean_runtime","Std_runtime"],nameColumn="Model",nameStartIndex=0,addNrOfParams=False):
-        data = pd.read_csv(config['log_dir'] + directories[0] + modelFileName, header=None, usecols=columns)
+    def combineResults(self,modelFileName,directories,filename="Statistics",columns=["Model","Mean_score","Std_score","Mean_runtime","Std_runtime"],nameColumn="Model",nameStartIndex=0,addNrOfParams=False):
+        data = pd.read_csv(config['log_dir'] + directories[0] + modelFileName,index_col=None)
 
         if addNrOfParams:
             networkList = data[nameColumn].astype(str).values.tolist()
-            for i in range(1,len(networkList)):
+            for i in range(0,len(networkList)):
                 modelName=networkList[i]
                 if 'amplitude' in modelFileName.lower():
                     model = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
@@ -664,17 +665,17 @@ class AnalEyeZor():
                 trainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].trainable_weights])
                 nonTrainableParams = np.sum([np.prod(v.get_shape()) for v in trainer.ensemble.models[0].non_trainable_weights])
                 totalParams = trainableParams + nonTrainableParams
-                data["\#Parameters"][i] = str(totalParams*trainer.ensemble.nb_models)
+                data["\#Parameters"] = str(totalParams*trainer.ensemble.nb_models)
 
 
-        data[nameColumn] = directories[0][nameStartIndex:] + "_" + data[nameColumn].astype(str)
+        data[nameColumn] = directories[0][nameStartIndex:-1]
 
         for i in range(1,len(directories)):
-            toAppend = pd.read_csv(config['log_dir'] + directories[i] + modelFileName, usecols=columns)
+            toAppend = pd.read_csv(config['log_dir'] + directories[i] + modelFileName)
 
             if addNrOfParams:
                 networkList = toAppend[nameColumn].astype(str).values.tolist()
-                for j in range(1, len(networkList)):
+                for j in range(0, len(networkList)):
                     modelName = networkList[j]
                     if 'amplitude' in modelFileName.lower():
                         model = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][
@@ -699,12 +700,12 @@ class AnalEyeZor():
                     nonTrainableParams = np.sum(
                         [np.prod(v.get_shape()) for v in trainer.ensemble.models[0].non_trainable_weights])
                     totalParams = trainableParams + nonTrainableParams
-                    toAppend["\#Parameters"][j] = str(totalParams * trainer.ensemble.nb_models)
+                    toAppend["\#Parameters"] = str(totalParams * trainer.ensemble.nb_models)
 
-            toAppend[nameColumn] = directories[i][nameStartIndex:] + "_" + toAppend[nameColumn].astype(str)
-            data.append(toAppend)
+            toAppend[nameColumn] = directories[i][nameStartIndex:-1]
+            data = pd.concat([data, toAppend], ignore_index = True, axis = 0)
 
-        data.to_csv(config['model_dir'] + filename, sep='\t')
+        data.to_csv(config['model_dir'] + filename + '.csv', index = False)
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))

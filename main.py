@@ -37,12 +37,11 @@ def main():
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
                               filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
-        plot("CNN","CNN","Blues")
-        def customPlot():
+        #plot("CNN","CNN","Blues")
+        def customPlot(array):
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
             goodElectrodeIndices = np.zeros(129)
-            array = np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
             goodElectrodeIndices[array-1] = 1
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap='Reds'),
                                filename='Configuration', alpha=0.4,
@@ -62,22 +61,45 @@ def main():
         #table("statistics.csv","Position_All/",["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"])
         #table("statistics_angle.csv", "Direction_All/", ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"])
 
-        def visualizeTraining(task, name,columns):
+        def visualizeTraining(task, name,network,columns):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
-                              path=task+"_All/", models=["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], featureExtraction=False)
+                              path=task+"_"+network+"/", models=["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], featureExtraction=False)
             asdf.plotTraining(modelFileName=name, filename="Training_"+name[:-4],columns=columns)
 
-        def visualize(task, model,run):
+        def combineResults(directories):
+            asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
+                              path="Position_All/", models=["CNN"], featureExtraction=False)
+            asdf.combineResults("statistics.csv",directories,filename="Position_CNN_Statistics",nameStartIndex=9,addNrOfParams=True)
+            asdf.generateTable("Position_CNN_Statistics.csv",filename='Position_CNN_Statistics',addNrOfParams=False)
+
+        #directories = ["Direction_CNN_SideFronts/", "Direction_CNN_Top2_Amplitude/", "Direction_CNN_Top6_Amplitude/", "Direction_CNN_Top2_Angle/", "Direction_CNN_Top6_Angle/"]
+        directories = ["Position_CNN_SideFronts/", "Position_CNN_Top2/", "Position_CNN_Top6/"]
+        combineResults(directories)
+
+        def visualize(task, model,run,electrodes):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
-                              path=task+"_All/", models=[model], featureExtraction=False)
-            asdf.visualizePrediction(modelName=model, run=run, filename="Visualisation_"+model+"_run"+str(run))
+                              path=task+"_"+model+"/", models=["CNN"], electrodes=electrodes,featureExtraction=False)
+            asdf.visualizePrediction(modelName="CNN", run=run, filename="Visualisation_"+model+"_run"+str(run))
+
+            goodElectrodeIndices = np.zeros(129)
+            goodElectrodeIndices[electrodes-1] = 1
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap='Blues'),
+                               filename='Configuration', alpha=0.4,
+                               pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+
         #visualize("Position_PyramidalCNN","PyramidalCNN")
         #visualize("Direction", "Xception")
-        #for i in ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"]:
+        #names = ["CNN_SideFronts","CNN_Top2_Amplitude","CNN_Top6_Amplitude","CNN_Top2_Angle","CNN_Top6_Angle"]
+        #electrodes = [np.array([  1,  2,  3,  8,  9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43,120,121, 122,123,125,128]),np.array([ 27,123]),np.array([  3, 23, 27, 43,120,123]),np.array([125,128]),np.array([  1,  2, 26, 32,125,128])]
+
+        #names = ["CNN_SideFronts", "CNN_Top2", "CNN_Top6"]
+        #electrodes = [np.array([1, 2, 3, 8, 9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43, 120, 121, 122, 123, 125, 128]),np.array([ 1,32]),np.array([  1, 32, 38,121,125,128])]
+
+        #for i in range(len(names)):
             #for j in range(1,6):
-                #visualize("Position",i,j)
-                #visualizeTraining("Position", i+"_"+str(j)+".csv", ["Loss","Val_Loss"])
-                #visualizeTraining("Direction", i+"_angle"+str(j)+".csv", ["Loss","Accuracy"])
+                #visualize("Position",names[i],j,electrodes[i])
+                #visualizeTraining("Position", "CNN"+"_"+str(j)+".csv",names[i],["Loss","Val_Loss"])
+                #visualizeTraining("Direction", "CNN"+"_angle"+str(j)+".csv", names[i],["Loss","Accuracy"])
 
 
 
