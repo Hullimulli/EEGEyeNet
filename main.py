@@ -135,9 +135,9 @@ def main():
         #train('Position_Xception_Top6', ["Xception"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
         #train('Position_Xception_SideFronts', ["Xception"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
-        train('Position_CNN_Top2', ["CNN"], np.array([1,32]), 'min', "Position_task")
-        train('Position_CNN_Top6', ["CNN"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
-        train('Position_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
+        #train('Position_CNN_Top2', ["CNN"], np.array([1,32]), 'min', "Position_task")
+        #train('Position_CNN_Top6', ["CNN"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
+        #train('Position_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
         #train('Direction_CNN_Top2_Amplitude', ["CNN"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_CNN_Top2_Angle', ["CNN"], np.array([125,128]), 'min', "Direction_task")
@@ -147,11 +147,11 @@ def main():
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
 
-        #for i in ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"]:
-        #    PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
-        #          trainBool=False)
-        #    PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
-        #          trainBool=False)
+        for i in ["PyramidalCNN","InceptionTime","EEGNet"]:
+            PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
+                  trainBool=False)
+            PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
+                  trainBool=False)
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
