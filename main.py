@@ -24,8 +24,8 @@ def main():
     if local:
 
         def plot(filename,model,colour):
-            asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
-                             path="Direction_All/", models=[model], featureExtraction=False)
+            asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
+                             path="Position_All/", models=[model], featureExtraction=False)
             lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=[model]).to_numpy()
             goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
             goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:2]] = 1
@@ -37,8 +37,7 @@ def main():
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
                               filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
-        plot("CNN_angle","CNN","Blues")
-        plot("CNN_amplitude", "CNN", "Blues")
+        plot("CNN","CNN","Blues")
         def customPlot():
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
@@ -105,17 +104,6 @@ def main():
                 asdf.PFI(nameSuffix="_"+network[0])
             del asdf
 
-        #train('LRMin_InceptionTime_Top2',np.array([1,32]),'min')
-        #train('LRMin_InceptionTime_Top6', np.array([1, 32, 38, 121, 125, 128]), 'min')
-        #train('LRMin_InceptionTime_Front', np.array([43, 38, 33, 128, 32, 25, 21, 17, 14, 8, 1, 125, 122, 121, 120]), 'min')
-        #train('LRMin_InceptionTime_All', 1 + np.arange(129), 'min')
-        #train('Direction_Xception_PFI', ["Xception"],1 + np.arange(129), 'min', "Direction_task",trail=True, trainBool=False)
-        #train('Direction_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task",trail=True,trainBool=False)
-        #train('Position_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task")
-        #train('Direction_Xception_PFI', ["Xception"],1 + np.arange(129), 'min', "Direction_task",trail=True, trainBool=False)
-        #train('Direction_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task",trail=True,trainBool=False)
-        #train('Position_PyramidalCNN_PFI', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task")
-
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")
@@ -125,11 +113,15 @@ def main():
         #train('Position_Xception_Top6', ["Xception"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
         #train('Position_Xception_SideFronts', ["Xception"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
-        train('Direction_CNN_Top2_Amplitude', ["CNN"], np.array([27,123]), 'min', "Direction_task")
-        train('Direction_CNN_Top2_Angle', ["CNN"], np.array([125,128]), 'min', "Direction_task")
-        train('Direction_CNN_Top6_Angle', ["CNN"], np.array([1,2,26,32,125,128]), 'min', "Direction_task")
-        train('Direction_CNN_Top6_Amplitude', ["CNN"], np.array([3,23,27,43,120,123]), 'min', "Direction_task")
-        train('Direction_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
+        train('Position_CNN_Top2', ["CNN"], np.array([1,32]), 'min', "Position_task")
+        train('Position_CNN_Top6', ["CNN"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
+        train('Position_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
+
+        #train('Direction_CNN_Top2_Amplitude', ["CNN"], np.array([27,123]), 'min', "Direction_task")
+        #train('Direction_CNN_Top2_Angle', ["CNN"], np.array([125,128]), 'min', "Direction_task")
+        #train('Direction_CNN_Top6_Angle', ["CNN"], np.array([1,2,26,32,125,128]), 'min', "Direction_task")
+        #train('Direction_CNN_Top6_Amplitude', ["CNN"], np.array([3,23,27,43,120,123]), 'min', "Direction_task")
+        #train('Direction_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
 
