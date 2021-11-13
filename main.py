@@ -147,7 +147,7 @@ def main():
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
 
-        for i in ["PyramidalCNN","InceptionTime","EEGNet"]:
+        for i in ["EEGNet"]:
             PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
                   trainBool=False)
             PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
