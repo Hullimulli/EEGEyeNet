@@ -29,7 +29,7 @@ def main():
             lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=[model]).to_numpy()
             goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
             goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:2]] = 1
-            asdf.electrodeBarPlot(values=lossValues, colour='blue',name="Electrode_Loss_"+filename)
+            asdf.electrodeBarPlot(values=lossValues, colour='purple',name="Electrode_Loss_"+filename)
             asdf.topoPlot(lossValues,cmap=colour,filename="Topoplot_"+filename,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=0.01)
             asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Electrode_Losses_'+filename,alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colourMap=colour), filename='best2Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
@@ -37,7 +37,7 @@ def main():
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
                               filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
-        #plot("CNN","CNN","Blues")
+        plot("EEGNet","EEGNet","Purples")
         def customPlot(array):
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
@@ -73,8 +73,8 @@ def main():
             asdf.generateTable("Position_CNN_Statistics.csv",filename='Position_CNN_Statistics',addNrOfParams=False)
 
         #directories = ["Direction_CNN_SideFronts/", "Direction_CNN_Top2_Amplitude/", "Direction_CNN_Top6_Amplitude/", "Direction_CNN_Top2_Angle/", "Direction_CNN_Top6_Angle/"]
-        directories = ["Position_CNN_SideFronts/", "Position_CNN_Top2/", "Position_CNN_Top6/"]
-        combineResults(directories)
+        #directories = ["Position_CNN_SideFronts/", "Position_CNN_Top2/", "Position_CNN_Top6/"]
+        #combineResults(directories)
 
         def visualize(task, model,run,electrodes):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
@@ -139,6 +139,10 @@ def main():
         #train('Position_CNN_Top6', ["CNN"], np.array([1,32,38,121,125,128]), 'min', "Position_task")
         #train('Position_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
+        train('Position_EEGNet_Top2', ["EEGNet"], np.array([1,32]), 'min', "Position_task")
+        train('Position_EEGNet_Top6', ["EEGNet"], np.array([1,14,21,32,125,128]), 'min', "Position_task")
+        train('Position_EEGNet_SideFronts', ["EEGNet"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
+
         #train('Direction_CNN_Top2_Amplitude', ["CNN"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_CNN_Top2_Angle', ["CNN"], np.array([125,128]), 'min', "Direction_task")
         #train('Direction_CNN_Top6_Angle', ["CNN"], np.array([1,2,26,32,125,128]), 'min', "Direction_task")
@@ -147,11 +151,11 @@ def main():
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
 
-        for i in ["EEGNet"]:
-            PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
-                  trainBool=False)
-            PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
-                  trainBool=False)
+        #for i in ["EEGNet"]:
+        #    PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
+        #          trainBool=False)
+        #    PFI('Position_All/', [i], 1 + np.arange(129), 'min', "Position_task", trail=False,
+        #          trainBool=False)
 
     #asdf.plotTraining(name="InceptionTime1_Training", modelFileName="InceptionTime_1.csv",columns=["Loss", "Val_Loss"])
 
