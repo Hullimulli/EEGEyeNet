@@ -155,15 +155,15 @@ def main():
         #train('Direction_CNN_Top6_Amplitude', ["CNN"], np.array([3,23,27,43,120,123]), 'min', "Direction_task")
         #train('Direction_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
 
-        train('Position_PyramidalCNN_Top2', ["PyramidalCNN"], np.array([1,32]), 'min', "Position_task")
-        train('Position_PyramidalCNN_Top6', ["PyramidalCNN"], np.array([1,14,21,32,125,128]), 'min', "Position_task")
-        train('Position_PyramidalCNN_SideFronts', ["PyramidalCNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
+        #train('Position_PyramidalCNN_Top2', ["PyramidalCNN"], np.array([1,32]), 'min', "Position_task")
+        #train('Position_PyramidalCNN_Top6', ["PyramidalCNN"], np.array([1,14,21,32,125,128]), 'min', "Position_task")
+        #train('Position_PyramidalCNN_SideFronts', ["PyramidalCNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
-        #train('Direction_CNN_Top2_Amplitude', ["CNN"], np.array([27,123]), 'min', "Direction_task")
-        #train('Direction_CNN_Top2_Angle', ["CNN"], np.array([125,128]), 'min', "Direction_task")
-        #train('Direction_CNN_Top6_Angle', ["CNN"], np.array([1,2,26,32,125,128]), 'min', "Direction_task")
-        #train('Direction_CNN_Top6_Amplitude', ["CNN"], np.array([3,23,27,43,120,123]), 'min', "Direction_task")
-        #train('Direction_CNN_SideFronts', ["CNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
+        train('Direction_PyramidalCNN_Top2_Amplitude', ["PyramidalCNN"], np.array([27,123]), 'min', "Direction_task")
+        train('Direction_PyramidalCNN_Top2_Angle', ["PyramidalCNN"], np.array([125,128]), 'min', "Direction_task")
+        train('Direction_PyramidalCNN_Top6_Angle', ["PyramidalCNN"], np.array([1,2,26,32,125,128]), 'min', "Direction_task")
+        train('Direction_PyramidalCNN_Top6_Amplitude', ["PyramidalCNN"], np.array([1,27,32,43,120,123]), 'min', "Direction_task")
+        train('Direction_PyramidalCNN_SideFronts', ["PyramidalCNN"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
 
