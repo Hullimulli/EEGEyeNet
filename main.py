@@ -37,8 +37,8 @@ def main():
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
                               filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
-        plot("InceptionTime_angle","InceptionTime","Oranges")
-        plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
+        #plot("InceptionTime_angle","InceptionTime","Oranges")
+        #plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
         def customPlot(array):
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
@@ -69,39 +69,45 @@ def main():
 
         def combineResults(directories):
             asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
-                              path="Position_All/", models=["CNN"], featureExtraction=False)
-            asdf.combineResults("statistics.csv",directories,filename="Position_CNN_Statistics",nameStartIndex=9,addNrOfParams=True)
-            asdf.generateTable("Position_CNN_Statistics.csv",filename='Position_CNN_Statistics',addNrOfParams=False)
+                              path="Position_All/", models=["Xception"], featureExtraction=False)
+            asdf.combineResults("statistics.csv",directories,filename="Position_Xception_Statistics",nameStartIndex=9,addNrOfParams=True)
+            asdf.generateTable("Position_Xception_Statistics.csv",filename='Position_Xception_Statistics',addNrOfParams=False)
 
-        #directories = ["Direction_CNN_SideFronts/", "Direction_CNN_Top2_Amplitude/", "Direction_CNN_Top6_Amplitude/", "Direction_CNN_Top2_Angle/", "Direction_CNN_Top6_Angle/"]
-        #directories = ["Position_CNN_SideFronts/", "Position_CNN_Top2/", "Position_CNN_Top6/"]
-        #combineResults(directories)
+        #directories = ["Direction_PyramidalCNN_SideFronts/","Direction_PyramidalCNN_Top2_Amplitude/","Direction_PyramidalCNN_Top6_Amplitude/","Direction_PyramidalCNN_Top2_Angle/","Direction_PyramidalCNN_Top6_Angle/"]
+        directories = ["Position_Xception_SideFronts/", "Position_Xception_Top2/", "Position_Xception_Top6/"]
+        combineResults(directories)
 
-        def visualize(task, model,run,electrodes):
+        def visualize(task, model,run,electrodes, modelName,colour):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
-                              path=task+"_"+model+"/", models=["CNN"], electrodes=electrodes,featureExtraction=False)
-            asdf.visualizePrediction(modelName="CNN", run=run, filename="Visualisation_"+model+"_run"+str(run))
+                              path=task+"_"+model+"/", models=[modelName], electrodes=electrodes,featureExtraction=False)
+            asdf.visualizePrediction(modelName=modelName, run=run, filename="Visualisation_"+model+"_run"+str(run))
 
             goodElectrodeIndices = np.zeros(129)
             goodElectrodeIndices[electrodes-1] = 1
-            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap='Blues'),
-                               filename='Configuration', alpha=0.4,
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
+                               filename='Configuration_'+model, alpha=0.4,
                                pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            if task == "Position":
+                asdf.plotTraining(modelFileName=modelName + "_" + str(run) + ".csv", filename="Training_" + model + "_run" + str(run), columns=["Loss", "Val_Loss"])
+            else:
+                asdf.plotTraining(modelFileName=modelName+"_angle"+str(run)+".csv", filename="Training_"+model+"_angle"+str(run), columns=["Loss","Accuracy"])
+                asdf.plotTraining(modelFileName=modelName + "_amplitude" + str(run) + ".csv",filename="Training_" + model + "_amplitude" + str(run), columns=["Loss","Val_Loss"])
 
         #visualize("Position_PyramidalCNN","PyramidalCNN")
         #visualize("Direction", "Xception")
-        #names = ["CNN_SideFronts","CNN_Top2_Amplitude","CNN_Top6_Amplitude","CNN_Top2_Angle","CNN_Top6_Angle"]
-        #electrodes = [np.array([  1,  2,  3,  8,  9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43,120,121, 122,123,125,128]),np.array([ 27,123]),np.array([  3, 23, 27, 43,120,123]),np.array([125,128]),np.array([  1,  2, 26, 32,125,128])]
-
-        #names = ["CNN_SideFronts", "CNN_Top2", "CNN_Top6"]
-        #electrodes = [np.array([1, 2, 3, 8, 9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43, 120, 121, 122, 123, 125, 128]),np.array([ 1,32]),np.array([  1, 32, 38,121,125,128])]
+        #names = ["InceptionTime_SideFronts","InceptionTime_Top2_Amplitude","InceptionTime_Top6_Amplitude","InceptionTime_Top2_Angle","InceptionTime_Top6_Angle"]
+        #electrodes = [np.array([  1,  2,  3,  8,  9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43,120,121, 122,123,125,128]),np.array([ 27,123]),np.array([ 27, 38, 43,120,121,123]),np.array([125,128]),np.array([  1, 32, 38,121,125,128])]
 
         #for i in range(len(names)):
             #for j in range(1,6):
-                #visualize("Position",names[i],j,electrodes[i])
-                #visualizeTraining("Position", "CNN"+"_"+str(j)+".csv",names[i],["Loss","Val_Loss"])
-                #visualizeTraining("Direction", "CNN"+"_angle"+str(j)+".csv", names[i],["Loss","Accuracy"])
+                #visualize("Direction", names[i], j, electrodes[i], "InceptionTime", "Purples")
 
+        #names = ["InceptionTime_SideFronts", "InceptionTime_Top2", "InceptionTime_Top6"]
+        #electrodes = [np.array([1, 2, 3, 8, 9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43, 120, 121, 122, 123, 125, 128]),np.array([ 1,32]),np.array([  1, 38, 32,121,125,128])]
+
+        #for i in range(len(names)):
+            #for j in range(1,6):
+                #visualize("Position",names[i],j,electrodes[i],"InceptionTime","Purples")
 
 
 
@@ -119,7 +125,7 @@ def main():
         def PFI(filename,network,electrodes,prep,task,trail=False, trainBool=True):
             asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
-            #asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
+            asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
                 asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+network[0]+"_amplitude")
                 asdf.PFI(saveTrail="_angle",nameSuffix="_"+network[0]+"_angle")
@@ -170,14 +176,26 @@ def main():
         #train('Position_InceptionTime_Top6', ["InceptionTime"], np.array([1,38,32,121,125,128]), 'min', "Position_task")
         #train('Position_InceptionTime_SideFronts', ["InceptionTime"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Position_task")
 
-        train('Direction_InceptionTime_Top2_Amplitude', ["InceptionTime"], np.array([27,123]), 'min', "Direction_task")
-        train('Direction_InceptionTime_Top2_Angle', ["InceptionTime"], np.array([125,128]), 'min', "Direction_task")
-        train('Direction_InceptionTime_Top6_Angle', ["InceptionTime"], np.array([1,32,38,121,125,128]), 'min', "Direction_task")
-        train('Direction_InceptionTime_Top6_Amplitude', ["InceptionTime"], np.array([27,38,43,120,121,123]), 'min', "Direction_task")
-        train('Direction_InceptionTime_SideFronts', ["InceptionTime"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
+        #train('Direction_InceptionTime_Top2_Amplitude', ["InceptionTime"], np.array([27,123]), 'min', "Direction_task")
+        #train('Direction_InceptionTime_Top2_Angle', ["InceptionTime"], np.array([125,128]), 'min', "Direction_task")
+        #train('Direction_InceptionTime_Top6_Angle', ["InceptionTime"], np.array([1,32,38,121,125,128]), 'min', "Direction_task")
+        #train('Direction_InceptionTime_Top6_Amplitude', ["InceptionTime"], np.array([27,38,43,120,121,123]), 'min', "Direction_task")
+        #train('Direction_InceptionTime_SideFronts', ["InceptionTime"], np.array([1,2,3,8,9,14,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128]), 'min', "Direction_task")
 
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
+        PFI('Direction_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        #PFI('Position_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Direction_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        #PFI('Position_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Direction_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        #PFI('Position_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Direction_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        #PFI('Position_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Direction_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        #PFI('Position_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+
+
 
         #for i in ["EEGNet"]:
         #    PFI('Direction_All/', [i], 1 + np.arange(129), 'min', "Direction_task", trail=True,
