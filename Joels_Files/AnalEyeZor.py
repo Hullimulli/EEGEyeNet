@@ -527,7 +527,7 @@ class AnalEyeZor():
             plt.show()
         plt.close()
 
-    def visualizePrediction(self, modelName, run = 1, nrOfPoints=9, filename='predictionVisualisation', format='pdf',saveBool=True, scale=False):
+    def visualizePrediction(self, modelNames, nrOfruns = 5, nrOfPoints=9, filename='predictionVisualisation', format='pdf',saveBool=True, scale=False):
 
         trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
         ids = trainY[:, 0]
@@ -545,51 +545,69 @@ class AnalEyeZor():
         trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
         del trainIndices, valIndices, testIndices, trainY
         if config['task'] == 'Direction_task':
-            modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
-            modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+            allpredictions = dict()
+            for modelName in modelNames:
+                modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+                modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+                prediction = np.zeros([nrOfruns, valY[:, 0].shape[0], 2])
+                for run in range(nrOfruns):
 
-            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+                    path = config['checkpoint_dir'] + 'run' + str(run+1) + '/'
 
-            trainerAmp = modelAmp[0](**modelAmp[1])
-            trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
-            trainerAmp.load(path)
-            predictionAmp = np.squeeze(trainerAmp.predict(trainX))
+                    trainerAmp = modelAmp[0](**modelAmp[1])
+                    trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
+                    trainerAmp.load(path)
+                    predictionAmp = np.squeeze(trainerAmp.predict(trainX))
 
-            trainerAngle = modelAngle[0](**modelAngle[1])
-            trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
-            trainerAngle.load(path)
-            predictionAngle = np.squeeze(trainerAngle.predict(trainX))
+                    trainerAngle = modelAngle[0](**modelAngle[1])
+                    trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+                    trainerAngle.load(path)
+                    predictionAngle = np.squeeze(trainerAngle.predict(trainX))
 
-            prediction = np.zeros([predictionAngle.shape[0],2])
-            prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
-            prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
+                    prediction[run,:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
+                    prediction[run,:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
+                allpredictions[modelName] = prediction
 
             truth = np.zeros([predictionAngle.shape[0], 2])
             truth[:,0] = np.multiply(valY[:,0],np.cos(valY[:,1]))
             truth[:, 1] = np.multiply(valY[:,0], np.sin(valY[:,1]))
         elif config['task'] == 'Position_task':
-            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
-            trainer = model[0](**model[1])
-            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
-            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
-            trainer.load(path)
-            prediction = np.squeeze(trainer.predict(trainX))
+            allpredictions = dict()
+            for modelName in modelNames:
+                model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                prediction = np.zeros([nrOfruns, valY[:, 0].shape[0]])
+                for run in range(nrOfruns):
+                    trainer = model[0](**model[1])
+                    trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+                    path = config['checkpoint_dir'] + 'run' + str(run+1) + '/'
+                    trainer.load(path)
+                    prediction = np.squeeze(trainer.predict(trainX))
+                allpredictions[modelName] = prediction
             truth = valY
         else:
             print("Task not yet configured.")
             return
-        steps = np.linspace(0.3,1,num=int(nrOfPoints/3)+1)
-        colour = np.zeros((nrOfPoints,3))
-        for i in range(3):
-            length = colour[int(i*nrOfPoints/3):int((1+i)*nrOfPoints/3),i].shape[0]
-            colour[int(i*nrOfPoints/3):int((1+i)*nrOfPoints/3),i] =  steps[:length]
+
+        cmap = cm.get_cmap('nipy_spectral')
+        colour = cmap((1+np.arange(nrOfPoints))/nrOfPoints)
 
         fig = plt.figure()
-        plt.scatter(truth[:,0],truth[:,1],c=colour, marker='o',label="Ground Truth")
-        plt.scatter(prediction[:, 0], prediction[:, 1], c=colour, marker='x',label="Prediction")
+        plt.scatter(truth[:,0],truth[:,1], c='black', marker='x',label="Ground Truth")
+        plt.axis('equal')
 
-        for i in range(prediction.shape[0]):
-            plt.plot(np.array([prediction[i,0],truth[i,0]]),np.array([prediction[i,1],truth[i,1]]),c=colour[i])
+        for i,modelName in enumerate(modelNames):
+            x = np.mean(allpredictions[modelName][:,:, 0], axis=0)
+            y = np.mean(allpredictions[modelName][:,:, 1], axis=0)
+            colours = np.zeros([x.shape[0],4]) + colour[i]
+            plt.scatter(x, y, s=5,c=colours, marker='o',label=modelName)
+            radi = np.sqrt(np.square(np.std(allpredictions[modelName][:,:, 0], axis=0)) + np.square(np.std(allpredictions[modelName][:,:, 1], axis=0)))
+            ax = fig.gca()
+
+            for j in range(x.shape[0]):
+                plt.plot(np.array([x[j],truth[j,0]]),np.array([y[j],truth[j,1]]),c=colour[i])
+            colour[i,3] = 0.1
+            for j in range(x.shape[0]):
+                ax.add_patch(plt.Circle((x[j], y[j]), radi[j], color=colour[i]))
 
         plt.axhline(0, color='black',linewidth=0.1)
         plt.axvline(0, color='black',linewidth=0.1)
