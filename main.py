@@ -184,8 +184,8 @@ def main():
 
 
         #train('Position_All', ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=True,trainBool=True)
-        PFI('Direction_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
-        #PFI('Position_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Direction_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
+        PFI('Position_CNN_All/', ["CNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
