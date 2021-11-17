@@ -74,13 +74,18 @@ def main():
             asdf.generateTable("Position_Xception_Statistics.csv",filename='Position_Xception_Statistics',addNrOfParams=False)
 
         #directories = ["Direction_PyramidalCNN_SideFronts/","Direction_PyramidalCNN_Top2_Amplitude/","Direction_PyramidalCNN_Top6_Amplitude/","Direction_PyramidalCNN_Top2_Angle/","Direction_PyramidalCNN_Top6_Angle/"]
-        directories = ["Position_Xception_SideFronts/", "Position_Xception_Top2/", "Position_Xception_Top6/"]
-        combineResults(directories)
+        #directories = ["Position_Xception_SideFronts/", "Position_Xception_Top2/", "Position_Xception_Top6/"]
+        #combineResults(directories)
+
+        asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
+                          path="Direction_All/", models=["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"],
+                          featureExtraction=False)
+        asdf.visualizePrediction(modelNames=["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], nrOfruns=5, filename="Visualisation_All_run")
 
         def visualize(task, model,run,electrodes, modelName,colour):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
                               path=task+"_"+model+"/", models=[modelName], electrodes=electrodes,featureExtraction=False)
-            asdf.visualizePrediction(modelName=modelName, run=run, filename="Visualisation_"+model+"_run"+str(run))
+            asdf.visualizePrediction(modelNames=[modelName], nrOfruns=5, filename="Visualisation_"+model+"_run"+str(run))
 
             goodElectrodeIndices = np.zeros(129)
             goodElectrodeIndices[electrodes-1] = 1
@@ -189,11 +194,11 @@ def main():
         #PFI('Direction_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
-        #PFI('Position_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        PFI('Position_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
-        PFI('Position_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Position_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
 
 
 
