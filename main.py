@@ -220,8 +220,8 @@ def main():
         #train('Direction_SideFronts', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], sideFronts, 'min', "Direction_task")
 
         #train('Position_Top2', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2, 'min',"Position_task")
-        train('Position_Top4', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"Position_task")
-        #train('Position_Top7', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"Position_task")
+        #train('Position_Top4', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"Position_task")
+        train('Position_Top7', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"Position_task")
         #train('Position_SideFronts', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"Position_task")
 
 
