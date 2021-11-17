@@ -209,8 +209,8 @@ def main():
         #train('Direction_Top2Amp', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2Amp, 'min',"Direction_task")
         #train('Direction_Top2Ang', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2Ang, 'min', "Direction_task")
         #train('Direction_Top4', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top4, 'min', "Direction_task")
-        train('Direction_Top7', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top7, 'min', "Direction_task")
-        #train('Direction_SideFronts', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], sideFronts, 'min', "Direction_task")
+        #train('Direction_Top7', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top7, 'min', "Direction_task")
+        train('Direction_SideFronts', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], sideFronts, 'min', "Direction_task")
 
 
         #for i in ["EEGNet"]:
