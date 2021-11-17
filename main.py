@@ -194,12 +194,23 @@ def main():
         #PFI('Direction_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_InceptionTime_All/', ["InceptionTime"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
-        PFI('Position_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
+        #PFI('Position_PyramidalCNN_All/', ["PyramidalCNN"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_EEGNet_All/', ["EEGNet"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
         #PFI('Direction_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Direction_task", trail=True, trainBool=True)
         #PFI('Position_Xception_All/', ["Xception"], 1 + np.arange(129), 'min', "Position_task", trail=False, trainBool=True)
 
+        top2Amp = np.array([1,32])
+        top2Ang = np.array([125,128])
+        top4 = np.array([1,32,125,128])
+        top7 = np.array([1,17,32,38,121,125,128])
+        sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
+
+        train('Direction_Top2Amp', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2Amp, 'min',"Direction_task")
+        #train('Direction_Top2Ang', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2Ang, 'min', "Direction_task")
+        #train('Direction_Top4', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top4, 'min', "Direction_task")
+        #train('Direction_Top7', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top7, 'min', "Direction_task")
+        #train('Direction_SideFronts', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], sideFronts, 'min', "Direction_task")
 
 
         #for i in ["EEGNet"]:
