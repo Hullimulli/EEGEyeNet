@@ -25,6 +25,7 @@ import mne
 from texttable import Texttable
 from tabulate import tabulate
 import latextable
+from matplotlib.lines import Line2D
 
 import numpy as np
 
@@ -164,10 +165,10 @@ class AnalEyeZor():
             logging.info("------------------------------Calling Benchmark------------------------------")
             benchmark(trainX, trainY)
             logging.info("------------------------------Finished Training------------------------------")
+        elif path==None:
+            self.currentFolderPath = "./runs"
+            config['load_experiment_dir'] = self.currentFolderPath
         else:
-            if path==None:
-                print("Configure the Path, where to find the network in runs.")
-                raise Exception()
             self.currentFolderPath = config['log_dir'] + path
             config['load_experiment_dir'] = path
             config['retrain'] = trainBool
@@ -647,7 +648,7 @@ class AnalEyeZor():
             return
 
         cmap = cm.get_cmap('nipy_spectral')
-        colour = cmap((1+np.arange(nrOfPoints))/nrOfPoints)
+        colour = cmap((1+np.arange(len(modelNames)))/len(modelNames))
 
         fig = plt.figure()
         plt.scatter(truth[:,0],truth[:,1], c='black', marker='x',label="Ground Truth")
@@ -821,6 +822,68 @@ class AnalEyeZor():
             data = pd.concat([data, toAppend], ignore_index = True, axis = 0)
 
         data.to_csv(config['model_dir'] + filename + '.csv', index = False)
+
+
+    def plotSignal(self,modelName, electrodes, colourMap='seismic',run = 1, nrOfPoints=9, filename='SignalVisualisation', format='pdf',saveBool=True,scale=False,plotTresh=0):
+
+        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = trainY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+
+        if scale:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+            logging.info('Standard Scaling')
+            scaler = StandardScaler()
+            scaler.fit(trainX[trainIndices])
+            trainX = scaler.transform(trainX[valIndices])
+        else:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
+            trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
+
+        valY = trainY[testIndices,1:]
+        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+        del trainIndices, valIndices, testIndices, trainY
+
+
+        if config['task'] == 'LR_task':
+            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+            trainer = model[0](**model[1])
+            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+            trainer.load(path)
+            prediction = np.squeeze(trainer.predict(trainX))
+            truth = np.squeeze(valY)
+        else:
+            print("Task not yet configured.")
+            return
+
+        fig, ax = plt.subplots()
+        if config['task'] == 'LR_task':
+            cmap = cm.get_cmap(colourMap)
+            linSpace = np.arange(1,501)
+            threshIndices = np.where(prediction - truth >= plotTresh)
+            indices = 2*truth+np.absolute(prediction - truth)
+            indices = indices.astype(np.int)[threshIndices]
+            trainX=trainX[threshIndices]
+            if nrOfPoints==1:
+                colour = np.expand_dims(cmap(indices / 3), axis=0)
+            else:
+                colour = cmap(indices / 3)
+            custom_lines = [Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[0], lw=2),
+                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[1], lw=2),
+                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[2], lw=2),
+                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[3], lw=2)]
+            ax.legend(custom_lines, ["0","0-1","1","1-0"])
+            for i in range(trainX.shape[0]):
+                ax.plot(linSpace, np.squeeze(trainX[i,:,electrodes]),  c=np.squeeze(colour[i]),lw=0.5)
+
+
+        if saveBool:
+            fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
+
 
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
