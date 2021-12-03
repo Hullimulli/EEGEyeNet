@@ -20,6 +20,8 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+import matplotlib.animation as animation
+from matplotlib.ticker import FormatStrFormatter
 import scipy.io as sio
 import mne
 from texttable import Texttable
@@ -824,7 +826,7 @@ class AnalEyeZor():
         data.to_csv(config['model_dir'] + filename + '.csv', index = False)
 
 
-    def plotSignal(self,modelName, electrodes, colourMap='seismic',run = 1, nrOfPoints=9, filename='SignalVisualisation', format='pdf',saveBool=True,scale=False,plotTresh=0):
+    def plotSignal(self,modelName, electrodes, colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='SignalVisualisation_electrode', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True):
 
         trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
         ids = trainY[:, 0]
@@ -857,31 +859,87 @@ class AnalEyeZor():
             print("Task not yet configured.")
             return
 
-        fig, ax = plt.subplots()
+
         if config['task'] == 'LR_task':
             cmap = cm.get_cmap(colourMap)
-            linSpace = np.arange(1,501)
-            threshIndices = np.where(prediction - truth >= plotTresh)
+            linSpace = np.arange(1,1001,2)
+            threshIndices = np.where(np.absolute(prediction - truth) >= plotTresh)
             indices = 2*truth+np.absolute(prediction - truth)
             indices = indices.astype(np.int)[threshIndices]
             trainX=trainX[threshIndices]
-            if nrOfPoints==1:
-                colour = np.expand_dims(cmap(indices / 3), axis=0)
+            trainX[np.where(trainX > maxValue)] = maxValue
+            trainX[np.where(trainX < -maxValue)] = -maxValue
+
+            custom_lines = [Line2D([0], [0], color=cmap(np.arange(4)/3)[0], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[1], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[2], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[3], lw=2)]
+
+
+
+            if meanBool:
+
+                colour = cmap(np.arange(4) / 3)
+                for e in electrodes - 1:
+                    fig, ax = plt.subplots()
+                    ax.legend(custom_lines, ["0", "0-1", "1", "1-0"])
+                    plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                    plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                    for i in range(4):
+                        if (trainX[np.where(indices==i),:,:].ndim and trainX[np.where(indices==i),:,:].size) != 0:
+                            averageSignals = np.mean(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
+                            deviationSignal = np.std(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
+                            ax.plot(linSpace, np.squeeze(averageSignals[:, e]), c=np.squeeze(colour[i]), lw=1.5)
+                            ax.fill_between(linSpace, averageSignals[:, e] + deviationSignal[:, e], averageSignals[:, e] - deviationSignal[:, e], facecolor=np.squeeze(colour[i]), alpha=0.1)
+                    fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format,transparent=True)
+                    plt.close()
             else:
-                colour = cmap(indices / 3)
-            custom_lines = [Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[0], lw=2),
-                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[1], lw=2),
-                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[2], lw=2),
-                            Line2D([0], [0], color=cmap(np.array([0,1,2,3])/3)[3], lw=2)]
-            ax.legend(custom_lines, ["0","0-1","1","1-0"])
-            for i in range(trainX.shape[0]):
-                ax.plot(linSpace, np.squeeze(trainX[i,:,electrodes]),  c=np.squeeze(colour[i]),lw=0.5)
+                fig, ax = plt.subplots()
+                ax.legend(custom_lines, ["0", "0-1", "1", "1-0"])
+                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                if nrOfPoints==1:
+                    colour = np.expand_dims(cmap(indices / 3), axis=0)
+                else:
+                    colour = cmap(indices / 3)
+                for i in range(trainX.shape[0]):
+                    ax.plot(linSpace, np.squeeze(trainX[i,:,electrodes]),  c=np.squeeze(colour[i]),lw=0.5)
+                fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+                plt.close()
 
 
-        if saveBool:
-            fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
-        else:
-            plt.show()
+    def movie(self,yValue,yDeviation=0,maxValue=100,slowDownFactor=10,filename='movie',cmap='Seismic',pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
+        if cmap not in plt.colormaps():
+            print("Colourmap does not exist in Matplotlib.")
+            cmap = "Reds"
+
+        electrodePositions = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['pos'][0][0]
+        outline = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['outline'][0][0]
+        mask = sio.loadmat(pathForOriginalRelativeToExecutable+"lay129_head.mat")['lay129_head']['mask'][0][0]
+        fig = plt.figure(figsize=(7,4.5))
+        #Generating outline dictionary for mne topoplot
+        outlines = dict()
+        outlines["mask_pos"] = (mask[0,0][:,0],mask[0,0][:,1])
+        outlines["head"] = (outline[0, 0][:,0],outline[0, 0][:,1])
+        outlines["nose"] = (outline[0, 1][:,0],outline[0, 1][:,1])
+        outlines["ear_left"] = (outline[0, 2][:,0],outline[0, 2][:,1])
+        outlines["ear_right"] = (outline[0, 3][:,0],outline[0, 3][:,1])
+        #This cuts out parts of the colour circle
+        outlines['clip_radius'] = (0.5,) * 2
+        outlines['clip_origin'] = (0,0.07)
+
+        trainY = np.squeeze(IOHelper.get_npz_data(config['data_dir'], verbose=True)[1])
+        asdf = np.where(np.absolute(trainY[:,1:] - yValue) <= yDeviation)
+        trainX = np.squeeze(IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][np.where(np.absolute(trainY[1:] - yValue) <= yDeviation)[0]])
+        trainX = np.mean(trainX,axis=0)
+
+        def update(i):
+            im, cm = mne.viz.plot_topomap(np.squeeze(trainX[i]),electrodePositions[3:132,:], contours=0,vmin=-maxValue, vmax=maxValue,outlines=outlines,show=False,cmap=cmap)
+            return im,
+
+        ani = animation.FuncAnimation(fig, update, frames=500)
+        ani.save(os.path.join(config['model_dir'], filename+'.mp4'), fps=int(500 / slowDownFactor), writer='imagemagick')
+        #plt.show()
         plt.close()
 
 

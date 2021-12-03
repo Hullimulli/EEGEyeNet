@@ -17,50 +17,79 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = False
+    local = True
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
     if local:
 
-        def plot(filename,model,colour):
-            asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
-                             path="Direction_All/", models=[model], featureExtraction=False)
-            lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=[model]).to_numpy()
-            goodElectrodeIndices = np.zeros(np.squeeze(lossValues).shape)
-            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:2]] = 1
-            asdf.electrodeBarPlot(values=lossValues, colour='orange',name="Electrode_Loss_"+filename)
-            asdf.topoPlot(lossValues,cmap=colour,filename="Topoplot_"+filename,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=0.01)
-            asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Electrode_Losses_'+filename,alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
-            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices,colourMap=colour), filename='best2Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
-            goodElectrodeIndices[np.argsort(-np.squeeze(lossValues))[:4]] = 1
-            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
-                              filename='best4Electrode_'+filename, alpha=0.4, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+        def plot(filename,modelNames,colour,PFIIndexNames=None):
+            asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
+                             path="Position_All/", models=modelNames, featureExtraction=False)
+
+            if PFIIndexNames is None:
+                for modelName in modelNames:
+                    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=[modelName]).to_numpy()
+                    asdf.electrodeBarPlot(values=lossValues, colour='orange',name="Electrode_Loss_"+filename)
+                    asdf.topoPlot(lossValues,cmap=colour,filename="Topoplot_"+filename,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=0.01)
+                    asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Electrode_Losses_'+filename,alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+            else:
+                for name in PFIIndexNames:
+                    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_' + filename + '.csv',
+                                             usecols=[name]).to_numpy()
+                    asdf.electrodeBarPlot(values=lossValues, colour='orange', name="Electrode_Loss_" + filename)
+                    asdf.topoPlot(lossValues, cmap=colour, filename="Topoplot_" + filename,
+                                  pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/", epsilon=0.01)
+                    asdf.electrodePlot(
+                        colourValues=asdf.colourCode(values=np.squeeze(lossValues), colourMap=colour, epsilon=0.01),
+                        filename='Electrode_Losses_' + filename, alpha=1,
+                        pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
         #plot("InceptionTime_angle","InceptionTime","Oranges")
         #plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
-        def customPlot(array):
+
+        def showData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0,maxValue=100):
+            dataset='dots'
+            if task == 'LR':
+                dataset='antisaccade'
+            asdf = AnalEyeZor(task=task+'_task', dataset=dataset, preprocessing='min', trainBool=False,
+                             path=path, models=[model], featureExtraction=False)
+            asdf.plotSignal(model,electrodes,colourMap=colourMap,run=run,nrOfPoints=nrOfPoints,filename=name,plotTresh=tresh,maxValue=maxValue)
+            #asdf.movie(1,maxValue=25,cmap='seismic')
+
+        showData("LRMin_InceptionTime_All/","InceptionTime","SignalVisualisation",'LR',electrodes=np.arange(129)+1,nrOfPoints=20000,tresh=0,maxValue=70)
+
+        def customPlot():
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
-            goodElectrodeIndices = np.zeros(129)
-            goodElectrodeIndices[array-1] = 1
-            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap='Reds'),
+            goodElectrodeIndices = np.zeros(129) + 45
+            array = np.array([1, 32])
+            goodElectrodeIndices[array - 1] = 25
+            array = np.array([125, 128])
+            goodElectrodeIndices[array - 1] = 30
+            array = np.array([17, 38, 121])
+            goodElectrodeIndices[array - 1] = 35
+            array = np.array([2, 3, 8, 9, 14, 21, 22, 23, 25, 26, 27, 33, 43, 120, 122, 123])
+            goodElectrodeIndices[array-1] = 40
+            asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap='nipy_spectral'),
                                filename='Configuration', alpha=0.4,
                                pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
 
         #customPlot()
-        def table(filename,directory,model):
-            asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
-                             path=directory, models=model, featureExtraction=False)
-            asdf.generateTable(modelFileName=filename,addNrOfParams=True,filename=filename[:-4])
+        def table(filename,directory,caption,scale):
+            asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
+                             path=directory, models=["InceptionTime"], featureExtraction=False)
+            asdf.generateTable(modelFileName=filename,addNrOfParams=False,filename=filename[:-4],caption=caption,scale=scale)
 
         def train(filename,electrodes,prep):
             asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing=prep, trainBool=True
                               , models=["InceptionTime"], electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
 
-        #table("statistics.csv","Position_All/",["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"])
-        #table("statistics_angle.csv", "Direction_All/", ["Xception","CNN","PyramidalCNN","InceptionTime","EEGNet"])
+        #table("statistics_all.csv","Position_All/",caption="Performance of each Network with all Configuration for the Position Task (RMSE).",scale=0.5)
+        #table("statistics_angle_all.csv", "Position_All/", caption="Performance of each Network with all Configuration for the Angular Part of the Direction Task (RMSE).",scale=180 / float(np.pi))
+        #table("statistics_angle_all.csv", "Position_All/",caption="Performance of each Network with all Configuration for the Angular Part of the Direction Task (RMSE).",scale=1)
+        #table("statistics_amplitude_all.csv", "Position_All/", caption="Performance of each Network with all Configuration for the Amplitude Part of the Direction Task (RMSE).",scale=0.5)
 
         def visualizeTraining(task, name,network,columns):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
@@ -77,42 +106,55 @@ def main():
         #directories = ["Position_Xception_SideFronts/", "Position_Xception_Top2/", "Position_Xception_Top6/"]
         #combineResults(directories)
 
-        asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
-                          path="Direction_All/", models=["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"],
-                          featureExtraction=False)
-        asdf.visualizePrediction(modelNames=["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], nrOfruns=5, filename="Visualisation_All_run")
-
-        def visualize(task, model,run,electrodes, modelName,colour):
+        def visualize(task, type, electrodes, modelNames, colour):
             asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
-                              path=task+"_"+model+"/", models=[modelName], electrodes=electrodes,featureExtraction=False)
-            asdf.visualizePrediction(modelNames=[modelName], nrOfruns=5, filename="Visualisation_"+model+"_run"+str(run))
+                              path=task+"_"+type+"/", models=modelNames, electrodes=electrodes,featureExtraction=False)
+            asdf.visualizePrediction(modelNames=modelNames, nrOfruns=5, filename="Visualisation_"+type)
 
             goodElectrodeIndices = np.zeros(129)
             goodElectrodeIndices[electrodes-1] = 1
             asdf.electrodePlot(colourValues=asdf.colourCode(values=goodElectrodeIndices, colourMap=colour),
-                               filename='Configuration_'+model, alpha=0.4,
+                               filename='Configuration', alpha=0.4,
                                pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
             if task == "Position":
-                asdf.plotTraining(modelFileName=modelName + "_" + str(run) + ".csv", filename="Training_" + model + "_run" + str(run), columns=["Loss", "Val_Loss"])
+                for modelName in modelNames:
+                    for i in range(1,6):
+                        asdf.plotTraining(modelFileName=modelName + "_" + str(i) + ".csv", filename="Training_" + modelName + "_run" + str(i), columns=["Loss", "Val_Loss"])
             else:
-                asdf.plotTraining(modelFileName=modelName+"_angle"+str(run)+".csv", filename="Training_"+model+"_angle"+str(run), columns=["Loss","Accuracy"])
-                asdf.plotTraining(modelFileName=modelName + "_amplitude" + str(run) + ".csv",filename="Training_" + model + "_amplitude" + str(run), columns=["Loss","Val_Loss"])
+                for modelName in modelNames:
+                    for i in range(1,6):
+                        asdf.plotTraining(modelFileName=modelName+"_angle"+str(i)+".csv", filename="Training_"+modelName+"_angle"+str(i), columns=["Loss","Accuracy"])
+                        asdf.plotTraining(modelFileName=modelName + "_amplitude" + str(i) + ".csv",filename="Training_" + modelName + "_amplitude" + str(i), columns=["Loss","Val_Loss"])
 
         #visualize("Position_PyramidalCNN","PyramidalCNN")
         #visualize("Direction", "Xception")
         #names = ["InceptionTime_SideFronts","InceptionTime_Top2_Amplitude","InceptionTime_Top6_Amplitude","InceptionTime_Top2_Angle","InceptionTime_Top6_Angle"]
         #electrodes = [np.array([  1,  2,  3,  8,  9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43,120,121, 122,123,125,128]),np.array([ 27,123]),np.array([ 27, 38, 43,120,121,123]),np.array([125,128]),np.array([  1, 32, 38,121,125,128])]
 
-        #for i in range(len(names)):
-            #for j in range(1,6):
-                #visualize("Direction", names[i], j, electrodes[i], "InceptionTime", "Purples")
+        top2Amp = np.array([1,32])
+        top2Ang = np.array([125,128])
+        top4 = np.array([1,32,125,128])
+        top7 = np.array([1,17,32,38,121,125,128])
+        sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
+
+        #plot("Average_Amp",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"],colour='Reds',PFIIndexNames=["Average"])
+        #plot("Average_Ang", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], colour='Reds',PFIIndexNames=["Average"])
+        #visualize("Direction", "All", np.arange(129)+1, ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Reds")
+        #visualize("Direction", "Top2Amp", top2Amp,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Reds")
+        #visualize("Direction", "Top2Ang", top2Ang,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Greens")
+        #visualize("Direction", "Top4", top4,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Purples")
+        #visualize("Direction", "Top7", top7,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Oranges")
+        #visualize("Direction", "SideFronts", sideFronts,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Blues")
+
+        #plot("Average", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], colour='Reds',PFIIndexNames=["Average"])
+        #visualize("Position", "All", np.arange(129)+1, ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Reds")
+        #visualize("Position", "Top2", top2Ang,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Greens")
+        #visualize("Position", "Top4", top4,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Purples")
+        #visualize("Position", "Top7", top7,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Oranges")
+        #visualize("Position", "SideFronts", sideFronts,["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], "Blues")
 
         #names = ["InceptionTime_SideFronts", "InceptionTime_Top2", "InceptionTime_Top6"]
         #electrodes = [np.array([1, 2, 3, 8, 9, 14, 21, 22, 23, 25, 26, 27, 32, 33, 38, 43, 120, 121, 122, 123, 125, 128]),np.array([ 1,32]),np.array([  1, 38, 32,121,125,128])]
-
-        #for i in range(len(names)):
-            #for j in range(1,6):
-                #visualize("Position",names[i],j,electrodes[i],"InceptionTime","Purples")
 
 
 
