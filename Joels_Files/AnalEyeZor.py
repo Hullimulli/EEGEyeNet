@@ -826,8 +826,10 @@ class AnalEyeZor():
         data.to_csv(config['model_dir'] + filename + '.csv', index = False)
 
 
-    def plotSignal(self,modelName, electrodes, colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='SignalVisualisation_electrode', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True):
+    def plotSignal(self,modelName, electrodes, nrOfLevels=4,colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='SignalVisualisation_electrode', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True, componentAnalysis=None,dimensions=5):
 
+        intersect, ind_a, electrodes = np.intersect1d(electrodes, self.electrodes, return_indices=True)
+        del intersect, ind_a
         trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
         ids = trainY[:, 0]
         trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
@@ -846,6 +848,10 @@ class AnalEyeZor():
         trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
         del trainIndices, valIndices, testIndices, trainY
 
+        if componentAnalysis == "PCA":
+            trainX = self.pcaDimReduction(trainX,dim=dimensions)
+
+
 
         if config['task'] == 'LR_task':
             model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
@@ -855,9 +861,193 @@ class AnalEyeZor():
             trainer.load(path)
             prediction = np.squeeze(trainer.predict(trainX))
             truth = np.squeeze(valY)
+        elif config['task'] == 'Position_task':
+            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+            trainer = model[0](**model[1])
+            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+            trainer.load(path)
+            prediction = np.squeeze(trainer.predict(trainX))
+            truth = np.squeeze(valY)
+        elif config['task'] == 'Direction_task':
+            modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+            modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+
+            trainerAmp = modelAmp[0](**modelAmp[1])
+            trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
+            trainerAmp.load(path)
+            predictionAmp = np.squeeze(trainerAmp.predict(trainX))
+
+            trainerAngle = modelAngle[0](**modelAngle[1])
+            trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+            trainerAngle.load(path)
+            predictionAngle = np.squeeze(trainerAngle.predict(trainX))
+            prediction = np.zeros([predictionAmp.shape[0],2])
+            truth = np.zeros([predictionAmp.shape[0],2])
+            prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
+            prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
+            truth[:,0] = np.multiply(valY[:,0],np.cos(valY[:,1]))
+            truth[:, 1] = np.multiply(valY[:,0], np.sin(valY[:,1]))
         else:
             print("Task not yet configured.")
             return
+
+
+        if config['task'] == 'LR_task':
+            cmap = cm.get_cmap(colourMap)
+            linSpace = np.arange(1,1001,2)
+            threshIndices = np.where(np.absolute(prediction - truth) >= plotTresh)
+            indices = 2*truth+np.absolute(prediction - truth)
+            nrCorrectlyPredicted = np.argwhere(indices % 2 == 0).shape[0]
+            nrOfTruths = indices.shape[0]
+            indices = indices.astype(np.int)[threshIndices]
+            trainX=trainX[threshIndices]
+            trainX[np.where(trainX > maxValue)] = maxValue
+            trainX[np.where(trainX < -maxValue)] = -maxValue
+
+            custom_lines = [Line2D([0], [0], color=cmap(np.arange(4)/3)[0], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[1], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[2], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4)/3)[3], lw=2)]
+
+
+
+            if meanBool:
+
+                colour = cmap(np.arange(4) / 3)
+                for e in electrodes:
+                    fig, ax = plt.subplots()
+                    ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                    plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                    plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                    for i in range(4):
+                        if (trainX[np.where(indices==i),:,:].ndim and trainX[np.where(indices==i),:,:].size) != 0:
+                            averageSignals = np.mean(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
+                            deviationSignal = np.std(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
+                            ax.plot(linSpace, np.squeeze(averageSignals[:, e]), c=np.squeeze(colour[i]), lw=1.5)
+                            ax.fill_between(linSpace, averageSignals[:, e] + deviationSignal[:, e], averageSignals[:, e] - deviationSignal[:, e], facecolor=np.squeeze(colour[i]), alpha=0.1)
+                    ax.set_title("Acc.: {}%".format(round(nrCorrectlyPredicted / max(nrOfTruths, 1) * 100,2)))
+                    fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format,transparent=True)
+                    plt.close()
+            else:
+                if nrOfPoints == 1:
+                    colour = np.expand_dims(cmap(indices / 3), axis=0)
+                else:
+                    colour = cmap(indices / 3)
+                for e in electrodes:
+                    fig, ax = plt.subplots()
+                    ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                    plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                    plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                    for i in range(trainX.shape[0]):
+                        ax.plot(linSpace, np.squeeze(trainX[i,:,e]),  c=np.squeeze(colour[i]),lw=0.5)
+                    ax.set_title("Acc.: {}%".format(round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,2)))
+                    fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format, transparent=True)
+                    plt.close()
+
+        elif config['task'] == 'Position_task' or config['task'] == 'Direction_task':
+            cmap = cm.get_cmap(colourMap)
+            colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
+            if nrOfLevels % 2 != 0:
+                print("Need even number of levels.")
+                return
+            centers = np.zeros([int(np.log2(nrOfLevels+2)),int(np.log2(nrOfLevels)),2])
+            eps = 50
+            if config['task'] == 'Position_task':
+                minValueX = 0
+                minValueY = 0
+                maxValueX = 800
+                maxValueY = 600
+            else:
+                maxValueX = max(-np.min(truth[:,0]) + eps,np.max(truth[:,0]) - eps)
+                maxValueY = max(-np.min(truth[:,1]) + eps,np.max(truth[:,1]) - eps)
+                minValueX = -maxValueX
+                minValueY = -maxValueY
+
+            centers[:,:,0] = np.expand_dims(np.arange(centers.shape[0])*(maxValueX-minValueX)/centers.shape[0] + (maxValueX-minValueX)/(2*centers.shape[0]),axis=1) + minValueX
+            centers[:, :, 1] = np.tile((np.arange(centers.shape[1])*(maxValueY - minValueY) /centers.shape[1]  + (maxValueY - minValueY) / (2 * centers.shape[1]))[::-1],(centers.shape[0],1)) + minValueY
+
+            distances = np.zeros(prediction.shape[0]) + np.Infinity
+            distancesTruth = distances
+            closestCenter = np.zeros(prediction.shape[0],dtype=np.int)
+            closestCenterTruth = np.zeros(truth.shape[0],dtype=np.int)
+            for j in range(centers.shape[1]):
+                for i in range(centers.shape[0]):
+                    distance = np.power(prediction[:,0]-centers[i,j,0],2) + np.power(prediction[:,1]-centers[i,j,1],2)
+                    closestCenter[np.where(np.squeeze(distance-distances) < 0)] = i + j*centers.shape[0]
+                    distances = np.minimum(distances,distance)
+
+                    distance = np.power(truth[:, 0] - centers[i, j, 0], 2) + np.power(truth[:, 1] - centers[i, j, 1], 2)
+                    closestCenterTruth[np.where(np.squeeze(distance-distancesTruth) < 0)] = i + j*centers.shape[0]
+                    distancesTruth = np.minimum(distancesTruth,distance)
+
+            linSpace = np.arange(1, 1001, 2)
+            for e in electrodes:
+                #fig, ax_array = plt.subplots(centers.shape[1], centers.shape[0], squeeze=False, figsize=(23, 23))
+                fig, ax = plt.subplots(figsize=(8*centers.shape[0],4*centers.shape[1]),dpi=160/np.log2(nrOfLevels))
+                ax.set_xlim([minValueX, maxValueX])
+                ax.set_ylim([minValueY, maxValueY])
+                ax.set_xticks(np.arange(0,centers.shape[0]+1) * (maxValueX - minValueX) / centers.shape[0]+minValueX)
+                ax.set_yticks(np.arange(0,centers.shape[1]+1) * (maxValueY - minValueY) / centers.shape[1]+minValueY)
+
+                plt.grid()
+                for i in range(centers.shape[1]):
+                    for j in range(centers.shape[0]):
+                        axes = ax.inset_axes([(centers[j,i,0]-minValueX)/(maxValueX-minValueX) -  0.8/ (2*centers.shape[0]),(centers[j,i,1]-minValueY)/(maxValueY-minValueY) - 0.8 / (2*centers.shape[1]),0.8 / centers.shape[0],0.8  / centers.shape[1]])
+                        index=j+i*centers.shape[0]
+                        groundTruthSignal = np.squeeze(np.mean(trainX[np.where(closestCenterTruth==index),:,e],axis=1))
+                        nrOfTruths = trainX[np.where(closestCenterTruth==index),:,e].shape[1]
+                        nrCorrectlyPredicted = 0
+                        deviationTruthSignal = np.squeeze(np.std(trainX[np.where(closestCenterTruth==index),:,e],axis=1))
+                        axes.plot(linSpace, np.squeeze(groundTruthSignal), c=np.squeeze(colour[index]), lw=1.5, label=str(index)+",({})".format(nrOfTruths))
+                        axes.fill_between(linSpace, groundTruthSignal + deviationTruthSignal, groundTruthSignal - deviationTruthSignal,facecolor=np.squeeze(colour[index]), alpha=0.1)
+                        for n in range(centers.shape[0]*centers.shape[1]):
+                            if np.logical_and(closestCenterTruth == index,closestCenter == n).any():
+                                nrPredicted = trainX[np.where(np.logical_and(closestCenterTruth == index,closestCenter == n)), :, e].shape[1]
+                                if n == index:
+                                    nrCorrectlyPredicted = nrPredicted
+                                meanSignal = np.squeeze(np.mean(trainX[np.where(np.logical_and(closestCenterTruth == index,closestCenter == n)), :, e], axis=1))
+                                deviationSignal = np.squeeze(np.std(trainX[np.where(np.logical_and(closestCenterTruth == index,closestCenter == n)), :, e], axis=1))
+                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({})".format(index,n ,nrPredicted))
+                                axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                        axes.set_ylim(bottom=-maxValue, top=maxValue)
+                        axes.legend()
+                        axes.title.set_text("Coord:[{},{}], Acc.: {}%".format(np.around(centers[j,i,0]),np.around(centers[j,i,1]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
+                fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e + 1), format), format=format,transparent=True)
+                plt.close()
+
+
+    def plotMovement(self,modelName, colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='MovementVisualisation', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True):
+
+        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = trainY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+
+        if scale:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+            logging.info('Standard Scaling')
+            scaler = StandardScaler()
+            scaler.fit(trainX[trainIndices])
+            trainX = scaler.transform(trainX[valIndices])
+        else:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
+            trainX = trainX[:, :,np.concatenate((self.electrodes.astype(np.int) - 1,np.asarray([129,130])))]
+
+        valY = trainY[testIndices,1:]
+        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+        del trainIndices, valIndices, testIndices, trainY
+
+
+        if config['task'] == 'LR_task':
+            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+            trainer = model[0](**model[1])
+            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+            trainer.load(path)
+            prediction = np.squeeze(trainer.predict(trainX[:,:,:-2]))
+            truth = np.squeeze(valY)
 
 
         if config['task'] == 'LR_task':
@@ -880,33 +1070,30 @@ class AnalEyeZor():
             if meanBool:
 
                 colour = cmap(np.arange(4) / 3)
-                for e in electrodes - 1:
-                    fig, ax = plt.subplots()
-                    ax.legend(custom_lines, ["0", "0-1", "1", "1-0"])
-                    plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
-                    plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
-                    for i in range(4):
-                        if (trainX[np.where(indices==i),:,:].ndim and trainX[np.where(indices==i),:,:].size) != 0:
-                            averageSignals = np.mean(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
-                            deviationSignal = np.std(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
-                            ax.plot(linSpace, np.squeeze(averageSignals[:, e]), c=np.squeeze(colour[i]), lw=1.5)
-                            ax.fill_between(linSpace, averageSignals[:, e] + deviationSignal[:, e], averageSignals[:, e] - deviationSignal[:, e], facecolor=np.squeeze(colour[i]), alpha=0.1)
-                    fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format,transparent=True)
-                    plt.close()
+                fig, ax = plt.subplots()
+                ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                for i in range(4):
+                    if (trainX[np.where(indices==i),:,:].ndim and trainX[np.where(indices==i),:,:].size) != 0:
+                        averageSignals = np.mean(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
+                        ax.plot(np.squeeze(averageSignals[:, 129]), np.squeeze(averageSignals[:, 130]), c=np.squeeze(colour[i]), lw=1.5)
+                fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format,transparent=True)
+                plt.close()
             else:
                 fig, ax = plt.subplots()
-                ax.legend(custom_lines, ["0", "0-1", "1", "1-0"])
-                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
-                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                asdf = np.squeeze(trainX[:,:,129])
                 if nrOfPoints==1:
                     colour = np.expand_dims(cmap(indices / 3), axis=0)
                 else:
                     colour = cmap(indices / 3)
                 for i in range(trainX.shape[0]):
-                    ax.plot(linSpace, np.squeeze(trainX[i,:,electrodes]),  c=np.squeeze(colour[i]),lw=0.5)
+                    ax.plot(np.squeeze(trainX[i,:,129]), np.squeeze(trainX[i,:,130]),  c=np.squeeze(colour[i]),lw=0.5)
                 fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
                 plt.close()
-
 
     def movie(self,yValue,yDeviation=0,maxValue=100,slowDownFactor=10,filename='movie',cmap='Seismic',pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
         if cmap not in plt.colormaps():
@@ -941,6 +1128,45 @@ class AnalEyeZor():
         ani.save(os.path.join(config['model_dir'], filename+'.mp4'), fps=int(500 / slowDownFactor), writer='imagemagick')
         #plt.show()
         plt.close()
+
+
+    def pca(self,scale=False,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/PCA/"):
+
+        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = trainY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+        del trainY, valIndices, testIndices
+
+        eigenVectors = np.zeros([500,500,129])
+        print("Calculating PCA")
+        for i in tqdm(range(129)):
+            if scale:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :,i]
+                logging.info('Standard Scaling')
+                scaler = StandardScaler()
+                scaler.fit(trainX[trainIndices])
+                trainX = scaler.transform(trainX[trainIndices])
+            else:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, i]
+                trainX = trainX[trainIndices]
+
+            covMatrix = np.cov(np.transpose(trainX))
+            e,v = tf.linalg.eigh(covMatrix)
+            eigenVectors[:,:,i] = v[:,::-1].numpy()
+            del e,v,covMatrix,trainX
+        np.save(pathForOriginalRelativeToExecutable+config['task']+"_with_"+config['dataset']+"_synchronised_"+config['preprocessing'],eigenVectors)
+
+
+
+    def pcaDimReduction(self,data,dim=2,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/PCA/",transformBack = True):
+        v = np.load(pathForOriginalRelativeToExecutable+config['task']+"_with_"+config['dataset']+"_synchronised_"+config['preprocessing']+".npy")
+        z = np.transpose(tf.matmul(np.transpose(v),np.transpose(data)).numpy())
+        if transformBack:
+            z[:,dim:,:] = 0
+            returnValue = np.transpose(tf.matmul(np.swapaxes(np.transpose(v),1,2),np.transpose(z)).numpy())
+            return returnValue
+        else:
+            return z[:,:dim,:]
 
 
     def meanSquareError(self,y,yPred):

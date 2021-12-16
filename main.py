@@ -48,17 +48,29 @@ def main():
         #plot("InceptionTime_angle","InceptionTime","Oranges")
         #plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
 
-        def showData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0,maxValue=100):
+        def transformData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
             dataset='dots'
             if task == 'LR':
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', dataset=dataset, preprocessing='min', trainBool=False,
                              path=path, models=[model], featureExtraction=False)
-            asdf.plotSignal(model,electrodes,colourMap=colourMap,run=run,nrOfPoints=nrOfPoints,filename=name,plotTresh=tresh,maxValue=maxValue)
+            asdf.pca()
+
+        #transformData("LRMin_InceptionTime_All/", "InceptionTime", "SignalVisualisation", 'LR', electrodes=np.array([32]),nrOfPoints=20000, tresh=0.1, maxValue=70)
+
+        def showData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
+            dataset='dots'
+            if task == 'LR':
+                dataset='antisaccade'
+            asdf = AnalEyeZor(task=task+'_task', dataset=dataset, preprocessing='min', trainBool=False,
+                             path=path, models=[model], featureExtraction=False)
+            asdf.plotSignal(model,electrodes,colourMap=colourMap,run=run,nrOfPoints=nrOfPoints,filename=name,plotTresh=tresh,maxValue=maxValue,nrOfLevels=16,meanBool=False,componentAnalysis="PCA",dimensions=2)
+            #asdf.plotMovement(model, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints, filename=name,plotTresh=tresh, maxValue=1000, meanBool=False)
             #asdf.movie(1,maxValue=25,cmap='seismic')
 
-        showData("LRMin_InceptionTime_All/","InceptionTime","SignalVisualisation",'LR',electrodes=np.arange(129)+1,nrOfPoints=20000,tresh=0,maxValue=70)
-
+        showData("LRMin_InceptionTime_All/","InceptionTime","SignalVisualisation",'LR',electrodes=np.array([32]),nrOfPoints=20000,tresh=0,maxValue=70)
+        #showData("Position_All/", "PyramidalCNN", "SignalVisualisation", 'Position',electrodes=np.arange(129)+1, nrOfPoints=20000, tresh=0, maxValue=70)
+        #showData("Direction_All/", "PyramidalCNN", "SignalVisualisation", 'Direction', electrodes=np.arange(129)+1,nrOfPoints=20000, tresh=0, maxValue=70)
         def customPlot():
             asdf = AnalEyeZor(task='Direction_task', dataset='dots', preprocessing='min', trainBool=False,
                              path="Direction_All/", models=["Xception"], featureExtraction=False)
