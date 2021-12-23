@@ -13,6 +13,9 @@ from sklearn.metrics import mean_squared_error, log_loss
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 import tensorflow as tf
+import tensorflow.keras as keras
+from tf_keras_vis.activation_maximization import ActivationMaximization
+from tf_keras_vis.utils.regularizers import Norm, TotalVariation2D
 import shutil
 import pandas as pd
 import re
@@ -825,33 +828,45 @@ class AnalEyeZor():
 
         data.to_csv(config['model_dir'] + filename + '.csv', index = False)
 
+    def plotSignal(self, modelName, electrodes, nrOfLevels=4, colourMap='gist_rainbow', run=1, nrOfPoints=9,
+                   pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
+                   filename='SignalVisualisation_electrode', format='pdf', scale=False, plotTresh=0, maxValue=1000,
+                   meanBool=True, componentAnalysis=None, dimensions=5, activationMaximizationBool=False, plotMovementBool=False,
+                   specificDataIndices=None, splitAngAmpBool = True):
 
-    def plotSignal(self,modelName, electrodes, nrOfLevels=4,colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='SignalVisualisation_electrode', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True, componentAnalysis=None,dimensions=5):
-
-        intersect, ind_a, electrodes = np.intersect1d(electrodes, self.electrodes, return_indices=True)
+        intersect, ind_a, electrodes  = np.intersect1d(electrodes, self.electrodes, return_indices=True)
         del intersect, ind_a
-        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
-        ids = trainY[:, 0]
-        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+        if activationMaximizationBool:
 
-        if scale:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
-            logging.info('Standard Scaling')
-            scaler = StandardScaler()
-            scaler.fit(trainX[trainIndices])
-            trainX = scaler.transform(trainX[valIndices])
+            trainX = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + ".npz")['x']
+            valY = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + ".npz")['y']
+
         else:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
-            trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
+            trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+            ids = trainY[:, 0]
+            trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+            if specificDataIndices==None:
+                specificDataIndices = testIndices
 
-        valY = trainY[testIndices,1:]
-        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
-        del trainIndices, valIndices, testIndices, trainY
+            selectedElectrodes = self.electrodes.astype(np.int) - 1
+            if plotMovementBool:
+                selectedElectrodes = np.concatenate((self.electrodes.astype(np.int) - 1,np.asarray([len(selectedElectrodes),len(selectedElectrodes)+1])))
+            if scale:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, selectedElectrodes]
+                logging.info('Standard Scaling')
+                scaler = StandardScaler()
+                scaler.fit(trainX[trainIndices])
+                trainX = scaler.transform(trainX[specificDataIndices])
+            else:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][specificDataIndices, :,:]
+                if componentAnalysis == "PCA":
+                    trainX = trainX[:, :, :129]
+                    trainX = self.pcaDimReduction(trainX, dim=dimensions)
+                trainX = trainX[:, :,selectedElectrodes]
 
-        if componentAnalysis == "PCA":
-            trainX = self.pcaDimReduction(trainX,dim=dimensions)
-
-
+            valY = trainY[testIndices,1:]
+            trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+            del trainIndices, valIndices, testIndices, trainY
 
         if config['task'] == 'LR_task':
             model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
@@ -859,6 +874,8 @@ class AnalEyeZor():
             trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
             path = config['checkpoint_dir'] + 'run' + str(run) + '/'
             trainer.load(path)
+            if activationMaximizationBool:
+                trainer.type = 'regressor'
             prediction = np.squeeze(trainer.predict(trainX))
             truth = np.squeeze(valY)
         elif config['task'] == 'Position_task':
@@ -886,16 +903,22 @@ class AnalEyeZor():
             predictionAngle = np.squeeze(trainerAngle.predict(trainX))
             prediction = np.zeros([predictionAmp.shape[0],2])
             truth = np.zeros([predictionAmp.shape[0],2])
-            prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
-            prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
-            truth[:,0] = np.multiply(valY[:,0],np.cos(valY[:,1]))
-            truth[:, 1] = np.multiply(valY[:,0], np.sin(valY[:,1]))
+            if not splitAngAmpBool:
+                prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
+                prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
+                truth[:,0] = np.multiply(valY[:,0],np.cos(valY[:,1]))
+                truth[:, 1] = np.multiply(valY[:,0], np.sin(valY[:,1]))
+            else:
+                prediction[:,0] = predictionAmp
+                prediction[:,1] = predictionAngle
+                truth[:,0] = valY[:,0]
+                truth[:, 1] = valY[:,1]
         else:
             print("Task not yet configured.")
             return
 
 
-        if config['task'] == 'LR_task':
+        if config['task'] == 'LR_task' and not plotMovementBool:
             cmap = cm.get_cmap(colourMap)
             linSpace = np.arange(1,1001,2)
             threshIndices = np.where(np.absolute(prediction - truth) >= plotTresh)
@@ -912,9 +935,19 @@ class AnalEyeZor():
                             Line2D([0], [0], color=cmap(np.arange(4)/3)[2], lw=2),
                             Line2D([0], [0], color=cmap(np.arange(4)/3)[3], lw=2)]
 
+            if activationMaximizationBool:
+                for e in electrodes:
+                    fig, ax = plt.subplots()
+                    plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                    plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+                    for i in range(trainX.shape[0]):
+                        ax.plot(linSpace, np.squeeze(trainX[i,:,e]),lw=1,label="Confidence for 1: {}".format(round(100*prediction[i],2)))
+                    ax.set_ylim(bottom=-maxValue, top=maxValue)
+                    ax.legend()
+                    fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format, transparent=True)
+                    plt.close()
 
-
-            if meanBool:
+            elif meanBool:
 
                 colour = cmap(np.arange(4) / 3)
                 for e in electrodes:
@@ -947,7 +980,49 @@ class AnalEyeZor():
                     fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e+1),format), format=format, transparent=True)
                     plt.close()
 
-        elif config['task'] == 'Position_task' or config['task'] == 'Direction_task':
+        elif config['task'] == 'LR_task' and plotMovementBool:
+            cmap = cm.get_cmap(colourMap)
+            linSpace = np.arange(1, 1001, 2)
+            threshIndices = np.where(np.absolute(prediction - truth) >= plotTresh)
+            indices = 2 * truth + np.absolute(prediction - truth)
+            indices = indices.astype(np.int)[threshIndices]
+            trainX = trainX[threshIndices]
+            trainX[np.where(trainX > maxValue)] = maxValue
+            trainX[np.where(trainX < -maxValue)] = -maxValue
+
+            custom_lines = [Line2D([0], [0], color=cmap(np.arange(4) / 3)[0], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4) / 3)[1], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4) / 3)[2], lw=2),
+                            Line2D([0], [0], color=cmap(np.arange(4) / 3)[3], lw=2)]
+
+            if meanBool:
+
+                colour = cmap(np.arange(4) / 3)
+                fig, ax = plt.subplots()
+                plt.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                for i in range(4):
+                    if (trainX[np.where(indices == i), :, :].ndim and trainX[np.where(indices == i), :, :].size) != 0:
+                        averageSignals = np.mean(np.squeeze(trainX[np.where(indices == i), :, :]), axis=0)
+                        ax.plot(np.squeeze(averageSignals[:, 129]), linSpace, c=np.squeeze(colour[i]), lw=1.5)
+                fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
+                plt.close()
+            else:
+                fig, ax = plt.subplots()
+                plt.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
+                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+                if nrOfPoints == 1:
+                    colour = np.expand_dims(cmap(indices / 3), axis=0)
+                else:
+                    colour = cmap(indices / 3)
+                for i in range(trainX.shape[0]):
+                    ax.plot(np.squeeze(trainX[i, :, 129]), linSpace, c=np.squeeze(colour[i]), lw=0.5)
+                fig.savefig(config['model_dir'] + filename + "_Eye.{}".format(format), format=format, transparent=True)
+                plt.close()
+
+        elif config['task'] == 'Position_task' or (config['task'] == 'Direction_task' and not splitAngAmpBool):
             cmap = cm.get_cmap(colourMap)
             colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
             if nrOfLevels % 2 != 0:
@@ -968,7 +1043,7 @@ class AnalEyeZor():
 
             centers[:,:,0] = np.expand_dims(np.arange(centers.shape[0])*(maxValueX-minValueX)/centers.shape[0] + (maxValueX-minValueX)/(2*centers.shape[0]),axis=1) + minValueX
             centers[:, :, 1] = np.tile((np.arange(centers.shape[1])*(maxValueY - minValueY) /centers.shape[1]  + (maxValueY - minValueY) / (2 * centers.shape[1]))[::-1],(centers.shape[0],1)) + minValueY
-
+            error = self.euclideanDistance(truth,prediction)
             distances = np.zeros(prediction.shape[0]) + np.Infinity
             distancesTruth = distances
             closestCenter = np.zeros(prediction.shape[0],dtype=np.int)
@@ -985,13 +1060,12 @@ class AnalEyeZor():
 
             linSpace = np.arange(1, 1001, 2)
             for e in electrodes:
-                #fig, ax_array = plt.subplots(centers.shape[1], centers.shape[0], squeeze=False, figsize=(23, 23))
                 fig, ax = plt.subplots(figsize=(8*centers.shape[0],4*centers.shape[1]),dpi=160/np.log2(nrOfLevels))
                 ax.set_xlim([minValueX, maxValueX])
                 ax.set_ylim([minValueY, maxValueY])
                 ax.set_xticks(np.arange(0,centers.shape[0]+1) * (maxValueX - minValueX) / centers.shape[0]+minValueX)
                 ax.set_yticks(np.arange(0,centers.shape[1]+1) * (maxValueY - minValueY) / centers.shape[1]+minValueY)
-
+                ax.title.set_text("Average Error Distance: {} Pixels".format(error))
                 plt.grid()
                 for i in range(centers.shape[1]):
                     for j in range(centers.shape[0]):
@@ -1010,90 +1084,78 @@ class AnalEyeZor():
                                     nrCorrectlyPredicted = nrPredicted
                                 meanSignal = np.squeeze(np.mean(trainX[np.where(np.logical_and(closestCenterTruth == index,closestCenter == n)), :, e], axis=1))
                                 deviationSignal = np.squeeze(np.std(trainX[np.where(np.logical_and(closestCenterTruth == index,closestCenter == n)), :, e], axis=1))
-                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({})".format(index,n ,nrPredicted))
+                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(index,n ,round(100 * nrPredicted / nrOfTruths)))
                                 axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
                         axes.set_ylim(bottom=-maxValue, top=maxValue)
                         axes.legend()
                         axes.title.set_text("Coord:[{},{}], Acc.: {}%".format(np.around(centers[j,i,0]),np.around(centers[j,i,1]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
                 fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e + 1), format), format=format,transparent=True)
                 plt.close()
-
-
-    def plotMovement(self,modelName, colourMap='gist_rainbow',run = 1, nrOfPoints=9, filename='MovementVisualisation', format='pdf',scale=False,plotTresh=0,maxValue=1000,meanBool=True):
-
-        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
-        ids = trainY[:, 0]
-        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
-
-        if scale:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
-            logging.info('Standard Scaling')
-            scaler = StandardScaler()
-            scaler.fit(trainX[trainIndices])
-            trainX = scaler.transform(trainX[valIndices])
-        else:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
-            trainX = trainX[:, :,np.concatenate((self.electrodes.astype(np.int) - 1,np.asarray([129,130])))]
-
-        valY = trainY[testIndices,1:]
-        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
-        del trainIndices, valIndices, testIndices, trainY
-
-
-        if config['task'] == 'LR_task':
-            model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
-            trainer = model[0](**model[1])
-            trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
-            path = config['checkpoint_dir'] + 'run' + str(run) + '/'
-            trainer.load(path)
-            prediction = np.squeeze(trainer.predict(trainX[:,:,:-2]))
-            truth = np.squeeze(valY)
-
-
-        if config['task'] == 'LR_task':
+        elif config['task'] == 'Direction_task' and splitAngAmpBool:
             cmap = cm.get_cmap(colourMap)
-            linSpace = np.arange(1,1001,2)
-            threshIndices = np.where(np.absolute(prediction - truth) >= plotTresh)
-            indices = 2*truth+np.absolute(prediction - truth)
-            indices = indices.astype(np.int)[threshIndices]
-            trainX=trainX[threshIndices]
-            trainX[np.where(trainX > maxValue)] = maxValue
-            trainX[np.where(trainX < -maxValue)] = -maxValue
+            colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
+            if nrOfLevels % 2 != 0:
+                print("Need even number of levels.")
+                return
+            eps = 10
+            maxValueX = np.max(truth[:, 0]) - eps
+            centers = np.zeros([nrOfLevels,2])
+            centers[:,0] = np.linspace(0,maxValueX,nrOfLevels+1)[:-1]
+            centers[:, 0] += (centers[1, 0] - centers[0, 0]) / 2
+            centers[:,1] = np.linspace(-np.pi,np.pi,nrOfLevels+1)[:-1]
+            errorAmp = self.euclideanDistance(np.expand_dims(truth[:, 0],axis=0),np.expand_dims(prediction[:, 0],axis=0))
+            errorAng = self.angleError(truth[:, 1],prediction[:, 1])
+            distances = np.zeros((prediction.shape[0],2)) + np.Infinity
+            distancesTruth = distances
+            closestCenter = np.zeros([prediction.shape[0],2],dtype=np.int)
+            closestCenterTruth = np.zeros([truth.shape[0],2],dtype=np.int)
 
-            custom_lines = [Line2D([0], [0], color=cmap(np.arange(4)/3)[0], lw=2),
-                            Line2D([0], [0], color=cmap(np.arange(4)/3)[1], lw=2),
-                            Line2D([0], [0], color=cmap(np.arange(4)/3)[2], lw=2),
-                            Line2D([0], [0], color=cmap(np.arange(4)/3)[3], lw=2)]
+            for j in range(centers.shape[0]):
+                distance = np.absolute(prediction-centers[j])
+                asdf = np.where(np.squeeze(distance-distances) < 0)
+                closestCenter[np.where(np.squeeze(distance-distances) < 0)] = j
+                distances = np.minimum(distances,distance)
 
+                aasdf = np.where(np.squeeze(distance-distancesTruth) < 0)
+                distance = np.absolute(truth - centers[j])
+                closestCenterTruth[np.where(np.squeeze(distance-distancesTruth) < 0)] = j
+                distancesTruth = np.minimum(distancesTruth,distance)
 
-
-            if meanBool:
-
-                colour = cmap(np.arange(4) / 3)
-                fig, ax = plt.subplots()
-                ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
-                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
-                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
-                for i in range(4):
-                    if (trainX[np.where(indices==i),:,:].ndim and trainX[np.where(indices==i),:,:].size) != 0:
-                        averageSignals = np.mean(np.squeeze(trainX[np.where(indices==i),:,:]),axis=0)
-                        ax.plot(np.squeeze(averageSignals[:, 129]), np.squeeze(averageSignals[:, 130]), c=np.squeeze(colour[i]), lw=1.5)
-                fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format,transparent=True)
+            linSpace = np.arange(1, 1001, 2)
+            for e in electrodes:
+                fig, ax = plt.subplots(figsize=(8,4*centers.shape[0]),dpi=160/np.log2(nrOfLevels))
+                ax.get_xaxis().set_visible(False)
+                ax.set_ylim([0, maxValueX])
+                ax.set_yticks(centers[:,0]-(centers[1, 0] - centers[0, 0]) / 2)
+                ax.title.set_text("Average Error Distance: {} Pixels".format(errorAmp))
+                plt.grid()
+                for j in range(centers.shape[0]):
+                    axes = ax.inset_axes([0.1,(0.1+j) / nrOfLevels,0.8,0.8 / nrOfLevels])
+                    axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
+                    axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
+                    groundTruthSignal = np.squeeze(np.mean(trainX[np.where(closestCenterTruth[:,0]==j),:,e],axis=1))
+                    nrOfTruths = trainX[np.where(closestCenterTruth[:,0]==j),:,e].shape[1]
+                    nrCorrectlyPredicted = 0
+                    deviationTruthSignal = np.squeeze(np.std(trainX[np.where(closestCenterTruth[:,0]==j),:,e],axis=1))
+                    axes.plot(linSpace, np.squeeze(groundTruthSignal), c=np.squeeze(colour[j]), lw=1.5, label=str(j)+",({})".format(nrOfTruths))
+                    axes.fill_between(linSpace, groundTruthSignal + deviationTruthSignal, groundTruthSignal - deviationTruthSignal,facecolor=np.squeeze(colour[j]), alpha=0.1)
+                    for n in range(centers.shape[0]):
+                        if np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n).any():
+                            nrPredicted = trainX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e].shape[1]
+                            if n == j:
+                                nrCorrectlyPredicted = nrPredicted
+                            meanSignal = np.squeeze(np.mean(trainX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
+                            deviationSignal = np.squeeze(np.std(trainX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
+                            axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(j,n ,round(100 * nrPredicted / nrOfTruths)))
+                            axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                    axes.set_ylim(bottom=-maxValue, top=maxValue)
+                    axes.legend()
+                    axes.title.set_text("Coord: {}, Acc.: {}%".format(np.around(centers[j,0]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
+                fig.savefig(config['model_dir'] + filename + "_Amp_Electrode_{}.{}".format(str(e + 1), format), format=format,transparent=True)
                 plt.close()
-            else:
-                fig, ax = plt.subplots()
-                ax.legend(custom_lines, ["0-0", "0-1", "1-1", "1-0"])
-                plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
-                plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d pixel'))
-                asdf = np.squeeze(trainX[:,:,129])
-                if nrOfPoints==1:
-                    colour = np.expand_dims(cmap(indices / 3), axis=0)
-                else:
-                    colour = cmap(indices / 3)
-                for i in range(trainX.shape[0]):
-                    ax.plot(np.squeeze(trainX[i,:,129]), np.squeeze(trainX[i,:,130]),  c=np.squeeze(colour[i]),lw=0.5)
-                fig.savefig(config['model_dir'] + filename + ".{}".format(format), format=format, transparent=True)
-                plt.close()
+
+
+
 
     def movie(self,yValue,yDeviation=0,maxValue=100,slowDownFactor=10,filename='movie',cmap='Seismic',pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/"):
         if cmap not in plt.colormaps():
@@ -1156,6 +1218,72 @@ class AnalEyeZor():
             del e,v,covMatrix,trainX
         np.save(pathForOriginalRelativeToExecutable+config['task']+"_with_"+config['dataset']+"_synchronised_"+config['preprocessing'],eigenVectors)
 
+
+    def activationMaximization(self,modelName,run=1, initTensor = "Zeros",scale=False,epochs = 512,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/ActivationMaximization/"):
+        #model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+        #trainer = model[0](**model[1])
+        #trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+        #path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+        #trainer.load(path)
+        #trainer.type = 'regressor'
+        if initTensor == "Avg":
+            trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+            ids = trainY[:, 0]
+            trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+            del valIndices, testIndices
+            if scale:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :,self.electrodes.astype(np.int) - 1]
+                logging.info('Standard Scaling')
+                scaler = StandardScaler()
+                scaler.fit(trainX[trainIndices])
+                trainX = scaler.transform(trainX[trainIndices])
+            else:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+                trainX = trainX[trainIndices]
+
+            averageSignals = np.zeros([2, self.inputShape[0], self.inputShape[1],1])
+
+            for i in range(2):
+                averageSignals[i,:,:,0] = np.mean(trainX[np.where(trainY[trainIndices,1]==i)], axis=0)
+            del trainX, trainY
+        elif initTensor == "Zeros":
+            averageSignals = np.zeros([2, self.inputShape[0], self.inputShape[1], 1])
+
+        else:
+            averageSignals = tf.random.uniform((2, self.inputShape[0], self.inputShape[1], 1), -100, 100)
+
+        filepattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+        path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+        model = None
+        for file in os.listdir(path):
+            if not filepattern.match(file):
+                continue
+            else:
+                model = keras.models.load_model(path+file)
+                break
+        if model == None:
+            print("Model not found.")
+            return
+
+        def loss(output):
+            lmbd = 100
+            return (lmbd*(1-output[0, 0]),lmbd*output[1, 0])
+        confidences = np.zeros(2)
+        activationTensors = np.zeros([2, self.inputShape[0], self.inputShape[1]])
+        for j in tqdm(range(epochs)):
+            visualizeActivation = ActivationMaximization(model)
+            activations = visualizeActivation(loss, seed_input=averageSignals, steps=1024,input_range=(-100.0,100.0))
+            confidencesNew = np.array([-1,1])*np.squeeze(model.predict(activations)) + np.array([1,0])
+            for i,activation in enumerate(activations):
+                if confidencesNew[i] > confidences[i]:
+                    confidences[i] = confidencesNew[i]
+                    print("Confidence of {} updated to {}.".format(i,round(confidences[i],3)))
+                    activationTensors[i] = np.squeeze(activation.astype(np.float32))
+
+
+        yValues = np.arange(2)
+
+        np.savez(pathForOriginalRelativeToExecutable+config['task']+"_with_"+config['dataset']+"_synchronised_"+config['preprocessing'], x = activationTensors, y = yValues)
 
 
     def pcaDimReduction(self,data,dim=2,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/PCA/",transformBack = True):
