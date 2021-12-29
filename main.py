@@ -6,6 +6,8 @@ from utils.tables_utils import print_table
 from Joels_Files.AnalEyeZor import AnalEyeZor
 import pandas as pd
 import numpy as np
+from utils import IOHelper
+from tqdm import tqdm
 
 """
 Main entry of the program
@@ -79,6 +81,28 @@ def main():
                             meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
                             activationMaximizationBool=False)
 
+        def countIDs():
+            indices = np.load("./Joels_Files/WeirdsZeros.npy")
+            asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False,
+                             path="LRMin_InceptionTime_Top2/", models=['InceptionTime'], featureExtraction=False, electrodes=np.array([1, 32]))
+            #indices = asdf.findDataPoints(componentAnalysis="", dimensions=1)
+            #asdf.plotSignal('InceptionTime', np.array([1, 32]), colourMap='gist_rainbow', run=1, nrOfPoints=20000,
+            #                filename="OneSignal", plotTresh=0,
+            #                maxValue=100, nrOfLevels=2, percentageThresh=5,
+            #                meanBool=False, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
+            #                activationMaximizationBool=False, plotSignalsSeperatelyBool=True, plotMovementBool=True,scaleModification=1,specificDataIndices=indices)
+            asdf.plotSignal('InceptionTime', np.array([1, 32]), colourMap='gist_rainbow', run=1, nrOfPoints=20000,
+                            filename="OneSignal", plotTresh=0,
+                            maxValue=100, nrOfLevels=2, percentageThresh=5,
+                            meanBool=False, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
+                            activationMaximizationBool=False, plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
+            asdf.plotSignal('InceptionTime', np.array([1, 32]), colourMap='gist_rainbow', run=1, nrOfPoints=20000,
+                            filename="OneSignal_PCA", plotTresh=0,
+                            maxValue=100, nrOfLevels=2, percentageThresh=5,
+                            meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
+                            activationMaximizationBool=False, plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
+
+        countIDs()
         def showData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
             dataset='dots'
             electrodesNetwork = np.arange(129)+1
@@ -88,24 +112,23 @@ def main():
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', dataset=dataset, preprocessing='min', trainBool=False,
                              path=path, models=[model], featureExtraction=False, electrodes=electrodesNetwork)
-            indices = asdf.findDataPoints(componentAnalysis="",dimensions=1)
-            #print(indices[114])
+            indices = asdf.findDataPoints(componentAnalysis="PCA",dimensions=1)
             #indices = indices[114:]
             #for i in np.arange(-9,9):
             #    asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, specificDataIndices=indices, nrOfPoints=1,
             #                    filename=name+"Scale_{}_el".format(str(round(1 + i*0.1,2))), plotTresh=tresh, maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
             #                    meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
             #                    activationMaximizationBool=False,scaleModification=1 + i*0.1)
-            asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, specificDataIndices=indices, nrOfPoints=nrOfPoints,
+            asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=20000,
                             filename=name + "Miss_Original_el", plotTresh=tresh,
                             maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
-                            meanBool=True, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
+                            meanBool=False, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
                             activationMaximizationBool=False, scaleModification=1)
-            asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, specificDataIndices=indices, nrOfPoints=nrOfPoints,
-                            filename=name + "Miss_PCA1_el", plotTresh=tresh,
-                            maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
-                            meanBool=True, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
-                            activationMaximizationBool=False, scaleModification=1)
+            #asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints,
+            #                filename=name + "Miss_PCA1_el", plotTresh=tresh,
+            #                maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
+            #                meanBool=True, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
+            #                activationMaximizationBool=False, scaleModification=1)
             #asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, specificDataIndices=indices, nrOfPoints=nrOfPoints,
             #                filename=name + "Miss_Original_Movement", plotTresh=tresh,
             #                maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
@@ -115,8 +138,8 @@ def main():
             #asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints, filename=name+"_PCA1",plotTresh=tresh, maxValue=maxValue, nrOfLevels=16, meanBool=True, componentAnalysis="PCA",splitAngAmpBool=True, dimensions=1, activationMaximizationBool=False)
             #asdf.movie(1,maxValue=25,cmap='seismic')
 
-        #showData("LRMin_InceptionTime_All/", "InceptionTime", "SignalVisualisation", 'LR',electrodes=np.arange(129) + 1, nrOfPoints=20000, tresh=0.1, maxValue=70)
-        showData("LRMin_InceptionTime_Top2/","InceptionTime","SignalVisualisation",'LR',electrodes=np.array([1,32]),nrOfPoints=20000,tresh=0,maxValue=70)
+        #showData("LRMin_InceptionTime_All/", "InceptionTime", "SignalVisualisation", 'LR',electrodes=np.arange(129) + 1, nrOfPoints=20000, tresh=0, maxValue=70)
+        #showData("LRMin_InceptionTime_Top2/","InceptionTime","SignalVisualisation",'LR',electrodes=np.array([1,32]),nrOfPoints=20000,tresh=0,maxValue=70)
         #showData("Position_All/", "PyramidalCNN", "SignalVisualisation", 'Position',electrodes=np.arange(129)+1, nrOfPoints=20000, tresh=0, maxValue=70)
         #showDataSimple("Direction_All/", "PyramidalCNN", "SignalVisualisation", 'Direction', electrodes=np.array([1,32]),nrOfPoints=20000, tresh=0, maxValue=70)
         def customPlot():
