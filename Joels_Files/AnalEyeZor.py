@@ -15,7 +15,6 @@ from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.keras as keras
-from keras.layers import InputLayer
 from tf_keras_vis.activation_maximization import ActivationMaximization
 from tf_keras_vis import ModelVisualization
 from tf_keras_vis.utils import get_num_of_steps_allowed, is_mixed_precision, listify, normalize, zoom_factor
