@@ -19,7 +19,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = True
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -61,7 +61,10 @@ def main():
                              path=path, models=[model], featureExtraction=False)
             #asdf.pca()
             #asdf.activationMaximization(model,epochs=1, steps=5000,componentAnalysis="PCA",dimensions=1, referenceIndices=np.asarray([23692,23693]), referenceElectrodes=np.asarray([32]),initTensor="Avg", filenamePostfix="_Lin", derivativeWeight=100000)
-            asdf.attentionVisualization(model,filename="AttentionVis",componentAnalysis="PCA",method="ScoreCam",dimensions=1,run=1,dataIndices=np.asarray([23692,23693]))
+            #asdf.customSignal("Step")
+            #asdf.customSignal("ContStepConfused",amplitude=0)
+            asdf.attentionVisualization(model,filename="AttentionVis_ActMaxGen",componentAnalysis="PCA",method="Saliency",dimensions=1,run=1,dataIndices=np.asarray([23692,23693]),dataType="activationMaximization")
+            asdf.plotSignal('InceptionTime', np.array([1, 32]),filename="AttentionVis_Signal_ActMaxGen",maxValue=100,dataType="activationMaximization")
             fdsa = 0
 
 
@@ -79,8 +82,7 @@ def main():
                              path=path, models=[model], featureExtraction=False, electrodes=electrodesNetwork)
             asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints,
                             filename=name, plotTresh=tresh, maxValue=maxValue, nrOfLevels=4, percentageThresh=5,
-                            meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
-                            activationMaximizationBool=False)
+                            meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1)
 
         def countIDs():
             #indices = np.load("./Joels_Files/WeirdsZeros.npy")
@@ -96,12 +98,12 @@ def main():
                             filename="OneSignal", plotTresh=0,
                             maxValue=100, nrOfLevels=2, percentageThresh=5,
                             meanBool=False, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
-                            activationMaximizationBool=False, plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
+                            dataType="", plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
             asdf.plotSignal('InceptionTime', np.array([1, 32]), colourMap='gist_rainbow', run=1, nrOfPoints=20000,
                             filename="OneSignal_PCA", plotTresh=0,
                             maxValue=100, nrOfLevels=2, percentageThresh=5,
                             meanBool=False, componentAnalysis="PCA", splitAngAmpBool=True, dimensions=1,
-                            activationMaximizationBool=False, plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
+                            dataType="", plotSignalsSeperatelyBool=True, plotMovementBool=False,scaleModification=1,specificDataIndices=indices)
 
         #countIDs()
         def showData(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
@@ -117,7 +119,7 @@ def main():
                             filename=name + "ActivationMax", plotTresh=tresh,
                             maxValue=maxValue, nrOfLevels=2, percentageThresh=5,
                             meanBool=False, componentAnalysis="", splitAngAmpBool=True, dimensions=1,
-                            activationMaximizationBool=True, scaleModification=1,activationMaximizationPostfix="_Lin")
+                            dataType="activationMaximization", scaleModification=1,postfix="_Lin")
             #asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints, filename=name+"_PCA10",plotTresh=tresh, maxValue=maxValue, nrOfLevels=16, meanBool=True, componentAnalysis="PCA",splitAngAmpBool=True, dimensions=10, activationMaximizationBool=False)
             #asdf.plotSignal(model, electrodes, colourMap=colourMap, run=run, nrOfPoints=nrOfPoints, filename=name+"_PCA1",plotTresh=tresh, maxValue=maxValue, nrOfLevels=16, meanBool=True, componentAnalysis="PCA",splitAngAmpBool=True, dimensions=1, activationMaximizationBool=False)
             #asdf.movie(1,maxValue=25,cmap='seismic')
@@ -230,14 +232,20 @@ def main():
     if not local:
 
         def train(filename,network,electrodes,prep,task,trainBool=True):
-            asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
+            dataset = "dots"
+            if task == "LR_task":
+                dataset="antisaccade"
+            asdf = AnalEyeZor(task=task, dataset=dataset, preprocessing=prep, trainBool=trainBool
                                ,models=network, electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             del asdf
 
 
         def PFI(filename,network,electrodes,prep,task,trail=False, trainBool=True):
-            asdf = AnalEyeZor(task=task, dataset='dots', preprocessing=prep, trainBool=trainBool
+            dataset = "dots"
+            if task == "LR_task":
+                dataset="antisaccade"
+            asdf = AnalEyeZor(task=task, dataset=dataset, preprocessing=prep, trainBool=trainBool
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
             asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
@@ -247,6 +255,8 @@ def main():
                 asdf.PFI(nameSuffix="_"+network[0])
             del asdf
 
+        #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
+        PFI("LR_CNN",["CNN"], 1 + np.arange(129), 'min', "LR_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")

@@ -98,6 +98,7 @@ class AnalEyeZor():
 
         self.displayBoundariesX = [0,800]
         self.displayBoundariesY = [0, 600]
+        self.customSignalType = ["Step","ContStep","ContStepConfused"]
 
         def build_file_name():
             all_EEG_file = config['task'] + '_with_' + config['dataset']
@@ -842,9 +843,9 @@ class AnalEyeZor():
     def plotSignal(self, modelName, electrodes, nrOfLevels=4, colourMap='gist_rainbow', run=1, nrOfPoints=9,
                    pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
                    filename='SignalVisualisation_electrode', format='pdf', scale=False, plotTresh=0, maxValue=1000,
-                   meanBool=True, componentAnalysis=None, dimensions=5, activationMaximizationBool=False, plotMovementBool=False,
+                   meanBool=True, componentAnalysis=None, dimensions=5, dataType="", plotMovementBool=False,
                    specificDataIndices=None, splitAngAmpBool = True, percentageThresh=0, scaleModification = 1, offsetModification = 0,
-                   plotSignalsSeperatelyBool=False, activationMaximizationPostfix=""):
+                   plotSignalsSeperatelyBool=False, postfix=""):
 
         """
         Visualises and colour codes the signals according to the prediction.
@@ -907,12 +908,16 @@ class AnalEyeZor():
 
         electrodes = np.atleast_1d(electrodes)
         ##################################DataLoading#######################################
-        if activationMaximizationBool:
+        if dataType=="activationMaximization":
 
-            dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + activationMaximizationPostfix+".npz")['x']
-            dataY = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + activationMaximizationPostfix+".npz")['y']
+            dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + postfix+".npz")['x']
+            dataY = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + postfix+".npz")['y']
             ids = np.array([0])
-            nrOfPoints=1
+
+        elif dataType in self.customSignalType:
+            dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
+            dataY = np.array([0,1])
+            ids = np.array([0])
         else:
             Y = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
             ids = Y[:, 0]
@@ -1012,7 +1017,7 @@ class AnalEyeZor():
                             Line2D([0], [0], color=cmap(np.arange(4)/3)[2], lw=2),
                             Line2D([0], [0], color=cmap(np.arange(4)/3)[3], lw=2)]
 
-            if activationMaximizationBool:
+            if dataType in self.customSignalType or dataType=="activationMaximization":
                 for e in electrodes:
                     fig, ax = plt.subplots()
                     plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
@@ -1537,7 +1542,41 @@ class AnalEyeZor():
             intersect = np.intersect1d(conditionIndices, np.argwhere(trainY[:, 1] == targetValueRange[0]), return_indices=False)
             return intersect
 
-    def attentionVisualization(self, modelName, filename, method="Saliency",format="pdf",run=1, componentAnalysis="",dimensions=10,dataIndices = np.asarray([0]),maxValue=100):
+    def customSignal(self, type="Step", postfix="", amplitude=10,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/customSignals/"):
+        signal = np.zeros([2,self.inputShape[0],self.inputShape[1]])
+        if type=="Step":
+            signal[0,:150,0] = amplitude
+            signal[0, 150:,0] = -amplitude
+            signal[0,:150,1] = -amplitude
+            signal[0, 150:,1] = amplitude
+            signal[1] = -signal[0]
+        elif type=="ContStep":
+            signal[0,:100,0] = amplitude
+            signal[0, 200:,0] = -amplitude
+            signal[0,100:200,0] = np.linspace(amplitude,-amplitude,100)
+            signal[0,:100,1] = -amplitude
+            signal[0, 200:,1] = amplitude
+            signal[0, 100:200, 1] = np.linspace(-amplitude,amplitude,100)
+            signal[1] = -signal[0]
+        elif type=="ContStepConfused":
+            signal[0,:100,0] = amplitude
+            signal[0, 200:,0] = -amplitude
+            signal[0,100:200,0] = np.linspace(amplitude,-amplitude,100)
+            amplitude = 0.3*amplitude
+            signal[0,:100,1] = amplitude
+            signal[0, 200:,1] = -amplitude
+            signal[0, 100:200, 1] = np.linspace(amplitude,-amplitude,100)
+            signal[1] = -signal[0]
+        else:
+            print("Type not yet implemented")
+            return
+
+        np.save(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + type + postfix, signal)
+
+
+    def attentionVisualization(self, modelName, filename, dataType="",method="Saliency",format="pdf",run=1, componentAnalysis="",
+                               dimensions=10,dataIndices = np.asarray([0]),maxValue=100,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
+                               postfix="", customSignalName="Step"):
         dataIndices = np.atleast_1d(dataIndices)
         filepattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
         path = config['checkpoint_dir'] + 'run' + str(run) + '/'
@@ -1553,11 +1592,16 @@ class AnalEyeZor():
             return
         model.layers[-1].activation = keras.activations.linear
 
-        dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
-        if componentAnalysis == "PCA":
-            dataX = dataX[:, :, :129]
-            dataX = self.pcaDimReduction(dataX, dim=dimensions)
-        dataX = dataX[:, :,self.electrodes.astype(np.int) - 1]
+        if dataType=="activationMaximization":
+            dataX = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + postfix + ".npz")['x']
+        elif dataType in self.customSignalType:
+            dataX = np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
+        else:
+            dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
+            if componentAnalysis == "PCA":
+                dataX = dataX[:, :, :129]
+                dataX = self.pcaDimReduction(dataX, dim=dimensions)
+            dataX = dataX[:, :,self.electrodes.astype(np.int) - 1]
 
 
         dataX = np.expand_dims(dataX, axis=3)
