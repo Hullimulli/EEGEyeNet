@@ -256,7 +256,7 @@ def main():
             del asdf
 
         #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
-        PFI("LR_CNN",["CNN"], 1 + np.arange(129), 'min', "LR_task")
+        train("LR_CNN_Top2",["CNN"], np.array([1,32]), 'min', "LR_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")
@@ -341,7 +341,7 @@ def main():
         #train('Position_Top2', ["InceptionTime","EEGNet","CNN","PyramidalCNN","Xception"], top2, 'min',"Position_task")
         #train('Position_Top4', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"Position_task")
         #train('Position_Top7', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"Position_task")
-        train('Position_SideFronts', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"Position_task")
+        #train('Position_SideFronts', ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"Position_task")
 
 
         #for i in ["EEGNet"]:
