@@ -97,7 +97,7 @@ class AnalEyeZor():
 
         self.displayBoundariesX = [0,800]
         self.displayBoundariesY = [0, 600]
-        self.customSignalType = ["Step","ContStep","ContStepConfused"]
+        self.customSignalType = ["Step","ContStep","ContStepConfused","TripleSlide","Constant"]
 
         def build_file_name():
             all_EEG_file = config['task'] + '_with_' + config['dataset']
@@ -694,6 +694,141 @@ class AnalEyeZor():
             plt.show()
         plt.close()
 
+    def visualizePredictionDirection(self, modelNames, nrOfruns=5, nrOfPoints=9, filename='predictionVisualisation',
+                            format='pdf', saveBool=True, scale=False):
+
+        if not config['task'] == 'Direction_task':
+            print("Function only works for Direction Task.")
+            return
+
+        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = trainY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+        if scale:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+            logging.info('Standard Scaling')
+            scaler = StandardScaler()
+            scaler.fit(trainX[trainIndices])
+            trainX = scaler.transform(trainX[valIndices])
+        else:
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
+            trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
+        valY = trainY[testIndices,1:]
+        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+        del trainIndices, valIndices, testIndices, trainY
+
+        allpredictions = dict()
+        for modelName in modelNames:
+            modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
+            modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][modelName]
+            prediction = np.zeros([nrOfruns, valY[:, 0].shape[0], 2])
+            for run in range(nrOfruns):
+                path = config['checkpoint_dir'] + 'run' + str(run + 1) + '/'
+
+                trainerAmp = modelAmp[0](**modelAmp[1])
+                trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
+                trainerAmp.load(path)
+                predictionAmp = np.squeeze(trainerAmp.predict(trainX))
+
+                trainerAngle = modelAngle[0](**modelAngle[1])
+                trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+                trainerAngle.load(path)
+                predictionAngle = np.squeeze(trainerAngle.predict(trainX))
+
+                prediction[run, :, 0] = predictionAmp
+                prediction[run, :, 1] = predictionAngle
+            allpredictions[modelName] = prediction
+
+        truth = np.zeros([predictionAngle.shape[0], 2])
+        truth[:, 0] = valY[:, 0]
+        truth[:, 1] = valY[:, 1]
+
+        cmap = cm.get_cmap('nipy_spectral')
+        colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
+        colourLight = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
+        colourLight[:,3] = 0.2
+
+        fig = plt.figure()
+        plt.scatter((np.arange(truth.shape[0])-len(modelNames)/2) / nrOfPoints,truth[:, 0], c='black', marker='x', label="Ground Truth")
+        plt.axis('auto')
+        plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d px'))
+        plt.tick_params(
+            axis='x',  # changes apply to the x-axis
+            which='both',  # both major and minor ticks are affected
+            bottom=False,  # ticks along the bottom edge are off
+            top=False,  # ticks along the top edge are off
+            labelbottom=False)  # labels along the bottom edge are off
+        plt.xlim((-len(modelNames)/2-1.5, len(modelNames)/2+1.5))
+
+        for i, modelName in enumerate(modelNames):
+            if i < len(modelNames) / 2:
+                pos = i + 1
+            else:
+                pos = i - len(modelNames)
+            y = np.mean(allpredictions[modelName][:, :, 0], axis=0)
+            x = (np.arange(y.shape[0])-len(modelNames)/2) / nrOfPoints + pos
+            colours = np.zeros([x.shape[0], 4]) + colour[i]
+            radi = np.sqrt(np.square(np.std(allpredictions[modelName][:, :, 0], axis=0)) + np.square(
+                np.std(allpredictions[modelName][:, :, 1], axis=0)))
+            plt.errorbar(x, y,yerr=radi, color=colours[i], fmt='.k',label=modelName)
+            for j in range(x.shape[0]):
+                plt.plot(np.array([x[j], (np.arange(truth.shape[0])[j]-len(modelNames)/2)/nrOfPoints]), np.array([y[j], truth[j, 0]]), c=colourLight[i])
+
+        plt.legend()
+        if saveBool:
+            fig.savefig(config['model_dir'] + filename+"_Amp" + ".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
+        del fig
+
+        fig = plt.figure()
+        plt.scatter(np.multiply(int(len(modelNames)/2)+1+np.arange(nrOfPoints)/nrOfPoints, np.cos(truth[:, 1])), np.multiply(int(len(modelNames)/2)+1+np.arange(nrOfPoints)/nrOfPoints, np.sin(truth[:, 1])), c='black', marker='x',
+                    label="Ground Truth")
+        plt.axis('equal')
+        plt.tick_params(
+            axis='both',  # changes apply to both axis
+            which='both',  # both major and minor ticks are affected
+            bottom=False,  # ticks along the bottom edge are off
+            top=False,  # ticks along the top edge are off
+            labelbottom=False)  # labels along the bottom edge are off
+        plt.yticks([])
+        centers = np.linspace(0, 2*np.pi, 9)[:8]
+        angleDistance=0
+        for j in range(8):
+            plt.plot(np.array([0, (len(modelNames)+2)*np.cos(centers[j] + angleDistance)]),np.array([0, (len(modelNames)+2)*np.sin(centers[j] + angleDistance)]), c='black', alpha=0.5)
+            plt.text(len(modelNames)*np.cos(centers[j]),len(modelNames)*np.sin(centers[j]),str(round((centers[j]) / np.pi * 180,1))+"°")
+
+
+        for i, modelName in enumerate(modelNames):
+            rad = np.arange(nrOfPoints) / nrOfPoints + i + 1
+            if i >= int(len(modelNames)/2):
+                rad+=1
+            predictions = np.arctan2(np.sin(allpredictions[modelName][:, :, 1]),np.cos(allpredictions[modelName][:, :, 1]))
+            y = rad * np.mean(np.sin(predictions), axis=0)
+            x = rad * np.mean(np.cos(predictions), axis=0)
+            colours = np.zeros([x.shape[0], 4]) + colour[i]
+            radi = np.std(predictions, axis=0)
+            plt.scatter(x, y, color=colours[i], marker='o', label=modelName)
+            means = np.mean((predictions+np.pi)%(2*np.pi), axis=0)
+            for j in range(x.shape[0]):
+                theta = np.linspace(-radi[j]/2, radi[j] / 2, 100) + means[j]
+                plt.plot(rad[j]*np.cos(theta),rad[j]*np.sin(theta), c=colour[i])
+            for j in range(x.shape[0]):
+                plt.plot(np.array([x[j], np.multiply(int(len(modelNames)/2)+1+j/nrOfPoints, np.cos(truth[j, 1]))]),
+                         np.array([y[j], np.multiply(int(len(modelNames)/2)+1+j/nrOfPoints, np.sin(truth[j, 1]))]), c=colourLight[i])
+
+
+        plt.legend()
+        if saveBool:
+            fig.savefig(config['model_dir'] + filename + "_Ang" + ".{}".format(format), format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
+
+
+
+
     def generateTable(self,modelFileName,filename='tableLatex',addNrOfParams=True,caption="Performance of each Network",nrOfDigits=2,scale=1,transposed=True):
 
         data = pd.read_csv(config['model_dir'] + modelFileName,header=None)
@@ -838,6 +973,75 @@ class AnalEyeZor():
             data = pd.concat([data, toAppend], ignore_index = True, axis = 0)
 
         data.to_csv(config['model_dir'] + filename + '.csv', index = False)
+
+    def predictAll(self,postfix="",steps=4,pathForOriginalRelativeToExecutable="./Joels_Files/predictions/",run=1):
+        dataY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:, 1:]
+        pointsPerStep = int(dataY.shape[0] / steps) + 1
+        networkElectrodesIndices = self.electrodes.astype(np.int) - 1
+        predictions = dict()
+        losses = dict()
+        for j in range(steps):
+            dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][j*pointsPerStep:(j+1)*pointsPerStep, :, :]
+            dataX = dataX[:, :, networkElectrodesIndices]
+            for modelName in self.modelNames:
+                if j==0:
+                    predictions[modelName] = np.zeros(dataY.shape)
+                    nrOfLosses = 1
+                    if config['task'] == 'Direction_task':
+                        nrOfLosses=2
+                    losses[modelName] = np.zeros([dataY.shape[0],nrOfLosses])
+                if config['task'] == 'LR_task':
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                    trainer = model[0](**model[1])
+                    trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+                    path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+                    trainer.load(path)
+                    predictions[modelName][j*pointsPerStep:(j+1)*pointsPerStep, 0] = np.squeeze(trainer.predict(dataX))
+                    losses[modelName][j*pointsPerStep:(j+1)*pointsPerStep] = np.absolute(np.subtract(dataY[j*pointsPerStep:(j+1)*pointsPerStep],predictions[modelName][j*pointsPerStep:(j+1)*pointsPerStep]))
+
+                elif config['task'] == 'Position_task':
+                    model = all_models[config['task']][config['dataset']][config['preprocessing']][modelName]
+                    trainer = model[0](**model[1])
+                    trainer.ensemble.load_file_pattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+                    path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+                    trainer.load(path)
+                    predictions[modelName][j*pointsPerStep:(j+1)*pointsPerStep, 0] = np.squeeze(trainer.predict(dataX))
+                    losses[modelName][j * pointsPerStep:(j + 1) * pointsPerStep] = self.absoluteDistance(
+                        dataY[j * pointsPerStep:(j + 1) * pointsPerStep],
+                        predictions[modelName][j * pointsPerStep:(j + 1) * pointsPerStep])
+
+                elif config['task'] == 'Direction_task':
+                    modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][
+                        modelName]
+                    modelAngle = all_models[config['task']][config['dataset']][config['preprocessing']]['angle'][
+                        modelName]
+
+                    path = config['checkpoint_dir'] + 'run' + str(run) + '/'
+
+                    trainerAmp = modelAmp[0](**modelAmp[1])
+                    trainerAmp.ensemble.load_file_pattern = re.compile('_amplitude' + modelName + '_nb_*',
+                                                                       re.IGNORECASE)
+                    trainerAmp.load(path)
+                    trainerAngle = modelAngle[0](**modelAngle[1])
+                    trainerAngle.ensemble.load_file_pattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+                    trainerAngle.load(path)
+
+                    predictions[modelName][j*pointsPerStep:(j+1)*pointsPerStep, 0] = np.squeeze(trainerAmp.predict(dataX))
+                    predictions[modelName][j*pointsPerStep:(j+1)*pointsPerStep, 1] = np.squeeze(trainerAngle.predict(dataX))
+
+                    losses[modelName][j * pointsPerStep:(j + 1) * pointsPerStep,0] = self.absoluteDistance(
+                        dataY[j * pointsPerStep:(j + 1) * pointsPerStep,0],
+                        predictions[modelName][j * pointsPerStep:(j + 1) * pointsPerStep,0])
+                    losses[modelName][j * pointsPerStep:(j + 1) * pointsPerStep,1] = self.angleError(
+                        dataY[j * pointsPerStep:(j + 1) * pointsPerStep,1],
+                        predictions[modelName][j * pointsPerStep:(j + 1) * pointsPerStep,1],noMeanBool=True)
+            del dataX
+
+        for i,name in enumerate(predictions):
+            np.savez(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_"+self.modelNames[i]+"_run_"+str(run)+postfix, x=predictions[name], y=dataY, diff=losses[name])
+
+
+
 
     def plotSignal(self, modelName, electrodes, nrOfLevels=4, colourMap='gist_rainbow', run=1, nrOfPoints=9,
                    pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
@@ -1208,7 +1412,7 @@ class AnalEyeZor():
                         axes.set_ylim(bottom=-maxValue, top=maxValue)
                         axes.legend()
                         axes.title.set_text("Coord:[{},{}], Acc.: {}%".format(np.around(centers[j,i,0]),np.around(centers[j,i,1]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
-                fig.savefig(config['model_dir'] + filename + "{}.{}".format(str(e + 1), format), format=format,transparent=True)
+                fig.savefig(config['model_dir'] + filename + "_El{}.{}".format(str(self.electrodes[e]), format), format=format,transparent=True)
                 plt.close()
         elif config['task'] == 'Direction_task' and splitAngAmpBool:
             cmap = cm.get_cmap(colourMap)
@@ -1232,11 +1436,17 @@ class AnalEyeZor():
 
             #Clustering
             for j in range(centers.shape[0]):
-                distance = np.absolute(prediction-centers[j])
+                distance = np.zeros(prediction.shape)
+                distance[:,0] = np.absolute(prediction[:,0]-centers[j,0])
+                diff = np.absolute(prediction[:, 1] - centers[j, 1])
+                distance[:, 1] = (diff % (2*np.pi) / np.pi).astype(np.int) - np.sign((diff % (2*np.pi) / np.pi).astype(np.int)-1)* (diff % np.pi)
                 closestCenter[np.where(np.squeeze(distance-distances) < 0)] = j
                 distances = np.minimum(distances,distance)
 
-                distance = np.absolute(truth - centers[j])
+                distance = np.zeros(truth.shape)
+                distance[:,0] = np.absolute(truth[:,0]-centers[j,0])
+                diff = np.absolute(truth[:, 1] - centers[j, 1])
+                distance[:, 1] = (diff % (2*np.pi) / np.pi).astype(np.int) - np.sign((diff % (2*np.pi) / np.pi).astype(np.int)-1)* (diff % np.pi)
                 closestCenterTruth[np.where(np.squeeze(distance-distancesTruth) < 0)] = j
                 distancesTruth = np.minimum(distancesTruth,distance)
 
@@ -1273,9 +1483,10 @@ class AnalEyeZor():
                     axes.set_ylim(bottom=-maxValue, top=maxValue)
                     axes.legend()
                     axes.title.set_text("Coord: {}, Acc.: {}%".format(np.around(centers[j,0]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
-                fig.savefig(config['model_dir'] + filename + "_Amp_Electrode_{}.{}".format(str(e + 1), format), format=format,transparent=True)
+                fig.savefig(config['model_dir'] + filename + "_Amp_Electrode_{}.{}".format(str(self.electrodes[e]), format), format=format,transparent=True)
                 plt.close()
 
+                #Angle Part
                 fig, ax = plt.subplots(figsize=(2*centers.shape[0]+2,2*centers.shape[0]+2),dpi=160/max(np.log2(nrOfLevels),3))
                 ax.set_xlim([-1, 1])
                 ax.set_ylim([-1, 1])
@@ -1309,7 +1520,7 @@ class AnalEyeZor():
                     axes.set_ylim(bottom=-maxValue, top=maxValue)
                     axes.legend()
                     axes.title.set_text("Coord: {}°, Acc.: {}%".format(round(centers[j,1] / np.pi * 180,1),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
-                fig.savefig(config['model_dir'] + filename + "_Ang_Electrode_{}.{}".format(str(e + 1), format), format=format,transparent=True)
+                fig.savefig(config['model_dir'] + filename + "_Ang_Electrode_{}.{}".format(str(self.electrodes[e]), format), format=format,transparent=True)
                 plt.close()
 
 
@@ -1465,7 +1676,7 @@ class AnalEyeZor():
         else:
             return z[:,:dim,:]
 
-    def findDataPoints(self, type = "UpToDown", targetValueRange = [0,0], thresh = 0,electrode = 32, scale=False, componentAnalysis=None, dimensions=5):
+    def findDataPoints(self, type = "UpToDown", targetValueRange = [0,0], thresh = 0,electrode = 32, scale=False, componentAnalysis=None, dimensions=5,pathForOriginalRelativeToExecutable="./Joels_Files/predictions/", model="",run=1,postfix="",lossThresh=0.1,returnAngleBool=False):
         if type == "UpToDown":
             trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
             if scale:
@@ -1540,32 +1751,63 @@ class AnalEyeZor():
                 del trainX
             intersect = np.intersect1d(conditionIndices, np.argwhere(trainY[:, 1] == targetValueRange[0]), return_indices=False)
             return intersect
+        elif "Missclassified":
+            index = 0
+            if returnAngleBool:
+                index=1
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_"+model+"_run_"+str(run)+postfix+".npz")["diff"][:,index]
+            return np.squeeze(np.argwhere(losses>=lossThresh))
 
-    def customSignal(self, type="Step", postfix="", amplitude=10,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/customSignals/"):
+
+    def customSignal(self, type="Step", postfix="", noiseStd=0,amplitude=10,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/customSignals/",
+                     turnPoint=150):
         signal = np.zeros([2,self.inputShape[0],self.inputShape[1]])
+        noise = np.random.normal(scale=noiseStd,size=signal.shape)
         if type=="Step":
-            signal[0,:150,0] = amplitude
-            signal[0, 150:,0] = -amplitude
-            signal[0,:150,1] = -amplitude
-            signal[0, 150:,1] = amplitude
+            signal[0,:turnPoint,0] = amplitude
+            signal[0, turnPoint:,0] = -amplitude
+            signal[0,:turnPoint,1] = -amplitude
+            signal[0, turnPoint:,1] = amplitude
             signal[1] = -signal[0]
+            signal += noise
         elif type=="ContStep":
-            signal[0,:100,0] = amplitude
-            signal[0, 200:,0] = -amplitude
-            signal[0,100:200,0] = np.linspace(amplitude,-amplitude,100)
-            signal[0,:100,1] = -amplitude
-            signal[0, 200:,1] = amplitude
-            signal[0, 100:200, 1] = np.linspace(-amplitude,amplitude,100)
+            signal[0,:turnPoint-50,0] = amplitude
+            signal[0, turnPoint+50:,0] = -amplitude
+            signal[0,turnPoint-50:turnPoint+50,0] = np.linspace(amplitude,-amplitude,100)
+            signal[0,:turnPoint-50,1] = -amplitude
+            signal[0, turnPoint+50:,1] = amplitude
+            signal[0, turnPoint-50:turnPoint+50, 1] = np.linspace(-amplitude,amplitude,100)
             signal[1] = -signal[0]
+            signal += noise
         elif type=="ContStepConfused":
-            signal[0,:100,0] = amplitude
-            signal[0, 200:,0] = -amplitude
-            signal[0,100:200,0] = np.linspace(amplitude,-amplitude,100)
+            signal[0,:turnPoint-50,0] = amplitude
+            signal[0, turnPoint+50:,0] = -amplitude
+            signal[0,turnPoint-50:turnPoint+50,0] = np.linspace(amplitude,-amplitude,100)
             amplitude = 0.3*amplitude
-            signal[0,:100,1] = amplitude
-            signal[0, 200:,1] = -amplitude
-            signal[0, 100:200, 1] = np.linspace(amplitude,-amplitude,100)
+            signal[0,:turnPoint-50,1] = amplitude
+            signal[0, turnPoint+50:,1] = -amplitude
+            signal[0, turnPoint-50:turnPoint+50, 1] = np.linspace(amplitude,-amplitude,100)
             signal[1] = -signal[0]
+            signal += noise
+        elif type=="TripleSlide":
+            signal[0,:,0] += amplitude
+            signal[0, :, 1] += -amplitude
+            turnPoint=100
+            signal[0, turnPoint - 50:turnPoint + 50, 0] = np.linspace(amplitude, -amplitude, 100)
+            signal[0, turnPoint+150 - 50:turnPoint+150 + 50, 0] = np.linspace(amplitude, -amplitude, 100)
+            signal[0, turnPoint+300 - 50:turnPoint+300 + 50, 0] = np.linspace(amplitude, -amplitude, 100)
+            signal[0, turnPoint-50:turnPoint+50, 1] = np.linspace(-amplitude,amplitude,100)
+            signal[0, turnPoint+150 - 50:turnPoint+150 + 50, 1] = np.linspace(-amplitude, amplitude, 100)
+            signal[0, turnPoint+300 - 50:turnPoint+300 + 50, 1] = np.linspace(-amplitude, amplitude, 100)
+            signal[1] = -signal[0]
+            signal += noise
+
+        elif type=="Constant":
+            signal[0,:,0] += amplitude
+            signal[0, :, 1] += -amplitude
+            signal[1] = -signal[0]
+            signal += noise
+
         else:
             print("Type not yet implemented")
             return
@@ -1575,45 +1817,73 @@ class AnalEyeZor():
 
     def attentionVisualization(self, modelName, filename, dataType="",method="Saliency",format="pdf",run=1, componentAnalysis="",
                                dimensions=10,dataIndices = np.asarray([0]),maxValue=100,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
-                               postfix="", customSignalName="Step"):
+                               postfix="",artificialTruths=None, useAngleNetworkBool=False):
         dataIndices = np.atleast_1d(dataIndices)
-        filepattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
+        if "direction" in config['task'].lower():
+            if useAngleNetworkBool:
+                filepattern = re.compile('_angle' + modelName + '_nb_*', re.IGNORECASE)
+            else:
+                filepattern = re.compile('_amplitude' + modelName + '_nb_*', re.IGNORECASE)
+        else:
+            filepattern = re.compile(modelName + '_nb_*', re.IGNORECASE)
         path = config['checkpoint_dir'] + 'run' + str(run) + '/'
         model = None
         for file in os.listdir(path):
             if not filepattern.match(file):
                 continue
             else:
-                model = keras.models.load_model(path + file)
+                if useAngleNetworkBool and "direction" in config['task'].lower():
+                    scoring2 = (lambda y, y_pred: np.sqrt(
+                        np.mean(np.square(np.arctan2(np.sin(y - y_pred.ravel()), np.cos(y - y_pred.ravel()))))))
+                    model = keras.models.load_model(path + file,custom_objects = {'angle_loss': scoring2})
+                else:
+                    model = keras.models.load_model(path + file)
                 break
+
         if model == None:
             print("Model not found.")
             return
+        #if "lr" in config['task'].lower():
         model.layers[-1].activation = keras.activations.linear
+
+
 
         if dataType=="activationMaximization":
             dataX = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + postfix + ".npz")['x']
+            dataY = artificialTruths
+            if dataY is None:
+                dataY = np.zeros(dataX.shape[0])
         elif dataType in self.customSignalType:
             dataX = np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
+            dataY = artificialTruths
+            if dataY is None:
+                dataY = np.zeros(dataX.shape[0])
         else:
             dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
             if componentAnalysis == "PCA":
                 dataX = dataX[:, :, :129]
                 dataX = self.pcaDimReduction(dataX, dim=dimensions)
             dataX = dataX[:, :,self.electrodes.astype(np.int) - 1]
-
+            dataY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][dataIndices]
+            dataY = dataY[:,1:]
 
         dataX = np.expand_dims(dataX, axis=3)
         if method=="Saliency":
             def score(output):
                 lmbd = 1
-                return (lmbd * (1 - output[0, 0]), lmbd * output[1, 0])
+                out = lmbd*tf.norm(dataY[:output.shape[1]] - output, axis=1)
+                if useAngleNetworkBool:
+                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[1] - output), tf.cos(dataY[1] - output))))
+                return tuple(x for x in out)
             saliency = SaliencyCust(model)
             cam = saliency(score, dataX)
         elif method=="ScoreCam":
             def score(output):
                 lmbd = 1
-                return (lmbd * (1 - output[0, 0]), lmbd * output[0, 1])
+                out = lmbd*tf.norm(dataY[:output.shape[1]] - output, axis=1)
+                if useAngleNetworkBool:
+                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[1] - output), tf.cos(dataY[1] - output))))
+                return tuple(x for x in out)
             scorecam = ScorecamCust(model)
             cam = scorecam(score, dataX, penultimate_layer=-1, max_N=10)
         else:
@@ -1623,20 +1893,25 @@ class AnalEyeZor():
         for i, title in enumerate(dataIndices):
             for j in range(self.inputShape[1]):
                 f, ax = plt.subplots()
-                ax.title.set_text("Electrode {} of Trial {}".format(self.electrodes[j],str(title)) + ", GroundTruth: " + str(i))
+                ax.title.set_text("Electrode {} of Trial {}".format(self.electrodes[j],str(title)) + ", GroundTruth: " + np.array2string(dataY[i]))
                 ax.set_ylim([-maxValue, maxValue])
                 ax.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
                 ax.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
                 ax.plot(linSpace, dataX[i, :, j], c='black')
                 ax.imshow(np.repeat(np.repeat(np.expand_dims(cam[i,:,j],axis=0),2,axis=1),int(maxValue*2),axis=0), extent=[0,1000,int(maxValue),-int(maxValue)],cmap='jet', alpha=0.5,origin='lower')
-                plt.savefig(os.path.join(config['model_dir'], filename+'_Class{}_El{}.'.format(str(i),self.electrodes[j])+format))
+                plt.savefig(os.path.join(config['model_dir'], filename+'_Sample{}_El{}.'.format(str(i),self.electrodes[j])+format))
                 plt.close()
 
+    def absoluteDistance(self,y,yPred):
+        return np.absolute(y-yPred)
     def meanSquareError(self,y,yPred):
         return np.sqrt(mean_squared_error(y, yPred.ravel()))
 
-    def angleError(self,y,yPred):
-        return np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - yPred.ravel()), np.cos(y - yPred.ravel())))))
+    def angleError(self,y,yPred,noMeanBool=False):
+        difference = y - yPred.ravel()
+        if noMeanBool:
+            return np.sqrt(np.square(np.arctan2(np.sin(difference), np.cos(difference))))
+        return np.sqrt(np.mean(np.square(np.arctan2(np.sin(difference), np.cos(difference)))))
 
     def euclideanDistance(self,y,yPred):
         return np.sqrt(np.linalg.norm(y - yPred, axis=1).mean())
