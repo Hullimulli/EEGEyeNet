@@ -55,6 +55,8 @@ def main():
             electrodes = np.arange(129) + 1
             if "2" in path.lower():
                 electrodes = np.array([1, 32])
+            if "3" in path.lower():
+                electrodes = np.array([1, 17,32])
             if task == 'LR':
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', electrodes=electrodes, dataset=dataset, preprocessing='min', trainBool=False,
@@ -63,16 +65,17 @@ def main():
             #asdf.activationMaximization(model,epochs=1, steps=5000,componentAnalysis="PCA",dimensions=1, referenceIndices=np.asarray([23692,23693]), referenceElectrodes=np.asarray([32]),initTensor="Avg", filenamePostfix="_Lin", derivativeWeight=100000)
             #asdf.customSignal("Constant", amplitude=30, turnPoint=100,postfix="",noiseStd=20)
             #asdf.customSignal("ContStepConfused",amplitude=0)
-            asdf.visualizePredictionDirection(modelNames=["PyramidalCNN"], nrOfPoints=5, filename="Visualisation")
+            asdf.visualizePredictionDirection(modelNames=["PyramidalCNN","CNN","InceptionTime","EEGNet","Xception"], nrOfPoints=5,nrOfruns=5, filename="Visualisation")
             #asdf.predictAll(postfix="Top2")
-            indices = asdf.findDataPoints(type="Missclassified",model="PyramidalCNN",postfix="Top2", lossThresh=2, returnAngleBool=True)[:10]
+            #indices = asdf.findDataPoints(type="Missclassified",model="PyramidalCNN",postfix="Top2", lossThresh=2, returnAngleBool=True)[:10]
             #asdf.attentionVisualization(model,filename="Missclassified_ActVis",componentAnalysis="PCA",method="Saliency",dimensions=5,run=1,dataIndices=indices,dataType="",postfix="",useAngleNetworkBool=True)
-            asdf.plotSignal('PyramidalCNN', np.array([1, 32]),filename="Vis2",run=3,plotSignalsSeperatelyBool=False,nrOfPoints=2000,nrOfLevels=4,meanBool=True,plotMovementBool=False,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="")
+            #asdf.plotSignal('PyramidalCNN', np.array([1, 32]),filename="Vis2",run=3,plotSignalsSeperatelyBool=False,nrOfPoints=2000,nrOfLevels=4,meanBool=True,plotMovementBool=False,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="")
             fdsa = 0
 
 
         #transformData("LRMin_InceptionTime_Top2/", "InceptionTime", 'LR')
         transformData("Direction_Top2Ang/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_PyramidalCNN_Top3/", "PyramidalCNN", 'Direction')
         #transformData("LRMin_InceptionTime_All/", "InceptionTime", 'LR')
         #transformData("Position_All/", "PyramidalCNN", 'Position')
         def showDataSimple(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
@@ -80,6 +83,8 @@ def main():
             electrodesNetwork = np.arange(129)+1
             if "2" in path.lower():
                 electrodesNetwork = np.array([1, 32])
+            if "3" in path.lower():
+                electrodesNetwork = np.array([1, 17,32])
             if task == 'LR':
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', dataset=dataset, preprocessing='min', trainBool=False,
@@ -260,7 +265,7 @@ def main():
             del asdf
 
         #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
-        train("Direction_PyramidalCNN_Top3",["PyramidalCNN"], np.array([1,17,32]), 'min', "Direction_task")
+        train("Direction_Top3",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([1,17,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")

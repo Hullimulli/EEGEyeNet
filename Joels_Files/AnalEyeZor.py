@@ -805,12 +805,14 @@ class AnalEyeZor():
             if i >= int(len(modelNames)/2):
                 rad+=1
             predictions = np.arctan2(np.sin(allpredictions[modelName][:, :, 1]),np.cos(allpredictions[modelName][:, :, 1]))
-            y = rad * np.mean(np.sin(predictions), axis=0)
-            x = rad * np.mean(np.cos(predictions), axis=0)
+
+            means = np.arctan2(np.mean(np.sin(predictions), axis=0),np.mean(np.cos(predictions), axis=0))
+            y = rad*np.sin(means)
+            x = rad*np.cos(means)
+            diff = predictions-means
+            radi = np.sqrt(np.mean(np.square(np.arctan2(np.sin(diff),np.cos(diff))), axis=0))
             colours = np.zeros([x.shape[0], 4]) + colour[i]
-            radi = np.std(predictions, axis=0)
             plt.scatter(x, y, color=colours[i], marker='o', label=modelName)
-            means = np.mean((predictions+np.pi)%(2*np.pi), axis=0)
             for j in range(x.shape[0]):
                 theta = np.linspace(-radi[j]/2, radi[j] / 2, 100) + means[j]
                 plt.plot(rad[j]*np.cos(theta),rad[j]*np.sin(theta), c=colour[i])
