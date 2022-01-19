@@ -264,16 +264,18 @@ def main():
                 dataset="antisaccade"
             asdf = AnalEyeZor(task=task, dataset=dataset, preprocessing=prep, trainBool=trainBool
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
-            asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
+            asdf.numberOfNetworks=1
+            #asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
-                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+network[0]+"_amplitude")
-                asdf.PFI(saveTrail="_angle",nameSuffix="_"+network[0]+"_angle")
+                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+network[0]+"_amplitude",iterations=1)
+                asdf.PFI(saveTrail="_angle",nameSuffix="_"+network[0]+"_angle",iterations=1)
             else:
                 asdf.PFI(nameSuffix="_"+network[0])
             del asdf
 
+        PFI("Direction_All/", ["PyramidalCNN"],1 + np.arange(129), 'min', "Direction_task",trainBool=False,trail=True)
         #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
-        train("Direction_Top3_Ang",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([17,125,128]), 'min', "Direction_task")
+        #train("Direction_Top3_Ang",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([17,125,128]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")
