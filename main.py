@@ -269,7 +269,7 @@ def main():
             del asdf
 
         #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
-        train("Direction_Top3_Ver2",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([1,15,32]), 'min', "Direction_task")
+        train("Direction_Top4_Surround",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([1,15,17,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")
