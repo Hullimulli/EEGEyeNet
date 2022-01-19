@@ -97,7 +97,7 @@ class AnalEyeZor():
 
         self.displayBoundariesX = [0,800]
         self.displayBoundariesY = [0, 600]
-        self.customSignalType = ["Step","ContStep","ContStepConfused","TripleSlide","Constant"]
+        self.customSignalType = ["Step","ContStep","ContStepConfused","TripleSlide","Constant","StepDirection"]
 
         def build_file_name():
             all_EEG_file = config['task'] + '_with_' + config['dataset']
@@ -695,28 +695,34 @@ class AnalEyeZor():
         plt.close()
 
     def visualizePredictionDirection(self, modelNames, nrOfruns=5, nrOfPoints=9, filename='predictionVisualisation',
-                            format='pdf', saveBool=True, scale=False):
+                            format='pdf', saveBool=True, scale=False,
+                            pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/",
+                            postfix=""):
 
         if not config['task'] == 'Direction_task':
             print("Function only works for Direction Task.")
             return
+        if postfix=="":
+            trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+            ids = trainY[:, 0]
+            trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+            if scale:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+                logging.info('Standard Scaling')
+                scaler = StandardScaler()
+                scaler.fit(trainX[trainIndices])
+                trainX = scaler.transform(trainX[valIndices])
+            else:
+                trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
+                trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
+            valY = trainY[testIndices,1:]
+            trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
+            del trainIndices, valIndices, testIndices, trainY
 
-        trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
-        ids = trainY[:, 0]
-        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
-        if scale:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
-            logging.info('Standard Scaling')
-            scaler = StandardScaler()
-            scaler.fit(trainX[trainIndices])
-            trainX = scaler.transform(trainX[valIndices])
         else:
-            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][testIndices, :,:]
-            trainX = trainX[:, :,self.electrodes.astype(np.int) - 1]
-        valY = trainY[testIndices,1:]
-        trainX, valY  = trainX[:nrOfPoints], valY[:nrOfPoints,:]
-        del trainIndices, valIndices, testIndices, trainY
-
+            nrOfPoints=4
+            trainX = np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + "StepDirection" + postfix + ".npy")
+            valY = np.array([[400,np.pi],[400,np.pi/2],[400,0],[400,-np.pi/2]])
         allpredictions = dict()
         for modelName in modelNames:
             modelAmp = all_models[config['task']][config['dataset']][config['preprocessing']]['amplitude'][modelName]
@@ -746,7 +752,7 @@ class AnalEyeZor():
         cmap = cm.get_cmap('nipy_spectral')
         colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
         colourLight = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
-        colourLight[:,3] = 0.2
+        colourLight[:,3] = 0.35
 
         fig = plt.figure()
         plt.scatter((np.arange(truth.shape[0])-len(modelNames)/2) / nrOfPoints,truth[:, 0], c='black', marker='x', label="Ground Truth")
@@ -767,10 +773,9 @@ class AnalEyeZor():
                 pos = i - len(modelNames)
             y = np.mean(allpredictions[modelName][:, :, 0], axis=0)
             x = (np.arange(y.shape[0])-len(modelNames)/2) / nrOfPoints + pos
-            colours = np.zeros([x.shape[0], 4]) + colour[i]
             radi = np.sqrt(np.square(np.std(allpredictions[modelName][:, :, 0], axis=0)) + np.square(
                 np.std(allpredictions[modelName][:, :, 1], axis=0)))
-            plt.errorbar(x, y,yerr=radi, color=colours[i], fmt='.k',label=modelName)
+            plt.errorbar(x, y,yerr=radi, color=colour[i], fmt='.k',label=modelName)
             for j in range(x.shape[0]):
                 plt.plot(np.array([x[j], (np.arange(truth.shape[0])[j]-len(modelNames)/2)/nrOfPoints]), np.array([y[j], truth[j, 0]]), c=colourLight[i])
 
@@ -811,8 +816,7 @@ class AnalEyeZor():
             x = rad*np.cos(means)
             diff = predictions-means
             radi = np.sqrt(np.mean(np.square(np.arctan2(np.sin(diff),np.cos(diff))), axis=0))
-            colours = np.zeros([x.shape[0], 4]) + colour[i]
-            plt.scatter(x, y, color=colours[i], marker='o', label=modelName)
+            plt.scatter(x, y, color=colour[i], marker='o', label=modelName)
             for j in range(x.shape[0]):
                 theta = np.linspace(-radi[j]/2, radi[j] / 2, 100) + means[j]
                 plt.plot(rad[j]*np.cos(theta),rad[j]*np.sin(theta), c=colour[i])
@@ -1122,6 +1126,8 @@ class AnalEyeZor():
         elif dataType in self.customSignalType:
             dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
             dataY = np.array([0,1])
+            if dataType=="StepDirection":
+                dataY = np.array([[400,np.pi],[400,np.pi/2],[400,0],[400,-np.pi/2]])
             ids = np.array([0])
         else:
             Y = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
@@ -1440,15 +1446,13 @@ class AnalEyeZor():
             for j in range(centers.shape[0]):
                 distance = np.zeros(prediction.shape)
                 distance[:,0] = np.absolute(prediction[:,0]-centers[j,0])
-                diff = np.absolute(prediction[:, 1] - centers[j, 1])
-                distance[:, 1] = (diff % (2*np.pi) / np.pi).astype(np.int) - np.sign((diff % (2*np.pi) / np.pi).astype(np.int)-1)* (diff % np.pi)
+                distance[:, 1] = self.angleError(centers[j, 1],prediction[:, 1],noMeanBool=True)
                 closestCenter[np.where(np.squeeze(distance-distances) < 0)] = j
                 distances = np.minimum(distances,distance)
 
                 distance = np.zeros(truth.shape)
                 distance[:,0] = np.absolute(truth[:,0]-centers[j,0])
-                diff = np.absolute(truth[:, 1] - centers[j, 1])
-                distance[:, 1] = (diff % (2*np.pi) / np.pi).astype(np.int) - np.sign((diff % (2*np.pi) / np.pi).astype(np.int)-1)* (diff % np.pi)
+                distance[:, 1] = self.angleError(centers[j, 1],truth[:, 1],noMeanBool=True)
                 closestCenterTruth[np.where(np.squeeze(distance-distancesTruth) < 0)] = j
                 distancesTruth = np.minimum(distancesTruth,distance)
 
@@ -1478,10 +1482,15 @@ class AnalEyeZor():
                             if n == j:
                                 nrCorrectlyPredicted = nrPredicted
                             if 100 * nrPredicted / nrOfTruths >= percentageThresh:
-                                meanSignal = np.squeeze(np.mean(dataX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
-                                deviationSignal = np.squeeze(np.std(dataX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
-                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(j,n ,round(100 * nrPredicted / nrOfTruths)))
-                                axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                                if meanBool:
+                                    meanSignal = np.squeeze(np.mean(dataX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
+                                    deviationSignal = np.squeeze(np.std(dataX[np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)), :, e], axis=1))
+                                    axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(j,n ,round(100 * nrPredicted / nrOfTruths)))
+                                    axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                                else:
+                                    label = np.squeeze(prediction[np.where(np.logical_and(closestCenterTruth[:, 0] == j, closestCenter[:, 0] == n)), 0])
+                                    label = np.around(label)
+                                    axes.plot(np.expand_dims(linSpace,axis=1), np.transpose(dataX[np.atleast_1d(np.squeeze(np.where(np.logical_and(closestCenterTruth[:,0] == j,closestCenter[:,0] == n)))), :, e]), linestyle='--',lw=0.5,label=label)
                     axes.set_ylim(bottom=-maxValue, top=maxValue)
                     axes.legend()
                     axes.title.set_text("Coord: {}, Acc.: {}%".format(np.around(centers[j,0]),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
@@ -1515,10 +1524,16 @@ class AnalEyeZor():
                             if n == j:
                                 nrCorrectlyPredicted = nrPredicted
                             if 100 * nrPredicted / nrOfTruths >= percentageThresh:
-                                meanSignal = np.squeeze(np.mean(dataX[np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)), :, e], axis=1))
-                                deviationSignal = np.squeeze(np.std(dataX[np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)), :, e], axis=1))
-                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(j,n ,round(100 * nrPredicted / nrOfTruths)))
-                                axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                                if meanBool:
+                                    meanSignal = np.squeeze(np.mean(dataX[np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)), :, e], axis=1))
+                                    deviationSignal = np.squeeze(np.std(dataX[np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)), :, e], axis=1))
+                                    axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--',c=np.squeeze(colour[n]), lw=1, label="{}-{},({}%)".format(j,n ,round(100 * nrPredicted / nrOfTruths)))
+                                    axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal, facecolor=np.squeeze(colour[n]), alpha=0.1)
+                                else:
+                                    label = np.squeeze(prediction[np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)),1])
+                                    label = np.around(np.arctan2(np.sin(label), np.cos(label)) / np.pi * 180)
+                                    axes.plot(np.expand_dims(linSpace,axis=1), np.transpose(dataX[np.atleast_1d(np.squeeze(np.where(np.logical_and(closestCenterTruth[:,1] == j,closestCenter[:,1] == n)))), :, e]), linestyle='--', lw=0.5,label=label)
+
                     axes.set_ylim(bottom=-maxValue, top=maxValue)
                     axes.legend()
                     axes.title.set_text("Coord: {}°, Acc.: {}%".format(round(centers[j,1] / np.pi * 180,1),round(nrCorrectlyPredicted/max(nrOfTruths,1)*100,1)))
@@ -1753,13 +1768,27 @@ class AnalEyeZor():
                 del trainX
             intersect = np.intersect1d(conditionIndices, np.argwhere(trainY[:, 1] == targetValueRange[0]), return_indices=False)
             return intersect
-        elif "Missclassified":
+        elif type == "Missclassified":
             index = 0
             if returnAngleBool:
                 index=1
             losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_"+model+"_run_"+str(run)+postfix+".npz")["diff"][:,index]
             return np.squeeze(np.argwhere(losses>=lossThresh))
-
+        elif type == "UpAndDown":
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_" + model + "_run_" + str(run) + postfix + ".npz")["y"][:,1]
+            return np.squeeze(np.argwhere(np.logical_and(np.absolute(losses) >= np.pi/2,np.absolute(losses) <= 3*np.pi/4)))
+        elif type == "LeftOnly":
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_" + model + "_run_" + str(run) + postfix + ".npz")["y"][:,1]
+            return np.squeeze(np.argwhere(np.absolute(losses) >= 3*np.pi/4))
+        elif type == "RightOnly":
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_" + model + "_run_" + str(run) + postfix + ".npz")["y"][:,1]
+            return np.squeeze(np.argwhere(np.absolute(losses) <= 1*np.pi/4))
+        elif type == "UpOnly":
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_" + model + "_run_" + str(run) + postfix + ".npz")["y"][:,1]
+            return np.squeeze(np.argwhere(np.logical_and(losses >= np.pi/2,losses <= 3*np.pi/4)))
+        elif type == "DownOnly":
+            losses = np.load(pathForOriginalRelativeToExecutable + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + "_predictions_" + model + "_run_" + str(run) + postfix + ".npz")["y"][:,1]
+            return np.squeeze(np.argwhere(np.logical_and(-losses >= np.pi/2,-losses <= 3*np.pi/4)))
 
     def customSignal(self, type="Step", postfix="", noiseStd=0,amplitude=10,pathForOriginalRelativeToExecutable="./Joels_Files/dimensionReductions/customSignals/",
                      turnPoint=150):
@@ -1808,6 +1837,20 @@ class AnalEyeZor():
             signal[0,:,0] += amplitude
             signal[0, :, 1] += -amplitude
             signal[1] = -signal[0]
+            signal += noise
+
+        elif type=="StepDirection":
+            signal = np.zeros([4, self.inputShape[0], self.inputShape[1]])
+            noise = np.random.normal(scale=noiseStd, size=signal.shape)
+
+            signal[0,:turnPoint,0] = amplitude
+            signal[0, turnPoint:,0] = -amplitude
+            signal[0,:turnPoint,2] = -amplitude
+            signal[0, turnPoint:,2] = amplitude
+            signal[2] = -signal[0]
+            signal[1,:turnPoint,1] = amplitude
+            signal[1, turnPoint:,1] = -amplitude
+            signal[3] = -signal[1]
             signal += noise
 
         else:
@@ -1860,6 +1903,8 @@ class AnalEyeZor():
             dataY = artificialTruths
             if dataY is None:
                 dataY = np.zeros(dataX.shape[0])
+                if dataType == "StepDirection":
+                    dataY = np.array([[400, np.pi], [400, np.pi / 2], [400, 0], [400, -np.pi / 2]])
         else:
             dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
             if componentAnalysis == "PCA":
@@ -1873,18 +1918,22 @@ class AnalEyeZor():
         if method=="Saliency":
             def score(output):
                 lmbd = 1
-                out = lmbd*tf.norm(dataY[:output.shape[1]] - output, axis=1)
+                out = lmbd*tf.norm(dataY[:,:output.shape[1]] - output, axis=1)
+                if dataY.shape[1]==1:
+                    out = lmbd*tf.multiply(-2*(dataY-0.5),output)
                 if useAngleNetworkBool:
-                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[1] - output), tf.cos(dataY[1] - output))))
+                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[:,1] - output), tf.cos(dataY[:,1] - output))))
                 return tuple(x for x in out)
             saliency = SaliencyCust(model)
             cam = saliency(score, dataX)
         elif method=="ScoreCam":
             def score(output):
                 lmbd = 1
-                out = lmbd*tf.norm(dataY[:output.shape[1]] - output, axis=1)
+                out = lmbd*tf.norm(dataY[:,:output.shape[1]] - output, axis=1)
+                if dataY.shape[1]==1:
+                    out = lmbd*tf.multiply(-2*(dataY-0.5),output)
                 if useAngleNetworkBool:
-                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[1] - output), tf.cos(dataY[1] - output))))
+                    out = tf.sqrt(tf.square(tf.math.atan2(tf.sin(dataY[:,1] - output), tf.cos(dataY[:,1] - output))))
                 return tuple(x for x in out)
             scorecam = ScorecamCust(model)
             cam = scorecam(score, dataX, penultimate_layer=-1, max_N=10)
@@ -1912,7 +1961,7 @@ class AnalEyeZor():
     def angleError(self,y,yPred,noMeanBool=False):
         difference = y - yPred.ravel()
         if noMeanBool:
-            return np.sqrt(np.square(np.arctan2(np.sin(difference), np.cos(difference))))
+            return np.absolute(np.arctan2(np.sin(difference), np.cos(difference)))
         return np.sqrt(np.mean(np.square(np.arctan2(np.sin(difference), np.cos(difference)))))
 
     def euclideanDistance(self,y,yPred):
