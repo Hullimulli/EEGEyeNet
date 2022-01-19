@@ -57,6 +57,10 @@ def main():
                 electrodes = np.array([1, 32])
             if "3" in path.lower():
                 electrodes = np.array([1, 17,32])
+                if "2" in path.lower():
+                    electrodes = np.array([1, 15,32])
+            if "4" in path.lower():
+                electrodes = np.array([1, 15, 17,32])
             if task == 'LR':
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', electrodes=electrodes, dataset=dataset, preprocessing='min', trainBool=False,
@@ -72,7 +76,7 @@ def main():
             #indices = asdf.findDataPoints(type="Missclassified", model="PyramidalCNN", postfix="Top3", lossThresh=7/8*np.pi,returnAngleBool=True)
             #indices = asdf.findDataPoints(type="DownOnly",model="PyramidalCNN",postfix="Top3", lossThresh=2, returnAngleBool=True)
             #asdf.attentionVisualization(model,filename="ActVis_200",componentAnalysis="",method="Saliency",dimensions=1,run=1,dataIndices=indices,dataType="StepDirection",postfix="_200",useAngleNetworkBool=False)
-            asdf.plotSignal('PyramidalCNN', np.array([1, 17,32]),filename="Vis_Amp40",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=8,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="StepDirection",postfix="_Amp40")
+            asdf.plotSignal('PyramidalCNN', electrodes,filename="Vis_Amp40",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=8,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="StepDirection",postfix="_Amp40")
             fdsa = 0
 
 
@@ -269,7 +273,7 @@ def main():
             del asdf
 
         #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
-        train("Direction_Top4_Surround",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([1,15,17,32]), 'min', "Direction_task")
+        train("Direction_Top3_Ang",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([17,125,128]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
         #train('Direction_Xception_Top4_Angle', ["Xception"], np.array([1,32,125,128]), 'min', "Direction_task")

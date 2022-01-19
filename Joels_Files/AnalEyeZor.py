@@ -97,7 +97,7 @@ class AnalEyeZor():
 
         self.displayBoundariesX = [0,800]
         self.displayBoundariesY = [0, 600]
-        self.customSignalType = ["Step","ContStep","ContStepConfused","TripleSlide","Constant","StepDirection"]
+        self.customSignalType = ["Step","ContStep","ContStepConfused","TripleSlide","Constant","StepDirection17","StepDirection15"]
 
         def build_file_name():
             all_EEG_file = config['task'] + '_with_' + config['dataset']
@@ -1126,7 +1126,7 @@ class AnalEyeZor():
         elif dataType in self.customSignalType:
             dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
             dataY = np.array([0,1])
-            if dataType=="StepDirection":
+            if "stepdirection" in dataType.lower():
                 dataY = np.array([[400,np.pi],[400,np.pi/2],[400,0],[400,-np.pi/2]])
             ids = np.array([0])
         else:
@@ -1839,7 +1839,7 @@ class AnalEyeZor():
             signal[1] = -signal[0]
             signal += noise
 
-        elif type=="StepDirection":
+        elif type=="StepDirection17":
             signal = np.zeros([4, self.inputShape[0], self.inputShape[1]])
             noise = np.random.normal(scale=noiseStd, size=signal.shape)
 
@@ -1903,7 +1903,7 @@ class AnalEyeZor():
             dataY = artificialTruths
             if dataY is None:
                 dataY = np.zeros(dataX.shape[0])
-                if dataType == "StepDirection":
+                if "stepdirection" in dataType.lower():
                     dataY = np.array([[400, np.pi], [400, np.pi / 2], [400, 0], [400, -np.pi / 2]])
         else:
             dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
