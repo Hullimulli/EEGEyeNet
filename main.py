@@ -19,7 +19,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = False
+    local = True
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -59,8 +59,12 @@ def main():
                 electrodes = np.array([1, 17,32])
                 if "2" in path.lower():
                     electrodes = np.array([1, 15,32])
+                if "ang" in path.lower():
+                    electrodes = np.array([17, 125, 128])
             if "4" in path.lower():
                 electrodes = np.array([1, 15, 17,32])
+            if "sidefronts" in path.lower():
+                electrodes = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
             if task == 'LR':
                 dataset='antisaccade'
             asdf = AnalEyeZor(task=task+'_task', electrodes=electrodes, dataset=dataset, preprocessing='min', trainBool=False,
@@ -68,21 +72,26 @@ def main():
             #asdf.pca()
             #asdf.activationMaximization(model,epochs=1, steps=5000,componentAnalysis="PCA",dimensions=1, referenceIndices=np.asarray([23692,23693]), referenceElectrodes=np.asarray([32]),initTensor="Avg", filenamePostfix="_Lin", derivativeWeight=100000)
             #asdf.customSignal("Constant", amplitude=30, turnPoint=100,postfix="",noiseStd=20)
-            #asdf.customSignal("StepDirection", amplitude=20, turnPoint=200, postfix="_Amp20", noiseStd=20)
+            #asdf.customSignal("StepDirection", amplitude=40, turnPoint=250, postfix="_Amp40", noiseStd=20)
             #asdf.customSignal("ContStepConfused",amplitude=0)
-            #asdf.visualizePredictionDirection(modelNames=["PyramidalCNN","CNN","InceptionTime","EEGNet","Xception"],nrOfPoints=9,nrOfruns=5, postfix="_Amp{}0".format(i),filename="Visualisation_Step_Amp{}0".format(i))
+            #asdf.visualizePredictionDirection(modelNames=["PyramidalCNN"],nrOfPoints=30,nrOfruns=1, postfix="",filename="RegressionComp")
+            #asdf.visualizePrediction(modelNames=["PyramidalCNN"], nrOfPoints=30, nrOfruns=1,filename="RegressionDebug")
             #asdf.predictAll(postfix="Top3")
             indices = None
+            #asdf.simpleDirectionRegressor(nrOfPoints=30)
             #indices = asdf.findDataPoints(type="Missclassified", model="PyramidalCNN", postfix="Top3", lossThresh=7/8*np.pi,returnAngleBool=True)
             #indices = asdf.findDataPoints(type="DownOnly",model="PyramidalCNN",postfix="Top3", lossThresh=2, returnAngleBool=True)
             #asdf.attentionVisualization(model,filename="ActVis_200",componentAnalysis="",method="Saliency",dimensions=1,run=1,dataIndices=indices,dataType="StepDirection",postfix="_200",useAngleNetworkBool=False)
-            asdf.plotSignal('PyramidalCNN', electrodes,filename="Vis_Amp40",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=8,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="StepDirection",postfix="_Amp40")
+            asdf.plotSignal('PyramidalCNN', electrodes,splitAngAmpBool=False,filename="RegressionDebugSig",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=12,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="_Amp40")
             fdsa = 0
 
 
         #transformData("LRMin_InceptionTime_Top2/", "InceptionTime", 'LR')
         #transformData("Direction_Top2Amp/", "PyramidalCNN", 'Direction')
         #transformData("Direction_All/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_SideFronts/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_Top2Ang/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_Top3_Ang/", "PyramidalCNN", 'Direction')
         transformData("Direction_Top3/", "PyramidalCNN", 'Direction')
         #transformData("LRMin_InceptionTime_All/", "InceptionTime", 'LR')
         #transformData("Position_All/", "PyramidalCNN", 'Position')

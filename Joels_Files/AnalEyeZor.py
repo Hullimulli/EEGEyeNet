@@ -3,15 +3,13 @@ import os
 import time
 import logging
 from typing import Union
-import math
 from config import config, create_folder
 from utils import IOHelper
 from benchmark import benchmark, split
-from utils.tables_utils import print_table
 from hyperparameters import our_DL_models, our_ML_models, your_models, all_models
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, log_loss
-from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestRegressor
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -19,7 +17,6 @@ from tf_keras_vis.activation_maximization import ActivationMaximization
 from tf_keras_vis import ModelVisualization
 from tf_keras_vis.utils import get_num_of_steps_allowed, is_mixed_precision, listify, normalize, zoom_factor
 from tf_keras_vis.utils.model_modifiers import ExtractIntermediateLayerForGradcam as ModelModifier
-from tf_keras_vis.saliency import Saliency
 from tf_keras_vis.activation_maximization.callbacks import Progress
 from scipy.ndimage.interpolation import zoom
 import shutil
@@ -35,7 +32,6 @@ import scipy.io as sio
 from scipy.ndimage import convolve1d
 import mne
 from texttable import Texttable
-from tabulate import tabulate
 import latextable
 from matplotlib.lines import Line2D
 
@@ -688,6 +684,7 @@ class AnalEyeZor():
         fig = plt.figure()
         plt.scatter(truth[:,0],truth[:,1], c='black', marker='x',label="Ground Truth")
         plt.axis('equal')
+        plt.gca().invert_yaxis()
 
         for i,modelName in enumerate(modelNames):
             x = np.mean(allpredictions[modelName][:,:, 0], axis=0)
@@ -699,7 +696,7 @@ class AnalEyeZor():
 
             for j in range(x.shape[0]):
                 plt.plot(np.array([x[j],truth[j,0]]),np.array([y[j],truth[j,1]]),c=colour[i])
-            colour[i,3] = 0.1
+            colour[i,3] = 0.35
             for j in range(x.shape[0]):
                 ax.add_patch(plt.Circle((x[j], y[j]), radi[j], color=colour[i]))
 
@@ -841,6 +838,7 @@ class AnalEyeZor():
             top=False,  # ticks along the top edge are off
             labelbottom=False)  # labels along the bottom edge are off
         plt.yticks([])
+        plt.gca().invert_yaxis()
         #Lines and labels for the angle
         centers = np.linspace(0, 2*np.pi, 9)[:8]
         for j in range(8):
@@ -1453,10 +1451,19 @@ class AnalEyeZor():
         elif config['task'] == 'Position_task' or (config['task'] == 'Direction_task' and not splitAngAmpBool):
             cmap = cm.get_cmap(colourMap)
             colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
-            if nrOfLevels % 2 != 0:
-                print("Need even number of levels.")
-                return
-            centers = np.zeros([int(np.log2(nrOfLevels+2)),int(np.log2(nrOfLevels)),2])
+
+
+            ###This algorithm is fairly stupid, feel free to improve. The goal is to factorize an integer in two large integers.
+            gridsX = 1
+            gridsY = nrOfLevels
+            loss=abs(gridsX-gridsY)
+            while(gridsX != nrOfLevels):
+                if (nrOfLevels / gridsX) % 1 == 0 and loss>abs(gridsX-(nrOfLevels / gridsX)):
+                    gridsY = int(nrOfLevels / gridsX)
+                    loss = abs(gridsX-gridsY)
+                gridsX += 1
+            gridsX = int(nrOfLevels / gridsY)
+            centers = np.zeros([gridsX,gridsY,2])
             eps = 50
             #Determine the range of the plots. Important for discretization.
             if config['task'] == 'Position_task':
@@ -1493,13 +1500,14 @@ class AnalEyeZor():
                 fig, ax = plt.subplots(figsize=(8*centers.shape[0],4*centers.shape[1]),dpi=160/np.log2(nrOfLevels))
                 ax.set_xlim([minValueX, maxValueX])
                 ax.set_ylim([minValueY, maxValueY])
+                ax.invert_yaxis()
                 ax.set_xticks(np.arange(0,centers.shape[0]+1) * (maxValueX - minValueX) / centers.shape[0]+minValueX)
                 ax.set_yticks(np.arange(0,centers.shape[1]+1) * (maxValueY - minValueY) / centers.shape[1]+minValueY)
                 ax.title.set_text("Average Error Distance: {}px".format(error))
                 plt.grid()
                 for i in range(centers.shape[1]):
                     for j in range(centers.shape[0]):
-                        axes = ax.inset_axes([(centers[j,i,0]-minValueX)/(maxValueX-minValueX) -  0.8/ (2*centers.shape[0]),(centers[j,i,1]-minValueY)/(maxValueY-minValueY) - 0.8 / (2*centers.shape[1]),0.8 / centers.shape[0],0.8  / centers.shape[1]])
+                        axes = ax.inset_axes([(centers[j,i,0]-minValueX)/(maxValueX-minValueX) -  0.8/ (2*centers.shape[0]),np.absolute(1-(centers[j,i,1]-minValueY)/(maxValueY-minValueY) - 0.8 / (2*centers.shape[1])),0.8 / centers.shape[0],0.8  / centers.shape[1]])
                         index=j+i*centers.shape[0]
                         groundTruthSignal = np.squeeze(np.mean(dataX[np.where(closestCenterTruth==index),:,e],axis=1))
                         nrOfTruths = dataX[np.where(closestCenterTruth==index),:,e].shape[1]
@@ -1603,12 +1611,13 @@ class AnalEyeZor():
                 ax.set_ylim([-1, 1])
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
+                ax.invert_yaxis()
                 plt.title("Avg Angle Error: {}".format(round(errorAng*100,1)), loc='left')
                 angleDistance = (centers[1,1] - centers[0,1]) / 2
                 for j in range(centers.shape[0]):
                     plt.plot(np.array([0,np.cos(centers[j,1]+angleDistance)]),np.array([0,np.sin(centers[j,1]+angleDistance)]),c='black',alpha=0.2)
                     #plt.text(0.2*np.cos(centers[j,1]),0.2*np.sin(centers[j,1]),str(round((centers[j,1]) / np.pi * 180,1))+"°")
-                    axes = ax.inset_axes([0.4*np.cos(centers[j,1])+0.5-0.75 / nrOfLevels,0.4*np.sin(centers[j,1])+0.5 - 0.75 / nrOfLevels,1.5 / nrOfLevels ,1.5 / nrOfLevels])
+                    axes = ax.inset_axes([0.4*np.cos(centers[j,1])+0.5-0.75 / nrOfLevels,np.absolute(1-0.4*np.sin(centers[j,1])-0.5 - 0.75 / nrOfLevels),1.5 / nrOfLevels ,1.5 / nrOfLevels])
                     axes.locator_params(nbins=3)
                     axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
                     axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
@@ -2185,6 +2194,112 @@ class AnalEyeZor():
                 ax.imshow(np.repeat(np.repeat(np.expand_dims(cam[i,:,j],axis=0),2,axis=1),int(maxValue*2),axis=0), extent=[0,1000,int(maxValue),-int(maxValue)],cmap='jet', alpha=0.5,origin='lower')
                 plt.savefig(os.path.join(config['model_dir'], filename+'_Sample{}_El{}.'.format(str(i),self.electrodes[j])+format))
                 plt.close()
+
+    def simpleDirectionRegressor(self,nrOfPoints=9):
+        """
+        Trains a Random Forest for the Direction Task, returns the score and visualizes the result.
+        @param nrOfPoints: How many points have to be visualized.
+        @type nrOfPoints: Integer
+        @return:
+        @rtype:
+        """
+        if not config['task'] == 'Direction_task':
+            print("Function only works for Direction Task.")
+            return
+        tempY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+        ids = tempY[:, 0]
+        trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+        tempX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
+        dataX = np.zeros([tempX.shape[0],2*tempX.shape[2]])
+        for i in range(tempX.shape[2]):
+            dataX[:,0+i*2] = np.mean(tempX[:,:250,i],axis=1)
+            dataX[:,1+i*2] = np.mean(tempX[:, 250:,i], axis=1)
+        dataY = np.zeros(tempY.shape)
+        dataY[:,0] = tempY[:,1]
+        dataY[:, 1] = np.cos(tempY[:, 2])
+        dataY[:, 2] = np.sin(tempY[:, 2])
+        del tempX
+        regrAmp = RandomForestRegressor()
+        regrAng = RandomForestRegressor()
+        regrAmp.fit(dataX[trainIndices],dataY[trainIndices,0])
+        regrAng.fit(dataX[trainIndices], dataY[trainIndices,1:])
+
+        predictionAmp = regrAmp.predict(dataX[testIndices])
+        predictionAng = regrAng.predict(dataX[testIndices])
+        predictionAng = np.arctan2(predictionAng[:,1], predictionAng[:,0])
+
+        print("Amplitude Error is {}px".format(self.meanSquareError(dataY[testIndices,0],predictionAmp)))
+        print("Angle Error is {}°".format(self.angleError(tempY[testIndices, 2], predictionAng)/np.pi*180))
+        truth = (tempY[testIndices,1:])[:nrOfPoints]
+        predictionAng=predictionAng[:nrOfPoints]
+        predictionAmp=predictionAmp[:nrOfPoints]
+
+        # Amplitude Part
+        fig = plt.figure()
+        plt.scatter(np.arange(truth.shape[0]) / nrOfPoints-1, truth[:, 0], c='black', marker='x',
+                    label="Ground Truth")
+        plt.axis('auto')
+        plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d px'))
+        plt.tick_params(
+            axis='x',  # changes apply to the x-axis
+            which='both',  # both major and minor ticks are affected
+            bottom=False,  # ticks along the bottom edge are off
+            top=False,  # ticks along the top edge are off
+            labelbottom=False)  # labels along the bottom edge are off
+        plt.xlim((-1.5, 1.5))
+
+        x = (np.arange(predictionAmp.shape[0])) / nrOfPoints
+        plt.scatter(x, predictionAmp,  color="red", label="Random Forest")
+        for j in range(x.shape[0]):
+            plt.plot(np.array([x[j], np.arange(truth.shape[0])[j] / nrOfPoints-1]),
+                     np.array([predictionAmp[j], truth[j, 0]]), c="red",alpha=0.35)
+
+        plt.legend()
+        fig.savefig(config['model_dir'] + "RegressorVis" + "_Amp" + ".{}".format("pdf"), format="pdf", transparent=True)
+        plt.close()
+        del fig
+
+        # Angle Part
+        fig = plt.figure()
+        plt.scatter(np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.cos(truth[:, 1])),
+                    np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.sin(truth[:, 1])),
+                    c='black', marker='x',
+                    label="Ground Truth")
+        plt.axis('equal')
+        plt.tick_params(
+            axis='both',  # changes apply to both axis
+            which='both',  # both major and minor ticks are affected
+            bottom=False,  # ticks along the bottom edge are off
+            top=False,  # ticks along the top edge are off
+            labelbottom=False)  # labels along the bottom edge are off
+        plt.yticks([])
+        plt.gca().invert_yaxis()
+        # Lines and labels for the angle
+        centers = np.linspace(0, 2 * np.pi, 9)[:8]
+        for j in range(8):
+            plt.plot(np.array([0, 3* np.cos(centers[j])]),
+                     np.array([0, 3* np.sin(centers[j])]), c='black', alpha=0.5)
+            plt.text(np.cos(centers[j]), np.sin(centers[j]),
+                     str(round((centers[j]) / np.pi * 180, 1)) + "°")
+
+        rad = np.arange(nrOfPoints) / nrOfPoints + 1
+
+        # To get only values between -pi & +pi. This step is unnecessary, but the code still is a bit clearer.
+        predictions = np.arctan2(np.sin(predictionAng),
+                                 np.cos(predictionAng))
+
+        y = rad * np.sin(predictions)
+        x = rad * np.cos(predictions)
+        plt.scatter(x, y, color="red", marker='o', label="Random Forest")
+        for j in range(x.shape[0]):
+            plt.plot(
+                np.array([x[j], np.multiply(1 + j / nrOfPoints, np.cos(truth[j, 1]))]),
+                np.array([y[j], np.multiply(1 + j / nrOfPoints, np.sin(truth[j, 1]))]),
+                c="red",alpha=0.35)
+
+        plt.legend()
+        fig.savefig(config['model_dir'] + "RegressorVis" + "_Ang" + ".{}".format("pdf"), format="pdf", transparent=True)
+        plt.close()
 
     ###Losses###
     def absoluteDistance(self,y,yPred):
