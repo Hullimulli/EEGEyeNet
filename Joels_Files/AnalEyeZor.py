@@ -2195,11 +2195,23 @@ class AnalEyeZor():
                 plt.savefig(os.path.join(config['model_dir'], filename+'_Sample{}_El{}.'.format(str(i),self.electrodes[j])+format))
                 plt.close()
 
-    def simpleDirectionRegressor(self,nrOfPoints=9):
+    def simpleDirectionRegressor(self,nrOfPoints=9, nrOfRuns=5,plotBool=False,findZeroCrossingBool=False,movingAverageFilterLength=50,defaultCrossingValue=250):
         """
+
         Trains a Random Forest for the Direction Task, returns the score and visualizes the result.
         @param nrOfPoints: How many points have to be visualized.
         @type nrOfPoints: Integer
+        @param nrOfRuns: Over how many runs the result should be averaged.
+        @type nrOfRuns: Integer
+        @param plotBool: If True, Visualizations are generated.
+        @type plotBool: Bool
+        @param findZeroCrossingBool: If the zerocrossing should be found manually. WARNING: This is implemented very inefficiently.
+        @type findZeroCrossingBool: Bool
+        @param movingAverageFilterLength: If zerocrossings are found manually, the signal is smooth with an moving average filter.
+        This is long the filger is.
+        @type movingAverageFilterLength: Integer
+        @param defaultCrossingValue: If no zerocrossing is found, this is where the signal is split.
+        @type defaultCrossingValue: Integer
         @return:
         @rtype:
         """
@@ -2211,95 +2223,131 @@ class AnalEyeZor():
         trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
         tempX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, self.electrodes.astype(np.int) - 1]
         dataX = np.zeros([tempX.shape[0],2*tempX.shape[2]])
-        for i in range(tempX.shape[2]):
-            dataX[:,0+i*2] = np.mean(tempX[:,:250,i],axis=1)
-            dataX[:,1+i*2] = np.mean(tempX[:, 250:,i], axis=1)
+
+        if findZeroCrossingBool:
+            #Moving Average
+            tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
+            for i in range(tempX.shape[2]):
+                for j in tqdm(range(tempX.shape[0])):
+                    zerosCrossing = (np.where(np.diff(np.sign(tempXAvg[j,:,i]-np.mean(tempXAvg[j,:,i]))))[0])
+                    if zerosCrossing.size != 0:
+                        zerosCrossing = zerosCrossing[np.argmin(np.absolute(zerosCrossing-defaultCrossingValue))]
+                    else:
+                        zerosCrossing = defaultCrossingValue
+                    if zerosCrossing == 0:
+                        zerosCrossing = defaultCrossingValue
+                    dataX[j,0+i*2] = np.mean(tempX[j,:zerosCrossing,i])
+                    dataX[j,1+i*2] = np.mean(tempX[j, zerosCrossing:,i])
+            del tempXAvg
+        else:
+            for i in range(tempX.shape[2]):
+                dataX[:,0+i*2] = np.mean(tempX[:,:250,i],axis=1)
+                dataX[:,1+i*2] = np.mean(tempX[:, 250:,i], axis=1)
         dataY = np.zeros(tempY.shape)
         dataY[:,0] = tempY[:,1]
         dataY[:, 1] = np.cos(tempY[:, 2])
         dataY[:, 2] = np.sin(tempY[:, 2])
         del tempX
-        regrAmp = RandomForestRegressor()
-        regrAng = RandomForestRegressor()
-        regrAmp.fit(dataX[trainIndices],dataY[trainIndices,0])
-        regrAng.fit(dataX[trainIndices], dataY[trainIndices,1:])
+        errorsAmp = np.zeros(nrOfRuns)
+        errorsAng = np.zeros(nrOfRuns)
+        for i in range(nrOfRuns):
+            regrAmp = RandomForestRegressor()
+            regrAng = RandomForestRegressor()
+            regrAmp.fit(dataX[trainIndices], dataY[trainIndices, 0])
+            regrAng.fit(dataX[trainIndices], dataY[trainIndices, 1:])
 
-        predictionAmp = regrAmp.predict(dataX[testIndices])
-        predictionAng = regrAng.predict(dataX[testIndices])
-        predictionAng = np.arctan2(predictionAng[:,1], predictionAng[:,0])
+            predictionAmp = regrAmp.predict(dataX[testIndices])
+            predictionAng = regrAng.predict(dataX[testIndices])
+            predictionAng = np.arctan2(predictionAng[:, 1], predictionAng[:, 0])
+            errorsAmp[i] = self.meanSquareError(dataY[testIndices, 0], predictionAmp)
+            errorsAng[i] = self.angleError(tempY[testIndices, 2], predictionAng) / np.pi * 180
 
-        print("Amplitude Error is {}px".format(self.meanSquareError(dataY[testIndices,0],predictionAmp)))
-        print("Angle Error is {}°".format(self.angleError(tempY[testIndices, 2], predictionAng)/np.pi*180))
-        truth = (tempY[testIndices,1:])[:nrOfPoints]
-        predictionAng=predictionAng[:nrOfPoints]
-        predictionAmp=predictionAmp[:nrOfPoints]
+        print("The Average Amplitude Error is {}\u00B1{}px".format(np.mean(errorsAmp),np.std(errorsAmp)))
+        print("The Average Angle Error is {}°\u00B1{}°".format(np.mean(errorsAng),np.std(errorsAng)))
 
-        # Amplitude Part
-        fig = plt.figure()
-        plt.scatter(np.arange(truth.shape[0]) / nrOfPoints-1, truth[:, 0], c='black', marker='x',
-                    label="Ground Truth")
-        plt.axis('auto')
-        plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d px'))
-        plt.tick_params(
-            axis='x',  # changes apply to the x-axis
-            which='both',  # both major and minor ticks are affected
-            bottom=False,  # ticks along the bottom edge are off
-            top=False,  # ticks along the top edge are off
-            labelbottom=False)  # labels along the bottom edge are off
-        plt.xlim((-1.5, 1.5))
 
-        x = (np.arange(predictionAmp.shape[0])) / nrOfPoints
-        plt.scatter(x, predictionAmp,  color="red", label="Random Forest")
-        for j in range(x.shape[0]):
-            plt.plot(np.array([x[j], np.arange(truth.shape[0])[j] / nrOfPoints-1]),
-                     np.array([predictionAmp[j], truth[j, 0]]), c="red",alpha=0.35)
+        if plotBool:
+            regrAmp = RandomForestRegressor()
+            regrAng = RandomForestRegressor()
+            regrAmp.fit(dataX[trainIndices],dataY[trainIndices,0])
+            regrAng.fit(dataX[trainIndices], dataY[trainIndices,1:])
 
-        plt.legend()
-        fig.savefig(config['model_dir'] + "RegressorVis" + "_Amp" + ".{}".format("pdf"), format="pdf", transparent=True)
-        plt.close()
-        del fig
+            predictionAmp = regrAmp.predict(dataX[testIndices])
+            predictionAng = regrAng.predict(dataX[testIndices])
+            predictionAng = np.arctan2(predictionAng[:,1], predictionAng[:,0])
 
-        # Angle Part
-        fig = plt.figure()
-        plt.scatter(np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.cos(truth[:, 1])),
-                    np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.sin(truth[:, 1])),
-                    c='black', marker='x',
-                    label="Ground Truth")
-        plt.axis('equal')
-        plt.tick_params(
-            axis='both',  # changes apply to both axis
-            which='both',  # both major and minor ticks are affected
-            bottom=False,  # ticks along the bottom edge are off
-            top=False,  # ticks along the top edge are off
-            labelbottom=False)  # labels along the bottom edge are off
-        plt.yticks([])
-        plt.gca().invert_yaxis()
-        # Lines and labels for the angle
-        centers = np.linspace(0, 2 * np.pi, 9)[:8]
-        for j in range(8):
-            plt.plot(np.array([0, 3* np.cos(centers[j])]),
-                     np.array([0, 3* np.sin(centers[j])]), c='black', alpha=0.5)
-            plt.text(np.cos(centers[j]), np.sin(centers[j]),
-                     str(round((centers[j]) / np.pi * 180, 1)) + "°")
+            print("Amplitude Error is {}px".format(self.meanSquareError(dataY[testIndices,0],predictionAmp)))
+            print("Angle Error is {}°".format(self.angleError(tempY[testIndices, 2], predictionAng)/np.pi*180))
+            truth = (tempY[testIndices,1:])[:nrOfPoints]
+            predictionAng=predictionAng[:nrOfPoints]
+            predictionAmp=predictionAmp[:nrOfPoints]
 
-        rad = np.arange(nrOfPoints) / nrOfPoints + 1
+            # Amplitude Part
+            fig = plt.figure()
+            plt.scatter(np.arange(truth.shape[0]) / nrOfPoints-1, truth[:, 0], c='black', marker='x',
+                        label="Ground Truth")
+            plt.axis('auto')
+            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d px'))
+            plt.tick_params(
+                axis='x',  # changes apply to the x-axis
+                which='both',  # both major and minor ticks are affected
+                bottom=False,  # ticks along the bottom edge are off
+                top=False,  # ticks along the top edge are off
+                labelbottom=False)  # labels along the bottom edge are off
+            plt.xlim((-1.5, 1.5))
 
-        # To get only values between -pi & +pi. This step is unnecessary, but the code still is a bit clearer.
-        predictions = np.arctan2(np.sin(predictionAng),
-                                 np.cos(predictionAng))
+            x = (np.arange(predictionAmp.shape[0])) / nrOfPoints
+            plt.scatter(x, predictionAmp,  color="red", label="Random Forest")
+            for j in range(x.shape[0]):
+                plt.plot(np.array([x[j], np.arange(truth.shape[0])[j] / nrOfPoints-1]),
+                         np.array([predictionAmp[j], truth[j, 0]]), c="red",alpha=0.35)
 
-        y = rad * np.sin(predictions)
-        x = rad * np.cos(predictions)
-        plt.scatter(x, y, color="red", marker='o', label="Random Forest")
-        for j in range(x.shape[0]):
-            plt.plot(
-                np.array([x[j], np.multiply(1 + j / nrOfPoints, np.cos(truth[j, 1]))]),
-                np.array([y[j], np.multiply(1 + j / nrOfPoints, np.sin(truth[j, 1]))]),
-                c="red",alpha=0.35)
+            plt.legend()
+            fig.savefig(config['model_dir'] + "RegressorVis" + "_Amp" + ".{}".format("pdf"), format="pdf", transparent=True)
+            plt.close()
+            del fig
 
-        plt.legend()
-        fig.savefig(config['model_dir'] + "RegressorVis" + "_Ang" + ".{}".format("pdf"), format="pdf", transparent=True)
-        plt.close()
+            # Angle Part
+            fig = plt.figure()
+            plt.scatter(np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.cos(truth[:, 1])),
+                        np.multiply(1 + np.arange(nrOfPoints) / nrOfPoints, np.sin(truth[:, 1])),
+                        c='black', marker='x',
+                        label="Ground Truth")
+            plt.axis('equal')
+            plt.tick_params(
+                axis='both',  # changes apply to both axis
+                which='both',  # both major and minor ticks are affected
+                bottom=False,  # ticks along the bottom edge are off
+                top=False,  # ticks along the top edge are off
+                labelbottom=False)  # labels along the bottom edge are off
+            plt.yticks([])
+            plt.gca().invert_yaxis()
+            # Lines and labels for the angle
+            centers = np.linspace(0, 2 * np.pi, 9)[:8]
+            for j in range(8):
+                plt.plot(np.array([0, 3* np.cos(centers[j])]),
+                         np.array([0, 3* np.sin(centers[j])]), c='black', alpha=0.5)
+                plt.text(np.cos(centers[j]), np.sin(centers[j]),
+                         str(round((centers[j]) / np.pi * 180, 1)) + "°")
+
+            rad = np.arange(nrOfPoints) / nrOfPoints + 1
+
+            # To get only values between -pi & +pi. This step is unnecessary, but the code still is a bit clearer.
+            predictions = np.arctan2(np.sin(predictionAng),
+                                     np.cos(predictionAng))
+
+            y = rad * np.sin(predictions)
+            x = rad * np.cos(predictions)
+            plt.scatter(x, y, color="red", marker='o', label="Random Forest")
+            for j in range(x.shape[0]):
+                plt.plot(
+                    np.array([x[j], np.multiply(1 + j / nrOfPoints, np.cos(truth[j, 1]))]),
+                    np.array([y[j], np.multiply(1 + j / nrOfPoints, np.sin(truth[j, 1]))]),
+                    c="red",alpha=0.35)
+
+            plt.legend()
+            fig.savefig(config['model_dir'] + "RegressorVis" + "_Ang" + ".{}".format("pdf"), format="pdf", transparent=True)
+            plt.close()
 
     ###Losses###
     def absoluteDistance(self,y,yPred):

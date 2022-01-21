@@ -78,11 +78,11 @@ def main():
             #asdf.visualizePrediction(modelNames=["PyramidalCNN"], nrOfPoints=30, nrOfruns=1,filename="RegressionDebug")
             #asdf.predictAll(postfix="Top3")
             indices = None
-            #asdf.simpleDirectionRegressor(nrOfPoints=30)
+            asdf.simpleDirectionRegressor(nrOfPoints=30,findZeroCrossingBool=True, nrOfRuns=5,movingAverageFilterLength=50,defaultCrossingValue=250)
             #indices = asdf.findDataPoints(type="Missclassified", model="PyramidalCNN", postfix="Top3", lossThresh=7/8*np.pi,returnAngleBool=True)
             #indices = asdf.findDataPoints(type="DownOnly",model="PyramidalCNN",postfix="Top3", lossThresh=2, returnAngleBool=True)
             #asdf.attentionVisualization(model,filename="ActVis_200",componentAnalysis="",method="Saliency",dimensions=1,run=1,dataIndices=indices,dataType="StepDirection",postfix="_200",useAngleNetworkBool=False)
-            asdf.plotSignal('PyramidalCNN', electrodes,splitAngAmpBool=False,filename="RegressionDebugSig",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=12,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="_Amp40")
+            #asdf.plotSignal('PyramidalCNN', electrodes,splitAngAmpBool=False,filename="RegressionDebugSig",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=12,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="_Amp40")
             fdsa = 0
 
 
