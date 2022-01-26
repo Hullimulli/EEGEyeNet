@@ -2399,7 +2399,7 @@ class AnalEyeZor():
         return np.sqrt(np.linalg.norm(y - yPred, axis=1).mean())
 
     def binaryCrossEntropyLoss(self,y,yPred):
-        return log_loss(y,yPred, normalize=True)
+        return log_loss(y,yPred, normalize=True, eps=1e-6)
 
 ###Modified function of the keras vis package###
 class customNorm():
