@@ -292,8 +292,8 @@ def main():
 
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
         #train("Position_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"Position_task")
-        train("LR_Top2_Angular", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Ang, 'min',"LR_task")
-        #train("LR_Top4", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"LR_task")
+        #train("LR_Top2_Angular", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Ang, 'min',"LR_task")
+        train("LR_Top4", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"LR_task")
         #train("LR_Top7", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"LR_task")
 
         #train("LR_SideFronts", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"LR_task")
