@@ -19,7 +19,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = True
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -78,21 +78,21 @@ def main():
             #asdf.visualizePrediction(modelNames=["PyramidalCNN"], nrOfPoints=30, nrOfruns=1,filename="RegressionDebug")
             #asdf.predictAll(postfix="Top3")
             indices = None
-            asdf.simpleDirectionRegressor(nrOfPoints=30,findZeroCrossingBool=True, nrOfRuns=5,movingAverageFilterLength=50,defaultCrossingValue=250)
+            #asdf.simpleDirectionRegressor(regressor="SupportVectorMachine",nrOfPoints=30,findZeroCrossingBool=True, nrOfRuns=5,movingAverageFilterLength=50,defaultCrossingValue=250)
             #indices = asdf.findDataPoints(type="Missclassified", model="PyramidalCNN", postfix="Top3", lossThresh=7/8*np.pi,returnAngleBool=True)
             #indices = asdf.findDataPoints(type="DownOnly",model="PyramidalCNN",postfix="Top3", lossThresh=2, returnAngleBool=True)
-            #asdf.attentionVisualization(model,filename="ActVis_200",componentAnalysis="",method="Saliency",dimensions=1,run=1,dataIndices=indices,dataType="StepDirection",postfix="_200",useAngleNetworkBool=False)
+            asdf.attentionVisualization(model,filename="ActVis_200",artificialTruths=np.array([0,1]),componentAnalysis="",method="Saliency",dimensions=1,run=1,dataIndices=indices,dataType="Step",postfix="_30_t200",useAngleNetworkBool=False)
             #asdf.plotSignal('PyramidalCNN', electrodes,splitAngAmpBool=False,filename="RegressionDebugSig",run=1,plotSignalsSeperatelyBool=False,specificDataIndices=indices,nrOfPoints=2000,nrOfLevels=12,meanBool=True,plotMovementBool=False,percentageThresh=0,maxValue=100,componentAnalysis="",dimensions=5,dataType="",postfix="_Amp40")
             fdsa = 0
 
 
-        #transformData("LRMin_InceptionTime_Top2/", "InceptionTime", 'LR')
+        transformData("LRMin_InceptionTime_Top2/", "InceptionTime", 'LR')
         #transformData("Direction_Top2Amp/", "PyramidalCNN", 'Direction')
         #transformData("Direction_All/", "PyramidalCNN", 'Direction')
         #transformData("Direction_SideFronts/", "PyramidalCNN", 'Direction')
         #transformData("Direction_Top2Ang/", "PyramidalCNN", 'Direction')
         #transformData("Direction_Top3_Ang/", "PyramidalCNN", 'Direction')
-        transformData("Direction_Top3/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_Top3/", "PyramidalCNN", 'Direction')
         #transformData("LRMin_InceptionTime_All/", "InceptionTime", 'LR')
         #transformData("Position_All/", "PyramidalCNN", 'Position')
         def showDataSimple(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
@@ -273,17 +273,27 @@ def main():
                 dataset="antisaccade"
             asdf = AnalEyeZor(task=task, dataset=dataset, preprocessing=prep, trainBool=trainBool
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
-            asdf.numberOfNetworks=1
             #asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
-                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+network[0]+"_amplitude",iterations=1)
-                asdf.PFI(saveTrail="_angle",nameSuffix="_"+network[0]+"_angle",iterations=1)
+                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+"All"+"_amplitude")
+                asdf.PFI(saveTrail="_angle",nameSuffix="_"+"All"+"_angle")
             else:
-                asdf.PFI(nameSuffix="_"+network[0])
+                asdf.PFI(nameSuffix="_"+"All")
             del asdf
 
-        PFI("Direction_All/", ["PyramidalCNN"],1 + np.arange(129), 'min', "Direction_task",trainBool=False,trail=True)
-        #train("LR_PyramidalCNN",["PyramidalCNN"], 1 + np.arange(129), 'min', "LR_task")
+        top2Amp = np.array([1,32])
+        top2Ang = np.array([125,128])
+        top4 = np.array([1,32,125,128])
+        top7 = np.array([1,17,32,38,121,125,128])
+        sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
+        #PFI("LRMin_InceptionTime_All/", ["InceptionTime"],1 + np.arange(129), 'min', "LR_task",trainBool=False,trail=False)
+        train("LR_All",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task")
+        PFI("LR_All/", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
+        #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
+        #train("LR_Top2_Angular", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Ang, 'min',"LR_task")
+        #train("LR_Top4", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"LR_task")
+        #train("LR_Top7", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"LR_task")
+        #train("LR_SideFronts", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"LR_task")
         #train("Direction_Top3_Ang",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([17,125,128]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")

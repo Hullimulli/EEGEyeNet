@@ -10,6 +10,8 @@ from hyperparameters import our_DL_models, our_ML_models, your_models, all_model
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, log_loss
 from sklearn.ensemble import RandomForestRegressor
+from sklearn import svm
+from sklearn.linear_model import BayesianRidge
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -215,6 +217,7 @@ class AnalEyeZor():
         config['save_models'] = False
 
         dataX, dataY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
+        dataX = dataX[:,:,self.electrodes-1]
         dataShape = np.shape(dataX)
         ids = dataY[:, 0]
         trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
@@ -223,6 +226,7 @@ class AnalEyeZor():
             scaler = StandardScaler()
             scaler.fit(dataX[trainIndices])
             dataX = scaler.transform(dataX[valIndices])
+        valIndices = np.arange(10)
         dataX, dataY = dataX[valIndices], dataY[valIndices,1:]
         del trainIndices, valIndices, testIndices
 
@@ -1295,10 +1299,10 @@ class AnalEyeZor():
             prediction = np.zeros([predictionAmp.shape[0],2])
             truth = np.zeros([predictionAmp.shape[0],2])
             if not splitAngAmpBool:
-                prediction[:,0] = np.multiply(predictionAmp, np.cos(predictionAngle))
-                prediction[:,1] = np.multiply(predictionAmp, np.sin(predictionAngle))
-                truth[:,0] = np.multiply(dataY[:,0],np.cos(dataY[:,1]))
-                truth[:, 1] = np.multiply(dataY[:,0], np.sin(dataY[:,1]))
+                prediction[:,0] = np.multiply(np.absolute(predictionAmp), np.cos(predictionAngle))
+                prediction[:,1] = np.multiply(np.absolute(predictionAmp), np.sin(predictionAngle))
+                truth[:,0] = np.multiply(np.absolute(dataY[:,0]),np.cos(dataY[:,1]))
+                truth[:, 1] = np.multiply(np.absolute(dataY[:,0]), np.sin(dataY[:,1]))
             else:
                 prediction[:,0] = predictionAmp
                 prediction[:,1] = predictionAngle
@@ -2140,6 +2144,7 @@ class AnalEyeZor():
             dataY = artificialTruths
             if dataY is None:
                 dataY = np.zeros(dataX.shape[0])
+            dataIndices = np.arange(dataY.shape[0])
         elif dataType in self.customSignalType:
             dataX = np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
             dataY = artificialTruths
@@ -2147,6 +2152,7 @@ class AnalEyeZor():
                 dataY = np.zeros(dataX.shape[0])
                 if "stepdirection" in dataType.lower():
                     dataY = np.array([[400, np.pi], [400, np.pi / 2], [400, 0], [400, -np.pi / 2]])
+            dataIndices = np.arange(dataY.shape[0])
         else:
             dataX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][dataIndices]
             if componentAnalysis == "PCA":
@@ -2155,12 +2161,14 @@ class AnalEyeZor():
             dataX = dataX[:, :,self.electrodes.astype(np.int) - 1]
             dataY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][dataIndices]
             dataY = dataY[:,1:]
-
+        if dataY.ndim ==1:
+            dataY = np.expand_dims(dataY,axis=1)
         dataX = np.expand_dims(dataX, axis=3)
         if method=="Saliency":
             def score(output):
-                lmbd = 1
+                lmbd = -1
                 out = lmbd*tf.norm(dataY[:,:output.shape[1]] - output, axis=1)
+                #See if LR-Task
                 if dataY.shape[1]==1:
                     out = lmbd*tf.multiply(-2*(dataY-0.5),output)
                 if useAngleNetworkBool:
@@ -2170,7 +2178,7 @@ class AnalEyeZor():
             cam = saliency(score, dataX)
         elif method=="ScoreCam":
             def score(output):
-                lmbd = 1
+                lmbd = -1
                 out = lmbd*tf.norm(dataY[:,:output.shape[1]] - output, axis=1)
                 if dataY.shape[1]==1:
                     out = lmbd*tf.multiply(-2*(dataY-0.5),output)
@@ -2195,7 +2203,7 @@ class AnalEyeZor():
                 plt.savefig(os.path.join(config['model_dir'], filename+'_Sample{}_El{}.'.format(str(i),self.electrodes[j])+format))
                 plt.close()
 
-    def simpleDirectionRegressor(self,nrOfPoints=9, nrOfRuns=5,plotBool=False,findZeroCrossingBool=False,movingAverageFilterLength=50,defaultCrossingValue=250):
+    def simpleDirectionRegressor(self,regressor="",nrOfPoints=9, nrOfRuns=5,plotBool=False,findZeroCrossingBool=False,movingAverageFilterLength=50,defaultCrossingValue=250):
         """
 
         Trains a Random Forest for the Direction Task, returns the score and visualizes the result.
@@ -2228,7 +2236,7 @@ class AnalEyeZor():
             #Moving Average
             tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
             for i in range(tempX.shape[2]):
-                for j in tqdm(range(tempX.shape[0])):
+                for j in range(tempX.shape[0]):
                     zerosCrossing = (np.where(np.diff(np.sign(tempXAvg[j,:,i]-np.mean(tempXAvg[j,:,i]))))[0])
                     if zerosCrossing.size != 0:
                         zerosCrossing = zerosCrossing[np.argmin(np.absolute(zerosCrossing-defaultCrossingValue))]
@@ -2250,31 +2258,58 @@ class AnalEyeZor():
         del tempX
         errorsAmp = np.zeros(nrOfRuns)
         errorsAng = np.zeros(nrOfRuns)
-        for i in range(nrOfRuns):
-            regrAmp = RandomForestRegressor()
-            regrAng = RandomForestRegressor()
+        for i in tqdm(range(nrOfRuns)):
+            if regressor=="BayesianRidge" or regressor=="Bayesian Ridge":
+                regressor = "Bayesian Ridge"
+                regrAmp = BayesianRidge()
+                regrAngOne = BayesianRidge()
+                regrAngTwo = BayesianRidge()
+            elif regressor=="SupportVectorMachine" or regressor=="Support Vector Machine":
+                regressor = "Support Vector Machine"
+                regrAmp = svm.SVR(kernel="rbf")
+                regrAngOne = svm.SVR(kernel="rbf")
+                regrAngTwo = svm.SVR(kernel="rbf")
+            else:
+                regressor="Random Forest"
+                regrAmp = RandomForestRegressor()
+                regrAngOne = RandomForestRegressor()
+                regrAngTwo = RandomForestRegressor()
             regrAmp.fit(dataX[trainIndices], dataY[trainIndices, 0])
-            regrAng.fit(dataX[trainIndices], dataY[trainIndices, 1:])
-
+            regrAngOne.fit(dataX[trainIndices], dataY[trainIndices, 1])
+            regrAngTwo.fit(dataX[trainIndices], dataY[trainIndices, 2])
             predictionAmp = regrAmp.predict(dataX[testIndices])
-            predictionAng = regrAng.predict(dataX[testIndices])
-            predictionAng = np.arctan2(predictionAng[:, 1], predictionAng[:, 0])
+            predictionAngOne = regrAngOne.predict(dataX[testIndices])
+            predictionAngTwo = regrAngTwo.predict(dataX[testIndices])
+            predictionAng = np.arctan2(predictionAngTwo, predictionAngOne)
             errorsAmp[i] = self.meanSquareError(dataY[testIndices, 0], predictionAmp)
             errorsAng[i] = self.angleError(tempY[testIndices, 2], predictionAng) / np.pi * 180
 
-        print("The Average Amplitude Error is {}\u00B1{}px".format(np.mean(errorsAmp),np.std(errorsAmp)))
-        print("The Average Angle Error is {}°\u00B1{}°".format(np.mean(errorsAng),np.std(errorsAng)))
+        print("The Average Amplitude Error is {}\u00B1{}px using {}.".format(np.mean(errorsAmp),np.std(errorsAmp),regressor))
+        print("The Average Angle Error is {}°\u00B1{}° using {}.".format(np.mean(errorsAng),np.std(errorsAng),regressor))
 
 
         if plotBool:
-            regrAmp = RandomForestRegressor()
-            regrAng = RandomForestRegressor()
+            if regressor=="Bayesian Ridge":
+                regrAmp = BayesianRidge()
+                regrAngOne = BayesianRidge()
+                regrAngTwo = BayesianRidge()
+
+            elif regressor=="Support Vector Machine":
+                regrAmp = svm()
+                regrAngOne = svm()
+                regrAngTwo = svm()
+            else:
+                regrAmp = RandomForestRegressor()
+                regrAngOne = RandomForestRegressor()
+                regrAngTwo = RandomForestRegressor()
             regrAmp.fit(dataX[trainIndices],dataY[trainIndices,0])
-            regrAng.fit(dataX[trainIndices], dataY[trainIndices,1:])
+            regrAngOne.fit(dataX[trainIndices], dataY[trainIndices,1])
+            regrAngTwo.fit(dataX[trainIndices], dataY[trainIndices, 2])
 
             predictionAmp = regrAmp.predict(dataX[testIndices])
-            predictionAng = regrAng.predict(dataX[testIndices])
-            predictionAng = np.arctan2(predictionAng[:,1], predictionAng[:,0])
+            predictionAngOne = regrAngOne.predict(dataX[testIndices])
+            predictionAngTwo = regrAngTwo.predict(dataX[testIndices])
+            predictionAng = np.arctan2(predictionAngTwo, predictionAngOne)
 
             print("Amplitude Error is {}px".format(self.meanSquareError(dataY[testIndices,0],predictionAmp)))
             print("Angle Error is {}°".format(self.angleError(tempY[testIndices, 2], predictionAng)/np.pi*180))
@@ -2297,7 +2332,7 @@ class AnalEyeZor():
             plt.xlim((-1.5, 1.5))
 
             x = (np.arange(predictionAmp.shape[0])) / nrOfPoints
-            plt.scatter(x, predictionAmp,  color="red", label="Random Forest")
+            plt.scatter(x, predictionAmp,  color="red", label=regressor)
             for j in range(x.shape[0]):
                 plt.plot(np.array([x[j], np.arange(truth.shape[0])[j] / nrOfPoints-1]),
                          np.array([predictionAmp[j], truth[j, 0]]), c="red",alpha=0.35)
@@ -2338,7 +2373,7 @@ class AnalEyeZor():
 
             y = rad * np.sin(predictions)
             x = rad * np.cos(predictions)
-            plt.scatter(x, y, color="red", marker='o', label="Random Forest")
+            plt.scatter(x, y, color="red", marker='o', label=regressor)
             for j in range(x.shape[0]):
                 plt.plot(
                     np.array([x[j], np.multiply(1 + j / nrOfPoints, np.cos(truth[j, 1]))]),
