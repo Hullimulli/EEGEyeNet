@@ -29,8 +29,8 @@ config['include_dummy_models'] = True
 # Where experiment results are stored.
 config['log_dir'] = './runs/'
 # Path to training, validation and test data folders.
-config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
-#config['data_dir'] = '/itet-stor/kjoel/net_scratch/data/'
+#config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
+config['data_dir'] = '/itet-stor/kjoel/net_scratch/data/'
 # Path of root
 config['root_dir'] = '.'
 # Retrain or load already trained
