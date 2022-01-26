@@ -226,7 +226,6 @@ class AnalEyeZor():
             scaler = StandardScaler()
             scaler.fit(dataX[trainIndices])
             dataX = scaler.transform(dataX[valIndices])
-        valIndices = np.arange(10)
         dataX, dataY = dataX[valIndices], dataY[valIndices,1:]
         del trainIndices, valIndices, testIndices
 

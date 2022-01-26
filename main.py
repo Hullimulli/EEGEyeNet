@@ -25,29 +25,29 @@ def main():
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
     if local:
 
-        def plot(filename,modelNames,colour,PFIIndexNames=None):
-            asdf = AnalEyeZor(task='Position_task', dataset='dots', preprocessing='min', trainBool=False,
-                             path="Position_All/", models=modelNames, featureExtraction=False)
+        def plot(path,task,filename,modelNames,colour,PFIIndexNames=None):
+            asdf = AnalEyeZor(task=task+'_task', dataset='dots', preprocessing='min', trainBool=False,
+                             path=path, models=modelNames, featureExtraction=False)
 
             if PFIIndexNames is None:
                 for modelName in modelNames:
                     lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+filename+'.csv', usecols=[modelName]).to_numpy()
-                    asdf.electrodeBarPlot(values=lossValues, colour='orange',name="Electrode_Loss_"+filename)
-                    asdf.topoPlot(lossValues,cmap=colour,filename="Topoplot_"+filename,pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/",epsilon=0.01)
-                    asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Electrode_Losses_'+filename,alpha=1, pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+                    asdf.electrodeBarPlot(values=lossValues, colour=colour,filename="Thesis_Electrode_Loss_"+filename)
+                    asdf.topoPlot(lossValues,cmap=colour,filename="Thesis_Topoplot_"+filename,epsilon=0.01)
+                    asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Thesis_Electrode_Losses_'+filename,alpha=1)
             else:
                 for name in PFIIndexNames:
                     lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_' + filename + '.csv',
                                              usecols=[name]).to_numpy()
-                    asdf.electrodeBarPlot(values=lossValues, colour='orange', name="Electrode_Loss_" + filename)
-                    asdf.topoPlot(lossValues, cmap=colour, filename="Topoplot_" + filename,
-                                  pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/", epsilon=0.01)
+                    asdf.electrodeBarPlot(values=lossValues, colour=colour, filename="Thesis_Electrode_Loss_" + filename)
+                    asdf.topoPlot(lossValues, cmap=colour, filename="Thesis_Topoplot_" + filename,epsilon=0.01)
                     asdf.electrodePlot(
                         colourValues=asdf.colourCode(values=np.squeeze(lossValues), colourMap=colour, epsilon=0.01),
-                        filename='Electrode_Losses_' + filename, alpha=1,
-                        pathForOriginalRelativeToExecutable="./Joels_Files/forPlot/")
+                        filename='Thesis_Electrode_Losses_' + filename, alpha=1)
 
-        #plot("InceptionTime_angle","InceptionTime","Oranges")
+        plot("Direction_All/","Direction","PyramidalCNN_angle",["PyramidalCNN"],"Blue")
+        plot("Direction_All/", "Direction","PyramidalCNN_amplitude",["PyramidalCNN"], "Purple")
+        #plot("Position_All/", "Position",["PyramidalCNN"], "Green")
         #plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
 
         def transformData(path,model,task):
@@ -286,14 +286,17 @@ def main():
         top4 = np.array([1,32,125,128])
         top7 = np.array([1,17,32,38,121,125,128])
         sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
-        #PFI("LRMin_InceptionTime_All/", ["InceptionTime"],1 + np.arange(129), 'min', "LR_task",trainBool=False,trail=False)
+        #PFI("Position_All/", ["PyramidalCNN"],1 + np.arange(129), 'min', "Position_task",trainBool=False,trail=False)
         #train("LR_All",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task")
-        #PFI("LR_All/", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
+        PFI("LR_All/", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
+
+        #train("Position_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"Position_task")
         #train("LR_Top2_Angular", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Ang, 'min',"LR_task")
+
         #train("LR_Top4", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"LR_task")
         #train("LR_Top7", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"LR_task")
-        train("LR_SideFronts", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"LR_task")
+        #train("LR_SideFronts", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], sideFronts, 'min',"LR_task")
         #train("Direction_Top3_Ang",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], np.array([17,125,128]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Amplitude', ["Xception"], np.array([27,123]), 'min', "Direction_task")
         #train('Direction_Xception_Top2_Angle', ["Xception"], np.array([1,32]), 'min', "Direction_task")
