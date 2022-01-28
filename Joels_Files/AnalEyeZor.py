@@ -928,7 +928,7 @@ class AnalEyeZor():
             data = dataCopy
         else:
             while (j < len(data[0])):
-                if not j == len(data[0]) - 1 and 'std' in data[j + 1][0].lower():
+                if not j == len(data[0]) - 1 and 'std' in data[0][j + 1].lower():
                     for i in range(1, len(data)):
                         dataCopy[i][j] = '$' + str(round(scale * float(data[i][j]), nrOfDigits)) + ' \pm ' + str(round(scale * float(data[i][j+1]), nrOfDigits)) + '$'
                     deviationIndices.append(j + 1)
@@ -942,7 +942,6 @@ class AnalEyeZor():
             for i in np.arange(len(dataCopy))[::-1]:
                 for j in deviationIndices:
                     del dataCopy[i][j]
-                del dataCopy[i]
             data = dataCopy
         if addNrOfParams:
             data[0] = data[0] + ["\#Parameters"]
