@@ -275,10 +275,10 @@ def main():
                                ,path=filename,models=network, electrodes=electrodes,featureExtraction=False)
             #asdf.moveModels(newFolderName=filename,originalPath=asdf.currentFolderPath)
             if trail:
-                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+"All"+"_amplitude")
-                asdf.PFI(saveTrail="_angle",nameSuffix="_"+"All"+"_angle")
+                asdf.PFI(saveTrail="_amplitude",nameSuffix="_"+network[0]+"_amplitude")
+                asdf.PFI(saveTrail="_angle",nameSuffix="_"+network[0]+"_angle")
             else:
-                asdf.PFI(nameSuffix="_"+"All")
+                asdf.PFI(nameSuffix="_"+network[0])
             del asdf
 
         top2Amp = np.array([1,32])
