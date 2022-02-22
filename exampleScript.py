@@ -106,7 +106,7 @@ def main():
     #We want to analyze 5 misclassified signals
     if datasetPrediction:
         experimentThree.predictAll(postfix="LR")
-    misclassIndices = experimentThree.findDataPoints(type="Missclassified", model="PyramidalCNN", postfix="LR", lossThresh=0.1)[:5]
+    misclassIndices = experimentThree.findDataPoints(type="Misclassified", model="PyramidalCNN", postfix="LR", lossThresh=0.1)[:5]
     experimentThree.attentionVisualization("PyramidalCNN", filename="Sample_LR_ActVis",method="Saliency", run=1,
                                            dataIndices=misclassIndices)
     experimentThree.plotSignal('PyramidalCNN', electrodes = np.array([1,32]), filename="Sample_LR_Misclass",specificDataIndices=misclassIndices,
