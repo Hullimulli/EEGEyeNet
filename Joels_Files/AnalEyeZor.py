@@ -36,7 +36,7 @@ import mne
 from texttable import Texttable
 import latextable
 from matplotlib.lines import Line2D
-
+import time
 import numpy as np
 
 
@@ -2205,6 +2205,8 @@ class AnalEyeZor():
         """
 
         Trains a Random Forest for the Direction Task, returns the score and visualizes the result.
+        @param regressor: Which regressor is used. Can be "Bayesian Ridge", "Support Vector Machine". Defaults to Random Forest.
+        @type regressor: String
         @param nrOfPoints: How many points have to be visualized.
         @type nrOfPoints: Integer
         @param nrOfRuns: Over how many runs the result should be averaged.
@@ -2231,8 +2233,53 @@ class AnalEyeZor():
         dataX = np.zeros([tempX.shape[0],2*tempX.shape[2]])
 
         if findZeroCrossingBool:
+
+            #Plotting
+            format="pdf"
+            linSpace = np.arange(1,1001,2)
+            fig, ax = plt.subplots()
+            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+            for i in range(dataX.shape[0]):
+                ax.plot(linSpace, np.squeeze(tempX[0, :, 0]), lw=1)
+            ax.set_ylim(bottom=-200, top=200)
+            ax.legend()
+            fig.savefig(config['model_dir'] + "MyNet_Signal" + "_El{}.{}".format(str(self.electrodes[0]), format),
+                        format=format, transparent=True)
+            plt.close()
+
+
             #Moving Average
             tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
+
+            #Plotting
+            format="pdf"
+            linSpace = np.arange(1,1001,2)
+            fig, ax = plt.subplots()
+            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+            for i in range(dataX.shape[0]):
+                ax.plot(linSpace, np.squeeze(tempXAvg[0, :, 0]), lw=1)
+            ax.set_ylim(bottom=-200, top=200)
+            ax.legend()
+            fig.savefig(config['model_dir'] + "MyNet_MvAvgSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
+                        format=format, transparent=True)
+            plt.close()
+
+            #Plotting
+            format="pdf"
+            linSpace = np.arange(1,1001,2)
+            fig, ax = plt.subplots()
+            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
+            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
+            for i in range(dataX.shape[0]):
+                ax.plot(linSpace, np.squeeze(tempXAvg[0, :, 0])-np.mean(tempXAvg[0,:,0]), lw=1)
+            ax.set_ylim(bottom=-200, top=200)
+            ax.legend()
+            fig.savefig(config['model_dir'] + "MyNet_MvAvgMeanedSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
+                        format=format, transparent=True)
+            plt.close()
+
             for i in range(tempX.shape[2]):
                 for j in range(tempX.shape[0]):
                     zerosCrossing = (np.where(np.diff(np.sign(tempXAvg[j,:,i]-np.mean(tempXAvg[j,:,i]))))[0])
@@ -2256,7 +2303,9 @@ class AnalEyeZor():
         del tempX
         errorsAmp = np.zeros(nrOfRuns)
         errorsAng = np.zeros(nrOfRuns)
+        trainingTime = np.zeros(nrOfRuns)
         for i in tqdm(range(nrOfRuns)):
+            tic = time.time()
             if regressor=="BayesianRidge" or regressor=="Bayesian Ridge":
                 regressor = "Bayesian Ridge"
                 regrAmp = BayesianRidge()
@@ -2275,6 +2324,7 @@ class AnalEyeZor():
             regrAmp.fit(dataX[trainIndices], dataY[trainIndices, 0])
             regrAngOne.fit(dataX[trainIndices], dataY[trainIndices, 1])
             regrAngTwo.fit(dataX[trainIndices], dataY[trainIndices, 2])
+            trainingTime[i] = time.time() - tic
             predictionAmp = regrAmp.predict(dataX[testIndices])
             predictionAngOne = regrAngOne.predict(dataX[testIndices])
             predictionAngTwo = regrAngTwo.predict(dataX[testIndices])
@@ -2282,8 +2332,8 @@ class AnalEyeZor():
             errorsAmp[i] = self.meanSquareError(dataY[testIndices, 0], predictionAmp)
             errorsAng[i] = self.angleError(tempY[testIndices, 2], predictionAng) / np.pi * 180
 
-        print("The Average Amplitude Error is {}\u00B1{}px using {}.".format(np.mean(errorsAmp),np.std(errorsAmp),regressor))
-        print("The Average Angle Error is {}°\u00B1{}° using {}.".format(np.mean(errorsAng),np.std(errorsAng),regressor))
+        print("The Average Amplitude Error is {}\u00B1{}px using {}. Training time was {}\u00B1{}s".format(np.mean(errorsAmp),np.std(errorsAmp),regressor,np.mean(trainingTime),np.std(trainingTime)))
+        print("The Average Angle Error is {}°\u00B1{}° using {}. Training time was {}\u00B1{}s".format(np.mean(errorsAng),np.std(errorsAng),regressor,np.mean(trainingTime),np.std(trainingTime)))
 
 
         if plotBool:
