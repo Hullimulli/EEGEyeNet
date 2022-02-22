@@ -1222,6 +1222,7 @@ class AnalEyeZor():
             dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + postfix+".npz")['x']
             dataY = np.load(pathForOriginalRelativeToExecutable + "ActivationMaximization/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" +config['preprocessing'] + postfix+".npz")['y']
             ids = np.array([0])
+            specificDataIndices = np.arange(dataX.shape[0])
 
         elif dataType in self.customSignalType:
             dataX = offsetModification + scaleModification*np.load(pathForOriginalRelativeToExecutable + "customSignals/" + config['task'] + "_with_" + config['dataset'] + "_synchronised_" + config['preprocessing'] + "_" + dataType + postfix + ".npy")
@@ -1229,6 +1230,7 @@ class AnalEyeZor():
             if "stepdirection" in dataType.lower():
                 dataY = np.array([[400,np.pi],[400,np.pi/2],[400,0],[400,-np.pi/2]])
             ids = np.array([0])
+            specificDataIndices = np.arange(dataX.shape[0])
         else:
             Y = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
             ids = Y[:, 0]
