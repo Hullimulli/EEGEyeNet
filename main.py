@@ -19,7 +19,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = True
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -288,8 +288,8 @@ def main():
         sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
         #PFI("LRMin_InceptionTime_All/", ["InceptionTime"],1 + np.arange(129), 'min', "LR_task",trainBool=False,trail=False)
         #train("LR_All",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task")
-        #PFI("LR_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
-        PFI("LR_All/", ["EEGNet"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
+        PFI("LR_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
+        #PFI("LR_All/", ["EEGNet"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["CNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["Xception"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
