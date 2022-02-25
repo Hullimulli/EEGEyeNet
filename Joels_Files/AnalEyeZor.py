@@ -273,7 +273,7 @@ class AnalEyeZor():
             for k in range(iterations):
                 for j in tqdm(range(int(dataShape[2]))):
                     valX = dataX.copy()
-                    np.random.shuffle(valX[:, :, j])
+                    np.random.shuffle(np.transpose(valX[:, :, j]))
                     for i in range(self.numberOfNetworks):
                         path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
                         trainer.ensemble.load_file_pattern = re.compile(saveTrail + name + '_nb_*', re.IGNORECASE)
@@ -2235,7 +2235,7 @@ class AnalEyeZor():
         dataX = np.zeros([tempX.shape[0],2*tempX.shape[2]])
 
         if findZeroCrossingBool:
-
+            plotIndex = 210
             #Plotting
             format="pdf"
             linSpace = np.arange(1,1001,2)
@@ -2243,7 +2243,7 @@ class AnalEyeZor():
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
             plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
             for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempX[0, :, 0]), lw=1)
+                ax.plot(linSpace, np.squeeze(tempX[plotIndex, :, 0]), lw=1)
             ax.set_ylim(bottom=-200, top=200)
             ax.legend()
             fig.savefig(config['model_dir'] + "MyNet_Signal" + "_El{}.{}".format(str(self.electrodes[0]), format),
@@ -2261,7 +2261,7 @@ class AnalEyeZor():
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
             plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
             for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempXAvg[0, :, 0]), lw=1)
+                ax.plot(linSpace, np.squeeze(tempXAvg[plotIndex, :, 0]), lw=1)
             ax.set_ylim(bottom=-200, top=200)
             ax.legend()
             fig.savefig(config['model_dir'] + "MyNet_MvAvgSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
@@ -2275,7 +2275,7 @@ class AnalEyeZor():
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
             plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
             for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempXAvg[0, :, 0])-np.mean(tempXAvg[0,:,0]), lw=1)
+                ax.plot(linSpace, np.squeeze(tempXAvg[plotIndex, :, 0])-np.mean(tempXAvg[plotIndex,:,0]), lw=1)
             ax.set_ylim(bottom=-200, top=200)
             ax.legend()
             fig.savefig(config['model_dir'] + "MyNet_MvAvgMeanedSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
