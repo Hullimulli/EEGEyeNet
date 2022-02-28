@@ -299,13 +299,13 @@ def main():
         #PFI("Direction_All/", ["EEGNet"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
         #PFI("Direction_All/", ["CNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
         #PFI("Direction_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
-        #PFI("Direction_All/", ["Xception"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        PFI("Direction_All/", ["Xception"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
 
         #PFI("Position_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "Position_task", trainBool=False,trail=False)
         #PFI("Position_All/", ["EEGNet"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
         #PFI("Position_All/", ["CNN"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
         #PFI("Position_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
-        PFI("Position_All/", ["Xception"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
+        #PFI("Position_All/", ["Xception"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
 
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
         #train("Position_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"Position_task")
