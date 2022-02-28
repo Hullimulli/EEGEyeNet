@@ -31,7 +31,7 @@ def main():
 
             if PFIIndexNames is None:
                 for modelName in modelNames:
-                    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+"Average_Angle"+'.csv', usecols=["Average"]).to_numpy()
+                    lossValues = pd.read_csv(asdf.currentFolderPath + 'PFI_'+"Rand_LR"+'.csv', usecols=["Average"]).to_numpy()
                     #asdf.electrodeBarPlot(values=lossValues, colour=colour,filename="Thesis_Electrode_Loss_"+filename)
                     asdf.topoPlot(lossValues,cmap=colour,filename="Thesis_Topoplot_"+filename,epsilon=0.01)
                     asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues),colourMap=colour,epsilon=0.01),filename='Thesis_Electrode_Losses_'+filename,alpha=1)
@@ -43,7 +43,7 @@ def main():
                     asdf.topoPlot(lossValues, cmap=colour, filename="Thesis_Topoplot_" + filename,epsilon=0.01)
                     asdf.electrodePlot(colourValues=asdf.colourCode(values=np.squeeze(lossValues), colourMap=colour, epsilon=0.01),filename='Thesis_Electrode_Losses_' + filename, alpha=1)
 
-        #plot("LR_All/","LR","Angle",["PyramidalCNN"],"Blues")
+        plot("LR_All/","LR","LR_Rand",["PyramidalCNN"],"Blues")
         #plot("Direction_All/", "Direction","PyramidalCNN_amplitude",["PyramidalCNN"], "Purple")
         #plot("Position_All/", "Position",["PyramidalCNN"], "Green")
         #plot("InceptionTime_amplitude", "InceptionTime", "Oranges")
@@ -79,7 +79,7 @@ def main():
             #asdf.predictAll(postfix="Top3")
             indices = None
             someVector = np.array([[1, 3], [2, 4]])
-            #asdf.PFI(saveTrail="_angle")
+            asdf.PFI(saveTrail="_angle")
             #asdf.simpleDirectionRegressor(regressor="SupportVectorMachine",nrOfPoints=30,findZeroCrossingBool=True, nrOfRuns=5,movingAverageFilterLength=50,defaultCrossingValue=250)
             #indices = asdf.findDataPoints(type="Misclassified", model="InceptionTime", postfix="Top2", lossThresh=0.1,returnAngleBool=False)
             #indices = asdf.findDataPoints(type="LeftOnly",model="PyramidalCNN",postfix="Top3", lossThresh=2, returnAngleBool=True)
@@ -94,7 +94,7 @@ def main():
         #transformData("Direction_SideFronts/", "PyramidalCNN", 'Direction')
         #transformData("Direction_Top2Ang/", "PyramidalCNN", 'Direction')
         #transformData("Direction_Top3_Ang/", "PyramidalCNN", 'Direction')
-        transformData("Direction_Top3/", "PyramidalCNN", 'Direction')
+        #transformData("Direction_Top3/", "PyramidalCNN", 'Direction')
         #transformData("LRMin_InceptionTime_All/", "InceptionTime", 'LR')
         #transformData("Position_Top2/", "PyramidalCNN", 'Position')
         def showDataSimple(path,model,name,task,electrodes=np.arange(129)+1,run=1,colourMap='gist_rainbow',nrOfPoints=10,tresh=0.0,maxValue=100):
@@ -292,12 +292,13 @@ def main():
         #PFI("LR_All/", ["EEGNet"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["CNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
-        PFI("LR_All/", ["Xception"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
-        #PFI("LR_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "LR_task", trainBool=False,trail=False)
-        #PFI("LR_All/", ["EEGNet"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
-        #PFI("LR_All/", ["CNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
-        #PFI("LR_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
         #PFI("LR_All/", ["Xception"], 1 + np.arange(129), 'min',"LR_task", trainBool=False, trail=False)
+
+        PFI("Direction_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trainBool=False,trail=True)
+        #PFI("Direction_All/", ["EEGNet"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        #PFI("Direction_All/", ["CNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        #PFI("Direction_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        #PFI("Direction_All/", ["Xception"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
 
 
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
