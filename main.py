@@ -297,8 +297,8 @@ def main():
         #PFI("Direction_All/", ["InceptionTime"], 1 + np.arange(129), 'min', "Direction_task", trainBool=False,trail=True)
         #PFI("Direction_All/", ["EEGNet"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
         #PFI("Direction_All/", ["CNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
-        PFI("Direction_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
-        #PFI("Direction_All/", ["Xception"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        #PFI("Direction_All/", ["PyramidalCNN"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
+        PFI("Direction_All/", ["Xception"], 1 + np.arange(129), 'min',"Direction_task", trainBool=False, trail=True)
 
 
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
