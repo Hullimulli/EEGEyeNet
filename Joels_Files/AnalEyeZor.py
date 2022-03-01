@@ -2235,52 +2235,8 @@ class AnalEyeZor():
         dataX = np.zeros([tempX.shape[0],2*tempX.shape[2]])
 
         if findZeroCrossingBool:
-            plotIndex = 210
-            #Plotting
-            format="pdf"
-            linSpace = np.arange(1,1001,2)
-            fig, ax = plt.subplots()
-            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
-            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
-            for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempX[plotIndex, :, 0]), lw=1)
-            ax.set_ylim(bottom=-200, top=200)
-            ax.legend()
-            fig.savefig(config['model_dir'] + "MyNet_Signal" + "_El{}.{}".format(str(self.electrodes[0]), format),
-                        format=format, transparent=True)
-            plt.close()
-
-
             #Moving Average
             tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
-
-            #Plotting
-            format="pdf"
-            linSpace = np.arange(1,1001,2)
-            fig, ax = plt.subplots()
-            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
-            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
-            for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempXAvg[plotIndex, :, 0]), lw=1)
-            ax.set_ylim(bottom=-200, top=200)
-            ax.legend()
-            fig.savefig(config['model_dir'] + "MyNet_MvAvgSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
-                        format=format, transparent=True)
-            plt.close()
-
-            #Plotting
-            format="pdf"
-            linSpace = np.arange(1,1001,2)
-            fig, ax = plt.subplots()
-            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
-            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
-            for i in range(dataX.shape[0]):
-                ax.plot(linSpace, np.squeeze(tempXAvg[plotIndex, :, 0])-np.mean(tempXAvg[plotIndex,:,0]), lw=1)
-            ax.set_ylim(bottom=-200, top=200)
-            ax.legend()
-            fig.savefig(config['model_dir'] + "MyNet_MvAvgMeanedSignal" + "_El{}.{}".format(str(self.electrodes[0]), format),
-                        format=format, transparent=True)
-            plt.close()
 
             for i in range(tempX.shape[2]):
                 for j in range(tempX.shape[0]):
