@@ -273,7 +273,8 @@ class AnalEyeZor():
             for k in range(iterations):
                 for j in tqdm(range(int(dataShape[2]))):
                     valX = dataX.copy()
-                    np.random.shuffle(np.transpose(valX[:, :, j]))
+                    #Transpose input for shuffling 500 time points
+                    np.random.shuffle(valX[:, :, j])
                     for i in range(self.numberOfNetworks):
                         path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
                         trainer.ensemble.load_file_pattern = re.compile(saveTrail + name + '_nb_*', re.IGNORECASE)
