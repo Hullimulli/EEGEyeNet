@@ -1,7 +1,7 @@
 import tensorflow as tf
 from config import config
 from utils.utils import *
-import tensorflow.keras as keras
+import keras
 import logging
 import os
 import re 
@@ -90,4 +90,4 @@ class Ensemble_tf:
             if not self.load_file_pattern.match(file):
                 continue
             logging.info(f"Loading model nb from file {file} and predict with it")
-            self.models.append(keras.models.load_model(path+file,compile=False))
+            self.models.append(keras.models.load_model(path+file))
