@@ -29,7 +29,8 @@ config['include_dummy_models'] = True
 # Where experiment results are stored.
 config['log_dir'] = './runs/'
 # Path to training, validation and test data folders.
-config['data_dir'] = './data/'
+config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
+#config['data_dir'] = '/itet-stor/kjoel/net_scratch/data/'
 # Path of root
 config['root_dir'] = '.'
 # Retrain or load already trained
@@ -52,7 +53,7 @@ config['all_EEG_file'] = build_file_name() # or use your own specified file name
 ##################################################################
 ##################################################################
 # Specific to models now
-config['framework'] = 'pytorch' # pytorch or tensorflow 
+config['framework'] = 'tensorflow' # pytorch or tensorflow
 config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
