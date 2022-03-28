@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import is_color_like
+from matplotlib.colors import is_color_like, Normalize
 import os
 import cv2
 from pandas import read_csv
 from pathlib import Path
-
+import matplotlib.cm as cm
+import scipy.io as sio
+import mne
 
 def electrodeBarPlot(values: np.ndarray , directory: str, yAxisLabel: str = "Loss Ratio",
                      filename: str = "Electrode_Loss" ,format: str = 'pdf' ,colour: str = 'red',
@@ -86,3 +88,117 @@ def electrodePlot(colourValues: np.ndarray, directory: str, filename: str = "Ele
 
     img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
     cv2.imwrite(os.path.join(directory,filename)+'.png', img)
+
+
+def colourCode(values: np.ndarray, electrodes: np.ndarray = np.arange(1,130), colourMap: str = "Reds") -> np.ndarray:
+    """
+    Maps values to colours. Can be used for electrodePlot().
+    @param values: Values which are translated to a colour map. If only one value is given, an array of length 129 is
+    constructed.
+    @type values: Numpy Array
+    @param electrodes: Which indices+1 of the values are used for the colour map. Rest is mapped to white.
+    @type electrodes: Numpy Array
+    @param colourMap: Matplotlib colour map.
+    @type colourMap: String
+    @return: Numpy Array of shape [values.shape,3] containing the RGB values.
+    @rtype: Numpy Array
+    """
+
+    #Checks
+    values = np.atleast_1d(values)
+    if values.shape[0] == 1:
+        values = np.zeros(129) + values
+    if colourMap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib. Using 'Reds'.")
+        colourMap = "Reds"
+    if values.shape[0] < np.max(electrodes):
+        print("Index corresponding to electrode {} does not exist. Returning all white array.".format(np.array2string(np.max(electrodes))))
+        return np.zeros(values.shape[0],3) + 255
+
+    #Mapping Values to Colours
+    cmap = cm.get_cmap(colourMap)
+    minVal = np.min(values[electrodes-1])
+    maxVal = np.max(values[electrodes-1])
+    if minVal == maxVal:
+        minVal = min(0,minVal)
+        maxVal = max(0,maxVal)
+    norm = Normalize(vmin=minVal, vmax=maxVal)
+    colours = cmap(norm(values))[:,0:3]
+    setToWhiteMask = np.ones(values.shape, np.bool)
+    setToWhiteMask[electrodes-1] = 0
+    colours[setToWhiteMask] = np.array([1,1,1])
+    colours[:,[2, 0]] = colours[:,[0, 2]]
+    return colours * 255
+
+
+def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', format: str = 'pdf',
+             figSize: (float, float) = (7,4.5), saveBool: bool = True, cmap: str = 'Reds',
+             valueType: str = "Loss-Ratio", cutSmallerThanZeroBool: bool = True, epsilon: float = 0.01):
+    """
+    Generates a topographic map of an EEG field based on the input values.
+    @param values: Array of length 129, where the index + 1 equals the electrode number and a value, which will be
+    colour coded.
+    @type values: Numpy Array
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param figSize: Width and height in inches of the plot.
+    @type figSize: (float,float)
+    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @type saveBool: Bool
+    @param cmap: Matplotlib colourmap
+    @type cmap: String
+    @param epsilon: Number to adjust weighting in the log plot. Has to be larger than 0.
+    @type epsilon: float
+    @param valueType: What value is visualised.
+    @type valueType: String
+    @param cutSmallerThanZeroBool: If True, all elements of values smaller than zero are set to zero.
+    @type cutSmallerThanZeroBool: Bool
+    """
+
+
+    #Checks
+    if cmap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib. Using 'Reds'.")
+        cmap = "Reds"
+    if epsilon <= 0:
+        print("Epsilon too small, using epsilon = 1.")
+        epsilon = 1
+    if values.shape[0] != 129:
+        print("Wrong array dimensions.")
+        return
+
+    #Generating Plots
+    pathOfFile = os.path.join(Path(__file__).resolve().parent, "filesForPlot")
+    electrodePositions = sio.loadmat(os.path.join(pathOfFile,"lay129_head.mat"))['lay129_head']['pos'][0][0]
+    outline = sio.loadmat(os.path.join(pathOfFile,"lay129_head.mat"))['lay129_head']['outline'][0][0]
+    mask = sio.loadmat(os.path.join(pathOfFile,"lay129_head.mat"))['lay129_head']['mask'][0][0]
+    if cutSmallerThanZeroBool:
+        values[np.where(values < 0)] = 0
+    else:
+        values -= np.min(values)
+    values = 10 * np.log(values + epsilon)
+    fig = plt.figure(figsize=figSize)
+    #Generating outline dictionary for mne topoplot
+    outlines = dict()
+    outlines["mask_pos"] = (mask[0,0][:,0],mask[0,0][:,1])
+    outlines["head"] = (outline[0, 0][:,0],outline[0, 0][:,1])
+    outlines["nose"] = (outline[0, 1][:,0],outline[0, 1][:,1])
+    outlines["ear_left"] = (outline[0, 2][:,0],outline[0, 2][:,1])
+    outlines["ear_right"] = (outline[0, 3][:,0],outline[0, 3][:,1])
+    #This cuts out parts of the colour circle
+    outlines['clip_radius'] = (0.5,) * 2
+    outlines['clip_origin'] = (0,0.07)
+    im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],outlines=outlines,show=False,cmap=cmap)
+    clb = fig.colorbar(im)
+    if epsilon==1:
+        clb.ax.set_title("{} in Db".format(valueType))
+    else:
+        clb.ax.set_title("10x Log of {}, eps={}".format(valueType,epsilon))
+    if saveBool:
+        fig.savefig(os.path.join(directory, filename) + ".{}".format(format), format=format, transparent=True)
+    else:
+        plt.show()
+    plt.close()
+
