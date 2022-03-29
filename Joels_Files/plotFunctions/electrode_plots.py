@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import is_color_like, Normalize
 import os
+from matplotlib.colors import is_color_like, Normalize
 import cv2
 from pandas import read_csv
 from pathlib import Path
@@ -14,6 +14,7 @@ def electrodeBarPlot(values: np.ndarray , directory: str, yAxisLabel: str = "Los
                      savePlotBool: bool = True):
     """
     Simple bar plot where each value is is visualised at its index + 1.
+
     @param values: Array of values, all values <0 are set to 0.
     @type values: Numpy Array
     @param directory: Directory where the plot has to be saved.
@@ -58,6 +59,7 @@ def electrodePlot(colourValues: np.ndarray, directory: str, filename: str = "Ele
                   alpha: float = 0.4):
     """
     Shows colour coded circles representing electrode positions. The colours are specified by the user.
+
     @param colourValues: An array with the colour values which are used. Index of axis 0 is the electrode number - 1.
     @type colourValues: Numpy Array of shape [<=129,3]
     @param directory: Directory where the plot has to be saved.
@@ -93,6 +95,7 @@ def electrodePlot(colourValues: np.ndarray, directory: str, filename: str = "Ele
 def colourCode(values: np.ndarray, electrodes: np.ndarray = np.arange(1,130), colourMap: str = "Reds") -> np.ndarray:
     """
     Maps values to colours. Can be used for electrodePlot().
+
     @param values: Values which are translated to a colour map. If only one value is given, an array of length 129 is
     constructed.
     @type values: Numpy Array
@@ -136,9 +139,12 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
              valueType: str = "Loss-Ratio", cutSmallerThanZeroBool: bool = True, epsilon: float = 0.01):
     """
     Generates a topographic map of an EEG field based on the input values.
+
     @param values: Array of length 129, where the index + 1 equals the electrode number and a value, which will be
     colour coded.
     @type values: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
     @param filename: Name of the file as which the plot will be saved.
     @type filename: String
     @param format: Format of the save file.
@@ -167,6 +173,9 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
         epsilon = 1
     if values.shape[0] != 129:
         print("Wrong array dimensions.")
+        return
+    if not os.path.isdir(directory):
+        print("Directory does not exist.")
         return
 
     #Generating Plots
