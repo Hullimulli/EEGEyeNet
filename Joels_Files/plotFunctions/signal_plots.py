@@ -9,7 +9,7 @@ from matplotlib.ticker import FormatStrFormatter
 def plotSignal(inputSignals: np.ndarray, groundTruth: np.ndarray,directory: str, prediction: np.ndarray = None,
                electrodesUsedForTraining: np.ndarray = np.arange(1, 130),
                electrodesToPlot: np.ndarray = np.arange(1, 130), filename: str = 'SignalVisualisation',
-               format: str = 'pdf', saveBool: bool = True,maxValue: float = 1000):
+               format: str = 'pdf', saveBool: bool = True,maxValue: float = 100):
     """
     Visualises the signals.
 
@@ -39,12 +39,39 @@ def plotSignal(inputSignals: np.ndarray, groundTruth: np.ndarray,directory: str,
                  filename=filename, format=format, saveBool=saveBool, maxValue=maxValue,
                  plotSignalsSeperatelyBool=True, meanBool=False)
 
+def plotHorizontalEyeMovement(eyeMovement: np.ndarray, groundTruth: np.ndarray,directory: str,
+                              prediction: np.ndarray = None, filename: str = 'SignalVisualisation',
+                              format: str = 'pdf', saveBool: bool = True, maxValue: int = 800):
+    """
+    Visualises the horizontal eye movement.
+
+    @param eyeMovement: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps]
+    @type eyeMovement: Numpy Array
+    @param groundTruth: Ground truth label corresponding to the eye movement.
+    @type groundTruth: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
+    @param prediction: Predicted label for each sample. If None, the plot is based only on the ground truth.
+    @type prediction: Numpy Array
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @type saveBool: Bool
+    @param maxValue: The maximum value in mV which is shown.
+    @type maxValue: Integer
+    """
+    plotEyeLR(eyeMovement=eyeMovement, groundTruth=groundTruth, directory=directory, prediction=prediction,
+                 filename=filename, format=format, saveBool=saveBool, maxValue=maxValue,
+                 plotSignalsSeperatelyBool=True, meanBool=False)
+
 
 def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,
                  electrodesUsedForTraining: np.ndarray = np.arange(1, 130),
                  electrodesToPlot: np.ndarray = np.arange(1, 130),
                  colourMap: str = 'gist_rainbow', misClasThresh: float = 0,
-                 filename: str = 'SignalVisualisation_electrode', format: str = 'pdf', saveBool: bool = True,
+                 filename: str = 'SignalVisualisation', format: str = 'pdf', saveBool: bool = True,
                  plotSignalsSeperatelyBool: bool = False, maxValue: float = 100, meanBool: bool = True):
 
     """
@@ -89,7 +116,7 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
     if inputSignals.ndim != 3:
         print("Need a 3 dimensional array as input.")
         return
-    groundTruth = groundTruth.ravel().astype(np.int)
+    groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
@@ -104,13 +131,19 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
     if not os.path.isdir(directory):
         print("Directory does not exist.")
         return
-    if not plotSignalsSeperatelyBool and not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
+    binaryLabelsBool = False
+    if np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
+        binaryLabelsBool = True
+        groundTruth = groundTruth.astype(np.int)
+    if not plotSignalsSeperatelyBool and not binaryLabelsBool:
         print("Ground truth contains unforseen labels.")
         return
     if prediction is not None and not plotSignalsSeperatelyBool:
         if not np.all(np.logical_or(prediction == 0, prediction == 1)):
             print("Predictions contains unforseen labels.")
             return
+        else:
+            prediction = prediction.astype(np.int)
     if plotSignalsSeperatelyBool:
         if inputSignals.shape[0] > 100:
             print("Warning: You will generate a lot of plots.")
@@ -122,7 +155,7 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
     linSpace = np.arange(1, 1 + 2*inputSignals.shape[1], 2)
     cmap = cm.get_cmap(colourMap)
 
-    if prediction is not None and not plotSignalsSeperatelyBool:
+    if prediction is not None and binaryLabelsBool:
         # Use this to get rid of predictions close to the truth in the plot
         threshIndices = np.where(np.absolute(prediction - groundTruth) >= misClasThresh)
         # Depending on ground truth and prediction, we give each sample a number
@@ -137,13 +170,17 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[1], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[2], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[3], lw=2)]
-    elif not plotSignalsSeperatelyBool:
+    elif binaryLabelsBool:
         predictionLabel = groundTruth.astype(np.int)
         colour = cmap(np.array([0, 1, 2]) / 3)[[0, 2]]
         custom_lines = [Line2D([0], [0], color=cmap(np.arange(4))[0], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[2], lw=2), ]
+    elif not binaryLabelsBool:
+        predictionLabel = np.zeros(groundTruth.shape).astype(np.int)
+        colour = np.atleast_2d(cmap(np.array([0, 1]))[1])
     else:
-        colour = cmap(np.array([0, 1]))[1]
+        print("Some unskilled monkeys were at work here... report that they get fired.")
+        return
 
     if meanBool:
         for e in electrodes:
@@ -185,12 +222,12 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
                     plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d ms'))
                     plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d mv'))
                     if prediction is not None:
-                        ax.legend([Line2D([0], [0], color=colour, lw=2)],
+                        ax.legend([Line2D([0], [0], color=colour[predictionLabel[i]], lw=2)],
                                   ["{} - {}".format(str(groundTruth[i]),str(prediction[i]))])
                     else:
-                        ax.legend([Line2D([0], [0], color=colour, lw=2)],
+                        ax.legend([Line2D([0], [0], color=colour[predictionLabel[i]], lw=2)],
                                   [str(groundTruth[i])])
-                    ax.plot(linSpace, inputSignals[i, :, e], c=colour, lw=0.5)
+                    ax.plot(linSpace, inputSignals[i, :, e], c=colour[predictionLabel[i]], lw=0.5)
                     ax.set_ylim(bottom=-maxValue, top=maxValue)
                     if saveBool:
                         fig.savefig(os.path.join(directory,filename) + "_Sample{}_El{}.{}".format(i,str(electrodesUsedForTraining[e]),format),
@@ -241,14 +278,37 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
                        colourMap: str = 'gist_rainbow', nrOfSignals: int = 20000,
                        filename: str = 'SignalVisualisation', format: str = 'pdf',
                        maxValue: float = 1000, percentageThresh: float = 0, nrOfLevels: int = 4):
-    pass
+
+    # Checks
+    electrodes = findElectrodeIndices(electrodesUsedForTraining, electrodesToPlot)
+    electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
+    del electrodesToPlot
+    if inputSignals.ndim != 3:
+        print("Need a 3 dimensional array as input.")
+        return
+    groundTruth = groundTruth.ravel().astype(np.int)
+    if prediction is not None:
+        prediction = prediction.ravel()
+        if groundTruth.shape[0] != prediction.shape[0]:
+            print("Shape of predictions and ground truths do not coincide.")
+            return
+    if groundTruth.shape[0] != inputSignals.shape[0]:
+        print("Number of ground truths does not coincide with number of samples.")
+        return
+    if colourMap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
+        colourMap = "gist_rainbow"
+    if not os.path.isdir(directory):
+        print("Directory does not exist.")
+        return
+
     # TODO
 
 
 
 def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,
                  colourMap: str = 'gist_rainbow', misClasThresh: float = 0,
-                 filename: str = 'SignalVisualisation_electrode', format: str = 'pdf', saveBool: bool = True,
+                 filename: str = 'SignalVisualisation', format: str = 'pdf', saveBool: bool = True,
                  plotSignalsSeperatelyBool: bool = False, maxValue: int = 800, meanBool: bool = True):
 
     """
@@ -276,7 +336,7 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
     @param plotSignalsSeperatelyBool: If True, each signal is plotted in a new window.
     @type plotSignalsSeperatelyBool: Bool
     @param maxValue: The maximum value in px which is shown.
-    @type maxValue: Float
+    @type maxValue: Integer
     @param meanBool: If True, the average of signals corresponding to a group is shown.
     @type meanBool: Bool
     """
@@ -284,7 +344,7 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
     if eyeMovement.ndim != 2:
         print("Need a 2 dimensional array as input.")
         return
-    groundTruth = groundTruth.ravel().astype(np.int)
+    groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
@@ -299,7 +359,10 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
     if not os.path.isdir(directory):
         print("Directory does not exist.")
         return
-    if not plotSignalsSeperatelyBool and not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
+    binaryLabelsBool = True
+    if not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
+        binaryLabelsBool = False
+    if not plotSignalsSeperatelyBool and not binaryLabelsBool:
         print("Ground truth contains unforseen labels.")
         return
     if prediction is not None and not plotSignalsSeperatelyBool:
@@ -317,7 +380,7 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
     linSpace = np.arange(1, 1 + 2*eyeMovement.shape[1], 2)
     cmap = cm.get_cmap(colourMap)
 
-    if prediction is not None and not plotSignalsSeperatelyBool:
+    if prediction is not None and binaryLabelsBool:
         # Use this to get rid of predictions close to the truth in the plot
         threshIndices = np.where(np.absolute(prediction - groundTruth) >= misClasThresh)
         # Depending on ground truth and prediction, we give each sample a number
@@ -332,13 +395,17 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[1], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[2], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[3], lw=2)]
-    elif not plotSignalsSeperatelyBool:
+    elif binaryLabelsBool:
         predictionLabel = groundTruth.astype(np.int)
         colour = cmap(np.array([0, 1, 2]) / 3)[[0, 2]]
         custom_lines = [Line2D([0], [0], color=cmap(np.arange(4))[0], lw=2),
                         Line2D([0], [0], color=cmap(np.arange(4) / 3)[2], lw=2), ]
+    elif not binaryLabelsBool:
+        predictionLabel = np.zeros(groundTruth.shape).astype(np.int)
+        colour = np.atleast_2d(cmap(np.array([0, 1]))[1])
     else:
-        colour = cmap(np.array([0, 1]))[1]
+        print("Some unskilled monkeys were at work here... report that they get fired.")
+        return
 
     if meanBool:
         fig, ax = plt.subplots()
@@ -377,13 +444,13 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
                 plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%d px'))
                 plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d ms'))
                 if prediction is not None:
-                    ax.legend([Line2D([0], [0], color=colour, lw=2)],
+                    ax.legend([Line2D([0], [0], color=colour[predictionLabel[i]], lw=2)],
                               ["{} - {}".format(str(groundTruth[i]),str(prediction[i]))])
                 else:
-                    ax.legend([Line2D([0], [0], color=colour, lw=2)],
+                    ax.legend([Line2D([0], [0], color=colour[predictionLabel[i]], lw=2)],
                               [str(groundTruth[i])])
-                ax.plot(eyeMovement[i, :], linSpace, c=colour, lw=0.5)
-                ax.set_ylim(left=0, right=maxValue)
+                ax.plot(eyeMovement[i, :], linSpace, c=colour[predictionLabel[i]], lw=0.5)
+                ax.set_xlim(left=0, right=maxValue)
                 if saveBool:
                     fig.savefig(os.path.join(directory,filename) + "_Sample{}_Eye.{}".format(i,format),
                                 format=format,transparent=True)
