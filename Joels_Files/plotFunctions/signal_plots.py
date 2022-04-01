@@ -275,9 +275,46 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
 def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,
                        electrodesUsedForTraining: np.ndarray = np.arange(1, 130),
                        electrodesToPlot: np.ndarray = np.arange(1, 130),
-                       colourMap: str = 'gist_rainbow', nrOfSignals: int = 20000,
-                       filename: str = 'SignalVisualisation', format: str = 'pdf',
-                       maxValue: float = 1000, percentageThresh: float = 0, nrOfLevels: int = 4):
+                       colourMap: str = 'gist_rainbow', filename: str = 'SignalVisualisation', format: str = 'pdf',
+                       maxValue: float = 100, percentageThresh: float = 0, nrOfLevels: int = 4,
+                       BoundariesX: (int,int) = (0,800), BoundariesY: (int,int) = (0,600), saveBool: bool = True):
+
+    """
+    Visualises and colour codes the signals according to ground truth and prediction.
+
+    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    #electrodes]
+    @type inputSignals: Numpy Array
+    @param groundTruth: Ground truth label for each sample.
+    @type groundTruth: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
+    @param prediction: Predicted label for each sample. If None, the plot is based only on the ground truth.
+    @type prediction: Numpy Array
+    @param electrodesUsedForTraining: Electrodes on which the network has been trained. These are the electrodes which
+    correspond to the indices in the last dimension.
+    @type electrodesUsedForTraining: Numpy Array
+    @param electrodesToPlot: Electrodes for which the plots are to be generated.
+    @type electrodesToPlot: Numpy Array
+    @param colourMap: Matplotlib colour map for the plot.
+    @type colourMap: String
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param maxValue: The maximum value in mV which is shown.
+    @type maxValue: Float
+    @param percentageThresh:
+    @type percentageThresh:
+    @param nrOfLevels: Number, which defines in how many classes the regression problem is split.
+    @type nrOfLevels: Integer
+    @param BoundariesX: Tuple of Integers, which determines the lower and upper bound of the area of the x-axis of the plot.
+    @type BoundariesX: (Integer,Integer)
+    @param BoundariesY: Tuple of Integers, which determines the lower and upper bound of the area of the y-axis of the plot.
+    @type BoundariesY: (Integer,Integer)
+    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @type saveBool: Bool
+    """
 
     # Checks
     electrodes = findElectrodeIndices(electrodesUsedForTraining, electrodesToPlot)
@@ -286,10 +323,15 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
     if inputSignals.ndim != 3:
         print("Need a 3 dimensional array as input.")
         return
-    groundTruth = groundTruth.ravel().astype(np.int)
+    if groundTruth.ndim != 2:
+        print("Need a 2 dimensional array as ground truth.")
+        return
+    if groundTruth.shape[1] != 2:
+        print("Second dimension must be of size 2 of the ground truth array.")
+        return
     if prediction is not None:
-        prediction = prediction.ravel()
-        if groundTruth.shape[0] != prediction.shape[0]:
+        prediction = prediction
+        if groundTruth.shape[0] != prediction.shape[0] or groundTruth.shape[1] != prediction.shape[1]:
             print("Shape of predictions and ground truths do not coincide.")
             return
     if groundTruth.shape[0] != inputSignals.shape[0]:
@@ -302,8 +344,105 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
         print("Directory does not exist.")
         return
 
-    # TODO
+    cmap = cm.get_cmap(colourMap)
+    colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
 
+    #The goal here is to factorize an integer in two large integers.
+    gridsX = 1
+    gridsY = nrOfLevels
+    loss = abs(gridsX - gridsY)
+    while (gridsX != nrOfLevels):
+        if (nrOfLevels / gridsX) % 1 == 0 and loss > abs(gridsX - (nrOfLevels / gridsX)):
+            gridsY = int(nrOfLevels / gridsX)
+            loss = abs(gridsX - gridsY)
+        gridsX += 1
+    gridsX = int(nrOfLevels / gridsY)
+    centers = np.zeros([gridsX, gridsY, 2])
+
+    # Determine the center points. A Position then is clustered to the nearest center.
+    # Centers will be labeled with an integer, starting count from top left and rowwise.
+    centers[:, :, 0] = np.expand_dims(
+        np.arange(centers.shape[0]) * (BoundariesX[1] - BoundariesX[0]) / centers.shape[0] +
+        (BoundariesX[1] - BoundariesX[0]) / (2 * centers.shape[0]), axis=1) + BoundariesX[0]
+    centers[:, :, 1] = np.tile((np.arange(centers.shape[1]) * (BoundariesY[1] - BoundariesY[0]) / centers.shape[1] + (
+                BoundariesY[1] - BoundariesY[0]) / (2 * centers.shape[1]))[::-1], (centers.shape[0], 1)) + BoundariesY[0]
+
+    if prediction is not None:
+        error = np.sqrt(np.linalg.norm(groundTruth - prediction, axis=1).mean())
+        distances = np.zeros(prediction.shape[0]) + np.Infinity
+        closestCenter = np.zeros(prediction.shape[0], dtype=np.int)
+    closestCenterTruth = np.zeros(groundTruth.shape[0], dtype=np.int)
+    distancesTruth = np.zeros(groundTruth.shape[0]) + np.Infinity
+    for j in range(centers.shape[1]):
+        for i in range(centers.shape[0]):
+            if prediction is not None:
+                distance = np.power(prediction[:, 0] - centers[i, j, 0], 2) + np.power(prediction[:, 1] - centers[i, j, 1],2)
+                closestCenter[np.where(np.squeeze(distance - distances) < 0)] = i + j * centers.shape[0]
+                distances = np.minimum(distances, distance)
+
+            distance = np.power(groundTruth[:, 0] - centers[i, j, 0], 2) + np.power(groundTruth[:, 1] - centers[i, j, 1], 2)
+            closestCenterTruth[np.where(np.squeeze(distance - distancesTruth) < 0)] = i + j * centers.shape[0]
+            distancesTruth = np.minimum(distancesTruth, distance)
+
+    linSpace = np.arange(1,2*inputSignals.shape[1]+1,2)
+
+    for e in electrodes:
+        fig, ax = plt.subplots(figsize=(8 * centers.shape[0], 4 * centers.shape[1]), dpi=160 / np.log2(nrOfLevels))
+        ax.set_xlim([BoundariesX[0], BoundariesX[1]])
+        ax.set_ylim([BoundariesY[0], BoundariesY[1]])
+        ax.invert_yaxis()
+        ax.set_xticks(np.arange(0, centers.shape[0] + 1) * (BoundariesX[1] - BoundariesX[0]) / centers.shape[0] + BoundariesX[0])
+        ax.set_yticks(np.arange(0, centers.shape[1] + 1) * (BoundariesY[1] - BoundariesY[0]) / centers.shape[1] + BoundariesY[0])
+        if prediction is not None:
+            ax.title.set_text("Average Error Distance: {}px".format(error))
+        plt.grid()
+        for i in range(centers.shape[1]):
+            for j in range(centers.shape[0]):
+                axes = ax.inset_axes(
+                    [(centers[j, i, 0] - BoundariesX[0]) / (BoundariesX[1] - BoundariesX[0]) - 0.8 / (2 * centers.shape[0]),
+                     np.absolute(
+                         1 - (centers[j, i, 1] - BoundariesY[0]) / (BoundariesY[1] - BoundariesY[0]) - 0.8 / (2 * centers.shape[1])),
+                     0.8 / centers.shape[0], 0.8 / centers.shape[1]])
+                index = j + i * centers.shape[0]
+                groundTruthSignal = np.squeeze(np.mean(inputSignals[np.where(closestCenterTruth == index), :, e], axis=1))
+                nrOfTruths = inputSignals[np.where(closestCenterTruth == index), :, e].shape[1]
+                nrCorrectlyPredicted = 0
+                deviationTruthSignal = np.squeeze(np.std(inputSignals[np.where(closestCenterTruth == index), :, e], axis=1))
+                axes.plot(linSpace, groundTruthSignal, c=colour[index], lw=1.5,
+                          label=str(index) + ",({})".format(nrOfTruths))
+                axes.fill_between(linSpace, groundTruthSignal + deviationTruthSignal,
+                                  groundTruthSignal - deviationTruthSignal, facecolor=np.squeeze(colour[index]),
+                                  alpha=0.1)
+                if prediction is not None:
+                    for n in range(centers.shape[0] * centers.shape[1]):
+                        if np.logical_and(closestCenterTruth == index, closestCenter == n).any():
+                            nrPredicted = \
+                            inputSignals[np.where(np.logical_and(closestCenterTruth == index, closestCenter == n)), :, e].shape[1]
+                            if n == index:
+                                nrCorrectlyPredicted = nrPredicted
+                            if 100 * nrPredicted / nrOfTruths >= percentageThresh:
+                                meanSignal = np.squeeze(np.mean(
+                                    inputSignals[np.where(np.logical_and(closestCenterTruth == index, closestCenter == n)), :, e],
+                                    axis=1))
+                                deviationSignal = np.squeeze(np.std(
+                                    inputSignals[np.where(np.logical_and(closestCenterTruth == index, closestCenter == n)), :, e],
+                                    axis=1))
+                                axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--', c=np.squeeze(colour[n]), lw=1,
+                                          label="{}-{},({}%)".format(index, n, round(100 * nrPredicted / nrOfTruths)))
+                                axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal,
+                                                  facecolor=np.squeeze(colour[n]), alpha=0.1)
+                    axes.title.set_text(
+                        "Coord:[{},{}], Acc.: {}%".format(np.around(centers[j, i, 0]), np.around(centers[j, i, 1]),
+                                                          round(nrCorrectlyPredicted / max(nrOfTruths, 1) * 100, 1)))
+                axes.set_ylim(bottom=-maxValue, top=maxValue)
+                axes.legend()
+
+        if saveBool:
+            fig.savefig(os.path.join(directory, filename) + "_El{}.{}".format(str(electrodesUsedForTraining[e]), format), format=format,
+                        transparent=True)
+        else:
+            plt.show()
+        plt.close()
 
 
 def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,

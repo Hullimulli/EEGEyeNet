@@ -150,13 +150,13 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
     @param format: Format of the save file.
     @type format: String
     @param figSize: Width and height in inches of the plot.
-    @type figSize: (float,float)
+    @type figSize: (Float,Float)
     @param saveBool: If True, the plot will be saved. Else it will be shown.
     @type saveBool: Bool
     @param cmap: Matplotlib colourmap
     @type cmap: String
     @param epsilon: Number to adjust weighting in the log plot. Has to be larger than 0.
-    @type epsilon: float
+    @type epsilon: Float
     @param valueType: What value is visualised.
     @type valueType: String
     @param cutSmallerThanZeroBool: If True, all elements of values smaller than zero are set to zero.
