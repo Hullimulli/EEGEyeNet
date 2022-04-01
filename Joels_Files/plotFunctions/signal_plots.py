@@ -258,6 +258,41 @@ def plotSignalAngle(inputSignals: np.ndarray, groundTruth: np.ndarray, directory
                     filename: str = 'SignalVisualisation', format: str = 'pdf',
                     maxValue: float = 100, percentageThresh: float = 0, nrOfLevels: int = 4):
 
+    """
+    Visualises and colour codes the signals according to ground truth and prediction.
+
+    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    #electrodes]
+    @type inputSignals: Numpy Array
+    @param groundTruth: Ground truth label for each sample.
+    @type groundTruth: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
+    @param prediction: Predicted label for each sample. If None, the plot is based only on the ground truth.
+    @type prediction: Numpy Array
+    @param electrodesUsedForTraining: Electrodes on which the network has been trained. These are the electrodes which
+    correspond to the indices in the last dimension.
+    @type electrodesUsedForTraining: Numpy Array
+    @param electrodesToPlot: Electrodes for which the plots are to be generated.
+    @type electrodesToPlot: Numpy Array
+    @param colourMap: Matplotlib colour map for the plot.
+    @type colourMap: String
+    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @type saveBool: Bool
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param maxValue: The maximum value in mV which is shown.
+    @type maxValue: Float
+    @param percentageThresh: Since signals are discretized into an arbitrary amount of levels, the legend may
+    become cluttered. To avoid this, only show signals whos prediction correspond to atleast this percentage
+    of the ground truth class.
+    @type percentageThresh: Float
+    @param nrOfLevels: Number, which defines in how many classes the regression problem is split. Has to be at least 2.
+    @type nrOfLevels: Integer
+    """
+
     # Checks
     electrodes = findElectrodeIndices(electrodesUsedForTraining, electrodesToPlot)
     electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
