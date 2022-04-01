@@ -254,11 +254,120 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
 def plotSignalAngle(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,
                     electrodesUsedForTraining: np.ndarray = np.arange(1, 130),
                     electrodesToPlot: np.ndarray = np.arange(1, 130),
-                    colourMap: str = 'gist_rainbow', nrOfSignals: int = 20000,
+                    colourMap: str = 'gist_rainbow', saveBool: bool = True,
                     filename: str = 'SignalVisualisation', format: str = 'pdf',
-                    maxValue: float = 1000, percentageThresh: float = 0, nrOfLevels: int = 4):
-    pass
-    # TODO
+                    maxValue: float = 100, percentageThresh: float = 0, nrOfLevels: int = 4):
+
+    # Checks
+    electrodes = findElectrodeIndices(electrodesUsedForTraining, electrodesToPlot)
+    electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
+    del electrodesToPlot
+    if inputSignals.ndim != 3:
+        print("Need a 3 dimensional array as input.")
+        return
+    groundTruth = groundTruth.ravel()
+    if prediction is not None:
+        prediction = prediction.ravel()
+        if groundTruth.shape[0] != prediction.shape[0]:
+            print("Shape of predictions and ground truths do not coincide.")
+            return
+    if nrOfLevels < 2:
+        print("Need at least two levels.")
+        return
+    if groundTruth.shape[0] != inputSignals.shape[0]:
+        print("Number of ground truths does not coincide with number of samples.")
+        return
+    if colourMap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
+        colourMap = "gist_rainbow"
+    if not os.path.isdir(directory):
+        print("Directory does not exist.")
+        return
+
+    cmap = cm.get_cmap(colourMap)
+    colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
+
+    def angleError(target,pred):
+        return np.absolute(np.arctan2(np.sin(target-pred), np.cos(target-pred)))
+
+    centers = np.linspace(-np.pi, np.pi, nrOfLevels + 1)[:-1]
+    if prediction is not None:
+        error = np.sqrt(np.mean(np.square(angleError(groundTruth,prediction))))
+        distances = np.zeros([prediction.shape[0]]) + np.Infinity
+        closestCenter = np.zeros([prediction.shape[0]], dtype=np.int)
+    closestCenterTruth = np.zeros([groundTruth.shape[0]], dtype=np.int)
+    distancesTruth = np.zeros([groundTruth.shape[0]]) + np.Infinity
+
+    # Clustering
+    for j in range(centers.shape[0]):
+        if prediction is not None:
+            distance = angleError(centers[j],prediction)
+            closestCenter[np.where(np.squeeze(distance - distances) < 0)] = j
+            distances = np.minimum(distances, distance)
+
+        distance = angleError(centers[j], groundTruth)
+        closestCenterTruth[np.where(np.squeeze(distance - distancesTruth) < 0)] = j
+        distancesTruth = np.minimum(distancesTruth, distance)
+
+    linSpace = np.arange(1, 2 * inputSignals.shape[1] + 1, 2)
+
+    fig, ax = plt.subplots(figsize=(2 * centers.shape[0] + 2, 2 * centers.shape[0] + 2),
+                           dpi=160 / max(2,np.log2(nrOfLevels)))
+    ax.set_xlim([-1, 1])
+    ax.set_ylim([-1, 1])
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    ax.invert_yaxis()
+    if prediction is not None:
+        plt.title("Avg Angle Error: {}".format(round(error * 100, 1)), loc='left')
+    angleDistance = (centers[1] - centers[0]) / 2
+    for e in electrodes:
+        for j in range(centers.shape[0]):
+            plt.plot(np.array([0, np.cos(centers[j] + angleDistance)]),
+                     np.array([0, np.sin(centers[j] + angleDistance)]), c='black', alpha=0.2)
+            axes = ax.inset_axes([0.4 * np.cos(centers[j]) + 0.5 - 0.75 / max(6,nrOfLevels),
+                                  np.absolute(1 - 0.4 * np.sin(centers[j]) - 0.5 - 0.75 / max(6,nrOfLevels)), 1.5 / max(4+nrOfLevels/2,nrOfLevels),
+                                  1.5 / max(4+nrOfLevels/2,nrOfLevels)])
+            axes.locator_params(nbins=3)
+            axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
+            axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
+            meanTruthSignal = np.squeeze(np.mean(inputSignals[np.where(closestCenterTruth == j), :, e], axis=1))
+            nrOfTruths = inputSignals[np.where(closestCenterTruth == j), :, e].shape[1]
+            nrCorrectlyPredicted = 0
+            deviationTruthSignal = np.squeeze(np.std(inputSignals[np.where(closestCenterTruth == j), :, e], axis=1))
+            axes.plot(linSpace, meanTruthSignal, c=np.squeeze(colour[j]), lw=1.5, label=str(j) + ",({})".format(nrOfTruths))
+            axes.fill_between(linSpace, meanTruthSignal + deviationTruthSignal, meanTruthSignal - deviationTruthSignal,
+                              facecolor=np.squeeze(colour[j]), alpha=0.1)
+            if prediction is not None:
+                for n in range(centers.shape[0]):
+                    if np.logical_and(closestCenterTruth == j, closestCenter == n).any():
+                        nrPredicted = \
+                        inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)), :, e].shape[1]
+                        if n == j:
+                            nrCorrectlyPredicted = nrPredicted
+                        if 100 * nrPredicted / nrOfTruths >= percentageThresh:
+                            meanSignal = np.squeeze(np.mean(
+                                inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)), :,
+                                e], axis=1))
+                            deviationSignal = np.squeeze(np.std(
+                                inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)), :,
+                                e], axis=1))
+                            axes.plot(linSpace, meanSignal, linestyle='--', c=colour[n], lw=1,
+                                      label="{}-{},({}%)".format(j, n, round(100 * nrPredicted / nrOfTruths)))
+                            axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal,
+                                              facecolor=np.squeeze(colour[n]), alpha=0.1)
+                axes.title.set_text("Coord: {}°, Acc.: {}%".format(round(centers[j] / np.pi * 180, 1),
+                                                                   round(nrCorrectlyPredicted / max(nrOfTruths, 1) * 100,
+                                                                         1)))
+
+            axes.set_ylim(bottom=-maxValue, top=maxValue)
+            axes.legend()
+        if saveBool:
+            fig.savefig(os.path.join(directory ,filename) + "_El{}.{}".format(str(electrodesUsedForTraining[e]), format),
+                        format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
 
 
 def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str,
@@ -395,7 +504,7 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
                             deviationSignal = np.squeeze(np.std(
                                 inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)),
                                 :, e], axis=1))
-                            axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--', c=np.squeeze(colour[n]), lw=1,
+                            axes.plot(linSpace, meanSignal, linestyle='--', c=np.squeeze(colour[n]), lw=1,
                                       label="{}-{},({}%)".format(j, n, round(100 * nrPredicted / nrOfTruths)))
                             axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal,
                                               facecolor=np.squeeze(colour[n]), alpha=0.1)
