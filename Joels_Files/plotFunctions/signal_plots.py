@@ -265,11 +265,151 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
                         prediction: np.ndarray = None,
                         electrodesUsedForTraining: np.ndarray = np.arange(1, 130),
                         electrodesToPlot: np.ndarray = np.arange(1, 130),
-                        colourMap: str = 'gist_rainbow', nrOfSignals: int = 20000,
+                        colourMap: str = 'gist_rainbow', saveBool: bool = True,
                         filename: str = 'SignalVisualisation', format: str = 'pdf',
-                        maxValue: float = 1000, percentageThresh: float = 0, nrOfLevels: int = 4):
-    pass
-    # TODO
+                        maxValue: float = 100, percentageThresh: float = 0, nrOfLevels: int = 4,
+                        maxDistance = 800):
+
+    """
+    Visualises and colour codes the signals according to ground truth and prediction.
+
+    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    #electrodes]
+    @type inputSignals: Numpy Array
+    @param groundTruth: Ground truth label for each sample.
+    @type groundTruth: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
+    @param prediction: Predicted label for each sample. If None, the plot is based only on the ground truth.
+    @type prediction: Numpy Array
+    @param electrodesUsedForTraining: Electrodes on which the network has been trained. These are the electrodes which
+    correspond to the indices in the last dimension.
+    @type electrodesUsedForTraining: Numpy Array
+    @param electrodesToPlot: Electrodes for which the plots are to be generated.
+    @type electrodesToPlot: Numpy Array
+    @param colourMap: Matplotlib colour map for the plot.
+    @type colourMap: String
+    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @type saveBool: Bool
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param maxValue: The maximum value in mV which is shown.
+    @type maxValue: Float
+    @param percentageThresh: Since signals are discretized into an arbitrary amount of levels, the legend may
+    become cluttered. To avoid this, only show signals whos prediction correspond to atleast this percentage
+    of the ground truth class.
+    @type percentageThresh: Float
+    @param nrOfLevels: Number, which defines in how many classes the regression problem is split. Has to be at least 2.
+    @type nrOfLevels: Integer
+    @param maxDistance: The maximal amplitude which is to be expected.
+    @type maxDistance: Float
+    """
+
+    # Checks
+    electrodes = findElectrodeIndices(electrodesUsedForTraining, electrodesToPlot)
+    electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
+    del electrodesToPlot
+    if inputSignals.ndim != 3:
+        print("Need a 3 dimensional array as input.")
+        return
+    groundTruth = groundTruth.ravel()
+    if prediction is not None:
+        prediction = prediction.ravel()
+        if groundTruth.shape[0] != prediction.shape[0]:
+            print("Shape of predictions and ground truths do not coincide.")
+            return
+    if nrOfLevels < 2:
+        print("Need at least two levels.")
+        return
+    if groundTruth.shape[0] != inputSignals.shape[0]:
+        print("Number of ground truths does not coincide with number of samples.")
+        return
+    if colourMap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
+        colourMap = "gist_rainbow"
+    if not os.path.isdir(directory):
+        print("Directory does not exist.")
+        return
+
+    #Plot Generation
+    cmap = cm.get_cmap(colourMap)
+    colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
+    centers = np.linspace(0, maxDistance, nrOfLevels + 1)[:-1]
+    centers += (centers[1] - centers[0]) / 2
+    if prediction is not None:
+        error = np.mean(np.absolute(groundTruth-prediction))
+        distances = np.zeros((prediction.shape[0])) + np.Infinity
+        closestCenter = np.zeros([prediction.shape[0]], dtype=np.int)
+
+    closestCenterTruth = np.zeros([groundTruth.shape[0]], dtype=np.int)
+    distancesTruth = np.zeros((groundTruth.shape[0])) + np.Infinity
+
+    # Clustering
+    for j in range(centers.shape[0]):
+        if prediction is not None:
+            distance = np.absolute(prediction - centers[j])
+            closestCenter[np.where(np.squeeze(distance - distances) < 0)] = j
+            distances = np.minimum(distances, distance)
+
+        distance = np.absolute(groundTruth - centers[j])
+        closestCenterTruth[np.where(np.squeeze(distance - distancesTruth) < 0)] = j
+        distancesTruth = np.minimum(distancesTruth, distance)
+
+    linSpace = np.arange(1, 2*inputSignals.shape[1]+1, 2)
+
+    for e in electrodes:
+        fig, ax = plt.subplots(figsize=(8, 4 * centers.shape[0]), dpi=160 / np.log2(nrOfLevels))
+        ax.get_xaxis().set_visible(False)
+        ax.set_ylim([0, maxDistance])
+        # centers[1] - centers[0] is used to find the general distance between to center points
+        ax.set_yticks(centers - (centers[1] - centers[0]) / 2)
+        if prediction is not None:
+            ax.title.set_text("Average Error Distance: {} Pixels".format(error))
+        plt.grid()
+        for j in range(centers.shape[0]):
+            axes = ax.inset_axes([0.1, (0.1 + j) / nrOfLevels, 0.8, 0.8 / nrOfLevels])
+            axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
+            axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
+            meanTruthSignal = np.squeeze(np.mean(inputSignals[np.where(closestCenterTruth == j), :, e], axis=1))
+            nrOfTruths = inputSignals[np.where(closestCenterTruth == j), :, e].shape[1]
+            nrCorrectlyPredicted = 0
+            deviationTruthSignal = np.squeeze(np.std(inputSignals[np.where(closestCenterTruth == j), :, e], axis=1))
+            axes.plot(linSpace, meanTruthSignal, c=colour[j], lw=1.5,
+                      label=str(j) + ",({})".format(nrOfTruths))
+            axes.fill_between(linSpace, meanTruthSignal + deviationTruthSignal, meanTruthSignal - deviationTruthSignal,
+                              facecolor=np.squeeze(colour[j]), alpha=0.1)
+            if prediction is not None:
+                for n in range(centers.shape[0]):
+                    if np.logical_and(closestCenterTruth == j, closestCenter == n).any():
+                        nrPredicted = \
+                        inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)), :,
+                        e].shape[1]
+                        if n == j:
+                            nrCorrectlyPredicted = nrPredicted
+                        if 100 * nrPredicted / nrOfTruths >= percentageThresh:
+                            meanSignal = np.squeeze(np.mean(
+                                inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)),
+                                :, e], axis=1))
+                            deviationSignal = np.squeeze(np.std(
+                                inputSignals[np.where(np.logical_and(closestCenterTruth == j, closestCenter == n)),
+                                :, e], axis=1))
+                            axes.plot(linSpace, np.squeeze(meanSignal), linestyle='--', c=np.squeeze(colour[n]), lw=1,
+                                      label="{}-{},({}%)".format(j, n, round(100 * nrPredicted / nrOfTruths)))
+                            axes.fill_between(linSpace, meanSignal + deviationSignal, meanSignal - deviationSignal,
+                                              facecolor=np.squeeze(colour[n]), alpha=0.1)
+                axes.title.set_text("Coord: {}, Acc.: {}%".format(np.around(centers[j]),
+                                                                  round(nrCorrectlyPredicted / max(nrOfTruths, 1) * 100,
+                                                                        1)))
+            axes.set_ylim(bottom=-maxValue, top=maxValue)
+            axes.legend()
+        if saveBool:
+            fig.savefig(os.path.join(directory ,filename) + "_El{}.{}".format(str(electrodesUsedForTraining[e]), format),
+                        format=format, transparent=True)
+        else:
+            plt.show()
+        plt.close()
 
 
 def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str, prediction: np.ndarray = None,
@@ -304,9 +444,11 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
     @type format: String
     @param maxValue: The maximum value in mV which is shown.
     @type maxValue: Float
-    @param percentageThresh:
-    @type percentageThresh:
-    @param nrOfLevels: Number, which defines in how many classes the regression problem is split.
+    @param percentageThresh: Since signals are discretized into an arbitrary amount of levels, the legend may
+    become cluttered. To avoid this, only show signals whos prediction correspond to atleast this percentage
+    of the ground truth class.
+    @type percentageThresh: Float
+    @param nrOfLevels: Number, which defines in how many classes the regression problem is split. Has to be at least 2.
     @type nrOfLevels: Integer
     @param BoundariesX: Tuple of Integers, which determines the lower and upper bound of the area of the x-axis of the plot.
     @type BoundariesX: (Integer,Integer)
@@ -330,12 +472,14 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
         print("Second dimension must be of size 2 of the ground truth array.")
         return
     if prediction is not None:
-        prediction = prediction
         if groundTruth.shape[0] != prediction.shape[0] or groundTruth.shape[1] != prediction.shape[1]:
             print("Shape of predictions and ground truths do not coincide.")
             return
     if groundTruth.shape[0] != inputSignals.shape[0]:
         print("Number of ground truths does not coincide with number of samples.")
+        return
+    if nrOfLevels < 2:
+        print("Need at least two levels.")
         return
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
@@ -373,6 +517,8 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
         closestCenter = np.zeros(prediction.shape[0], dtype=np.int)
     closestCenterTruth = np.zeros(groundTruth.shape[0], dtype=np.int)
     distancesTruth = np.zeros(groundTruth.shape[0]) + np.Infinity
+
+    #Clustering
     for j in range(centers.shape[1]):
         for i in range(centers.shape[0]):
             if prediction is not None:
