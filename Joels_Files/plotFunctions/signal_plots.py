@@ -13,7 +13,7 @@ def plotSignal(inputSignals: np.ndarray, groundTruth: np.ndarray,directory: str,
     """
     Visualises the signals.
 
-    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    @param inputSignals: 3d Tensor of the signals which have to be plotted. Shape has to be [#samples,#timestamps,
     #electrodes]
     @type inputSignals: Numpy Array
     @param directory: Directory where the plot has to be saved.
@@ -45,7 +45,7 @@ def plotHorizontalEyeMovement(eyeMovement: np.ndarray, groundTruth: np.ndarray,d
     """
     Visualises the horizontal eye movement.
 
-    @param eyeMovement: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps]
+    @param eyeMovement: 2d Tensor of the eye movements which have to be plotted. Shape has to be [#samples,#timestamps]
     @type eyeMovement: Numpy Array
     @param groundTruth: Ground truth label corresponding to the eye movement.
     @type groundTruth: Numpy Array
@@ -77,7 +77,7 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
     """
     Visualises and colour codes the signals according to ground truth and prediction.
 
-    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    @param inputSignals: 3d Tensor of the signals which have to be plotted. Shape has to be [#samples,#timestamps,
     #electrodes]
     @type inputSignals: Numpy Array
     @param groundTruth: Ground truth label for each sample.
@@ -261,7 +261,7 @@ def plotSignalAngle(inputSignals: np.ndarray, groundTruth: np.ndarray, directory
     """
     Visualises and colour codes the signals according to ground truth and prediction.
 
-    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    @param inputSignals: 3d Tensor of the signals which have to be plotted. Shape has to be [#samples,#timestamps,
     #electrodes]
     @type inputSignals: Numpy Array
     @param groundTruth: Ground truth label for each sample.
@@ -417,7 +417,7 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
     """
     Visualises and colour codes the signals according to ground truth and prediction.
 
-    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    @param inputSignals: 3d Tensor of the signals which have to be plotted. Shape has to be [#samples,#timestamps,
     #electrodes]
     @type inputSignals: Numpy Array
     @param groundTruth: Ground truth label for each sample.
@@ -566,7 +566,7 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
     """
     Visualises and colour codes the signals according to ground truth and prediction.
 
-    @param inputSignals: 3d Tensor of the signal which have to be plotted. Shape has to be [#samples,#timestamps,
+    @param inputSignals: 3d Tensor of the signals which have to be plotted. Shape has to be [#samples,#timestamps,
     #electrodes]
     @type inputSignals: Numpy Array
     @param groundTruth: Ground truth label for each sample.
