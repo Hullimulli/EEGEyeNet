@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import matplotlib.cm as cm
 from matplotlib.ticker import FormatStrFormatter
+import matplotlib.lines as mlines
 
 def visualizePredictionLR(groundTruth: np.ndarray, directory: str, prediction: np.ndarray,
                modelNames: list, filename: str = 'predictionVisualisation',
@@ -11,8 +12,8 @@ def visualizePredictionLR(groundTruth: np.ndarray, directory: str, prediction: n
     #Checks
     groundTruth = groundTruth.ravel()
 
-    if prediction.ndim != 4:
-        print("Need a 4 dimensional array as prediction.")
+    if prediction.ndim != 3:
+        print("Need a 3 dimensional array as prediction.")
         return
     if groundTruth.shape[0] != prediction.shape[2]:
         print("Shapes of predictions and ground truths do not coincide.")
@@ -26,9 +27,42 @@ def visualizePredictionLR(groundTruth: np.ndarray, directory: str, prediction: n
     if not os.path.isdir(directory):
         print("Directory does not exist.")
         return
+    if not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
+        print("Ground truth contains unforseen labels.")
 
-    pass
-    #TODO
+    lefts = np.atleast_1d(np.squeeze(np.argwhere(groundTruth == 0)))
+    rights = np.atleast_1d(np.squeeze(np.argwhere(groundTruth == 1)))
+    cmap = cm.get_cmap(colourMap)
+    colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
+    yAxis = np.arange(groundTruth.shape[0]) / 2
+
+    fig = plt.figure()
+    plt.tick_params(
+        axis='x',  # changes apply to the x-axis
+        which='both',  # both major and minor ticks are affected
+        bottom=False,  # ticks along the bottom edge are off
+        top=False,  # ticks along the top edge are off
+        labelbottom=False)  # labels along the bottom edge are off
+    plt.tick_params(
+        axis='y',  # changes apply to the y-axis
+        which='both',  # both major and minor ticks are affected
+        left=False,  # ticks along the bottom edge are off  # ticks along the top edge are off
+        labelleft=False)  # labels along the bottom edge are off
+    x_patch = mlines.Line2D([], [],color='black', label='Right', marker='x',linestyle='None')
+    o_patch = mlines.Line2D([], [],color='black', label='Left', marker='o',linestyle='None')
+    plt.ylim(-0.1,groundTruth.shape[0]/2-0.45)
+    for i, modelName in enumerate(modelNames):
+        plt.scatter((i + 1)*(np.mean(prediction[i, :, lefts],axis=1).astype(np.int)-0.5)/len(modelNames), yAxis[lefts],  color=colour[i], marker='o',label=modelName)
+        plt.scatter((i + 1)*(np.mean(prediction[i, :, rights],axis=1).astype(np.int)-0.5)/len(modelNames), yAxis[rights],  marker='x', color=colour[i])
+    handles, labels = plt.gca().get_legend_handles_labels()
+    handles.extend([x_patch, o_patch])
+    plt.legend(handles=handles)
+    if saveBool:
+        fig.savefig(os.path.join(directory,filename) + ".{}".format(format), format=format, transparent=True)
+    else:
+        plt.show()
+    plt.close()
+    del fig
 
 def visualizePredictionPosition(groundTruth: np.ndarray, directory: str, prediction: np.ndarray,
                 modelNames: list, filename: str = 'predictionVisualisation',
@@ -287,7 +321,7 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
         y = np.mean(prediction[i, :, :], axis=0)
         x = (np.arange(y.shape[0]) - len(modelNames) / 2) / groundTruth.shape[0] + pos
         sigmaAmp = np.std(prediction[i, :, :], axis=0)
-        plt.errorbar(x, y, yerr=sigmaAmp, color=colour[i], fmt='.k', label=modelName)
+        plt.errorbar(x, y, yerr=sigmaAmp, color=colour[i], label=modelName)
         for j in range(x.shape[0]):
             plt.plot(np.array([x[j], (np.arange(groundTruth.shape[0])[j] - len(modelNames) / 2) / groundTruth.shape[0]]),
                      np.array([y[j], groundTruth[j]]), c=colourLight[i])
