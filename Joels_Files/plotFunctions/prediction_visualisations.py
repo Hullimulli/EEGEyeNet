@@ -4,10 +4,24 @@ import os
 import matplotlib.cm as cm
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib.lines as mlines
+from config import config
 
-def visualizePredictionLR(groundTruth: np.ndarray, directory: str, prediction: np.ndarray,
-               modelNames: list, filename: str = 'predictionVisualisation',
-               format: str = 'pdf', saveBool: bool = True, colourMap: str = "nipy_spectral"):
+def getVisualisation(groundTruth: np.ndarray, prediction: np.ndarray, modelName: str,anglePartBool: bool = False):
+    if config['task'] == "LR_task":
+        return visualizePredictionLR(groundTruth=groundTruth[:30],prediction=prediction[:,:,:30],modelNames=[modelName],directory="./",saveBool=False)
+    elif config['task'] == "Direction_task":
+        if not anglePartBool:
+            return visualizePredictionAmplitude(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
+        return visualizePredictionAngle(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
+    elif config['task'] == "Position_task":
+        return visualizePredictionPosition(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
+    else:
+        print("Task visualisation not yet implemented.")
+        return
+
+def visualizePredictionLR(groundTruth: np.ndarray, prediction: np.ndarray, modelNames: list,
+            directory: str, filename: str = 'predictionVisualisation',
+            format: str = 'pdf', saveBool: bool = True, colourMap: str = "nipy_spectral"):
 
     #Checks
     groundTruth = groundTruth.ravel()
@@ -48,19 +62,25 @@ def visualizePredictionLR(groundTruth: np.ndarray, directory: str, prediction: n
         which='both',  # both major and minor ticks are affected
         left=False,  # ticks along the bottom edge are off  # ticks along the top edge are off
         labelleft=False)  # labels along the bottom edge are off
-    x_patch = mlines.Line2D([], [],color='black', label='Right', marker='x',linestyle='None')
-    o_patch = mlines.Line2D([], [],color='black', label='Left', marker='o',linestyle='None')
+    x_patch = mlines.Line2D([], [],color='black', label='GT Right', marker='x',linestyle='None')
+    o_patch = mlines.Line2D([], [],color='black', label='GT Left', marker='o',linestyle='None')
     plt.ylim(-0.1,groundTruth.shape[0]/2-0.45)
+    plt.xlim(-0.1,1.1)
+    unitType = np.int
+    if len(modelNames) == 1:
+        unitType = np.float
     for i, modelName in enumerate(modelNames):
-        plt.scatter((i + 1)*(np.mean(prediction[i, :, lefts],axis=1).astype(np.int)-0.5)/len(modelNames), yAxis[lefts],  color=colour[i], marker='o',label=modelName)
-        plt.scatter((i + 1)*(np.mean(prediction[i, :, rights],axis=1).astype(np.int)-0.5)/len(modelNames), yAxis[rights],  marker='x', color=colour[i])
+        plt.scatter((i + 1)*(np.mean(prediction[i, :, lefts]+0.5,axis=1).astype(unitType)-np.array(0.5).astype(unitType))/len(modelNames),
+                    yAxis[lefts],  color=colour[i], marker='o',label=modelName)
+        plt.scatter((i + 1)*(np.mean(prediction[i, :, rights]+0.5,axis=1).astype(unitType)-np.array(0.5).astype(unitType))/len(modelNames),
+                    yAxis[rights],  marker='x', color=colour[i])
     handles, labels = plt.gca().get_legend_handles_labels()
     handles.extend([x_patch, o_patch])
     plt.legend(handles=handles)
     if saveBool:
         fig.savefig(os.path.join(directory,filename) + ".{}".format(format), format=format, transparent=True)
     else:
-        plt.show()
+        return plt
     plt.close()
     del fig
 
@@ -85,7 +105,7 @@ def visualizePredictionPosition(groundTruth: np.ndarray, directory: str, predict
     @type filename: String
     @param format: Format of the save file.
     @type format: String
-    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @param saveBool: If True, the plot will be saved. Else it will be returned.
     @type saveBool: Bool
     @param colourMap: Matplotlib colour map for the plot.
     @type colourMap: String
@@ -144,7 +164,7 @@ def visualizePredictionPosition(groundTruth: np.ndarray, directory: str, predict
     if saveBool:
         fig.savefig(os.path.join(directory,filename) + ".{}".format(format), format=format, transparent=True)
     else:
-        plt.show()
+        return plt
     plt.close()
 
 def visualizePredictionAngle(groundTruth: np.ndarray, directory: str, prediction: np.ndarray,
@@ -167,7 +187,7 @@ def visualizePredictionAngle(groundTruth: np.ndarray, directory: str, prediction
     @type filename: String
     @param format: Format of the save file.
     @type format: String
-    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @param saveBool: If True, the plot will be saved. Else it will be returned.
     @type saveBool: Bool
     @param colourMap: Matplotlib colour map for the plot.
     @type colourMap: String
@@ -246,7 +266,7 @@ def visualizePredictionAngle(groundTruth: np.ndarray, directory: str, prediction
     if saveBool:
         fig.savefig(os.path.join(directory,filename) + ".{}".format(format), format=format, transparent=True)
     else:
-        plt.show()
+        return plt
     plt.close()
 
 def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, prediction: np.ndarray,modelNames: list,
@@ -268,7 +288,7 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
     @type filename: String
     @param format: Format of the save file.
     @type format: String
-    @param saveBool: If True, the plot will be saved. Else it will be shown.
+    @param saveBool: If True, the plot will be saved. Else it will be returned.
     @type saveBool: Bool
     @param colourMap: Matplotlib colour map for the plot.
     @type colourMap: String
@@ -330,6 +350,6 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
     if saveBool:
         fig.savefig(os.path.join(directory,filename) + ".{}".format(format), format=format, transparent=True)
     else:
-        plt.show()
+        return plt
     plt.close()
     del fig
