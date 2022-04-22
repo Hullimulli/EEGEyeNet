@@ -5,9 +5,10 @@ import math
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
-from config import config
+from config import config, create_folder
 from hyperparameters import all_models
 import os
+from utils import IOHelper
 
 
 # return boolean arrays with length corresponding to n_samples
@@ -92,8 +93,21 @@ def try_models(trainX, trainY, ids, models, N=5, scoring=None, scale=False, save
     np.savetxt(config['model_dir']+'/runs'+save_trail+'.csv', all_runs, fmt='%s', delimiter=',', header='Model,Score,Runtime', comments='')
     np.savetxt(config['model_dir']+'/statistics'+save_trail+'.csv', statistics, fmt='%s', delimiter=',', header='Model,Mean_score,Std_score,Mean_runtime,Std_runtime', comments='')
 
-def benchmark(trainX, trainY):
-    np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing']], fmt='%s')
+def benchmark():
+
+    #Logging
+    create_folder()
+    logging.basicConfig(filename=config['info_log'], level=logging.INFO)
+    logging.info('Started the Logging')
+    logging.info(f"Using {config['framework']}")
+    start_time = time.time()
+
+    #Load the data
+    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, config['electrodes'].astype(np.int)-1]
+    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+
+
+    np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing'], np.array2string(config['electrodes'])], fmt='%s')
     models = all_models[config['task']][config['dataset']][config['preprocessing']]
 
     ids = trainY[:, 0]
@@ -127,3 +141,6 @@ def benchmark(trainX, trainY):
             raise ValueError("This task cannot be predicted (is not implemented yet) with the given dataset.")
     else:
         raise NotImplementedError(f"Task {config['task']} is not implemented yet.")
+
+    logging.info("--- Runtime: %s seconds ---" % (time.time() - start_time))
+    logging.info('Finished Logging')

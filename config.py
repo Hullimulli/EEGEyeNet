@@ -2,6 +2,7 @@
 # let's keep it here to have a clean code on other methods that we try
 import time
 import os
+import numpy as np
 config = dict()
 
 ##################################################################
@@ -12,14 +13,18 @@ config = dict()
 # 'LR_task' (dataset: 'antisaccade'):
 # 'Direction_task' (dataset: 'dots' or 'processing_speed'): dots = "Large Grid Dataset" and processing_speed = "Visual Symbol Search"
 # 'Position_task' (dataset: 'dots'):
-config['task'] = 'Direction_task'
+config['task'] = 'Position_task'
 config['dataset'] = 'dots'
 config['preprocessing'] = 'min'  # or min
 config['feature_extraction'] = False # must be set to True for ML_models operating on feature extracted data
-config['include_ML_models'] = True 
-config['include_DL_models'] = False     
+config['include_ML_models'] = False
+config['include_DL_models'] = True
 config['include_your_models'] = False 
-config['include_dummy_models'] = True 
+config['include_dummy_models'] = False
+
+#WandB
+config['project'] = 'eegeye'
+config['entity'] = 'hullimulli'
 
 ##################################################################
 ##################################################################
@@ -29,8 +34,8 @@ config['include_dummy_models'] = True
 # Where experiment results are stored.
 config['log_dir'] = './runs/'
 # Path to training, validation and test data folders.
-config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
-#config['data_dir'] = '/itet-stor/kjoel/net_scratch/data/'
+#config['data_dir'] = '/Users/Hullimulli/Documents/ETHNonSync/SA2/data/'
+config['data_dir'] = '/itet-stor/kjoel/net_scratch/data/'
 # Path of root
 config['root_dir'] = '.'
 # Retrain or load already trained
@@ -57,7 +62,8 @@ config['framework'] = 'tensorflow' # pytorch or tensorflow
 config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
-
+config['electrodes'] = np.arange(129)+1
+#config['electrodes'] = np.array([1,32])
 
 ##################################################################
 ##################################################################

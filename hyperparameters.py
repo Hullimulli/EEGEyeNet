@@ -236,7 +236,7 @@ our_ML_dummy_models = {
 
 nb_models = 1
 batch_size = 64
-input_shape = (1, 258) if config['feature_extraction'] else (500, 129)
+input_shape = (1, 258) if config['feature_extraction'] else (500, len(config['electrodes']))
 depth = 12
 epochs = 50
 verbose = True

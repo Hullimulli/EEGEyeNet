@@ -6,6 +6,7 @@ from utils.tables_utils import print_table
 from Joels_Files.AnalEyeZor import AnalEyeZor
 import pandas as pd
 import numpy as np
+from benchmark import benchmark
 from utils import IOHelper
 from tqdm import tqdm
 
@@ -19,7 +20,7 @@ def main():
     # Setting up logging
 
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = True
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -258,7 +259,7 @@ def main():
 
 
     if not local:
-
+        benchmark()
         def train(filename,network,electrodes,prep,task,trainBool=True):
             dataset = "dots"
             if task == "LR_task":
@@ -289,7 +290,7 @@ def main():
         top7 = np.array([1,17,32,38,121,125,128])
         sideFronts = np.array([1,2,3,8,9,14,17,21,22,23,25,26,27,32,33,38,43,120,121,122,123,125,128])
 
-        train("LR_Top2_signalAnalysis", ["PyramidalCNN"], top2Amp, 'min',"LR_task")
+        #train("LR_Top2_signalAnalysis", ["PyramidalCNN"], top2Amp, 'min',"LR_task")
         #PFI("LRMin_InceptionTime_All/", ["InceptionTime"],1 + np.arange(129), 'min', "LR_task",trainBool=False,trail=False)
         #train("LR_All",["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], 1 + np.arange(129), 'min', "LR_task")
 
@@ -312,7 +313,7 @@ def main():
         #PFI("Position_All/", ["Xception"], 1 + np.arange(129), 'min',"Position_task", trainBool=False, trail=False)
 
         #train("LR_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"LR_task")
-        #train("Position_Top2_Amplitude", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Amp, 'min',"Position_task")
+        #train("Position_Top2_Amplitude", ["PyramidalCNN"], top2Amp, 'min',"LR_task")
         #train("LR_Top2_Angular", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top2Ang, 'min',"LR_task")
         #train("LR_Top4", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top4, 'min',"LR_task")
         #train("LR_Top7", ["InceptionTime", "EEGNet", "CNN", "PyramidalCNN", "Xception"], top7, 'min',"LR_task")

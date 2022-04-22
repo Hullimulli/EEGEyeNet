@@ -3,7 +3,12 @@ import tensorflow.keras as keras
 from keras.callbacks import CSVLogger
 import numpy as np
 import logging
-from config import config 
+from config import config
+import wandb
+from wandb.keras import WandbCallback
+from tqdm import tqdm
+from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
+import matplotlib.pyplot as plt
 
 class prediction_history(tf.keras.callbacks.Callback):
     """
@@ -66,9 +71,39 @@ class BaseNet:
         #csv_logger = CSVLogger(config['batches_log'], append=True, separator=';')
         #ckpt_dir = config['model_dir'] + '/best_models/' + config['model'] + '_nb_{}_'.format(self.model_number) + 'best_model.h5'
         #ckpt = tf.keras.callbacks.ModelCheckpoint(ckpt_dir, verbose=1, monitor='val_loss', save_best_only=True, mode='auto')
+
+        # W&B Init
+        run = wandb.init(project=config['project'], entity=config['entity'])
+        wandb.run.name = config['task'] + '_' + str(self) + "_model_nb_{}_".format(str(self.model_number)) + wandb.run.name
+        wandb.config = {
+            "model_name": str(self) + '_run_' + str(self.model_number),
+            "learning_rate": config['learning_rate'],
+            "epochs": self.epochs,
+            "batch_size": self.batch_size,
+            "task": config['task']
+        }
+
         early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=20)
-        hist = self.model.fit(X_train, y_train, verbose=2, batch_size=self.batch_size, validation_data=(X_val, y_val),
-                                  epochs=self.epochs, callbacks=[early_stop])
+        for i in tqdm(range(self.epochs)):
+
+            hist = self.model.fit(X_train, y_train, verbose=2, batch_size=self.batch_size, validation_data=(X_val, y_val),
+                                    epochs=i+1, callbacks=[early_stop], initial_epoch=i)
+            #W&B Logs
+            logs = {str(key): value[0] for key, value in hist.history.items()}
+            prediction = np.squeeze(self.model.predict(X_val))
+            if self.loss == "angle-loss":
+                addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                     prediction=np.expand_dims(prediction,axis=(0,1)),
+                                                     modelName="Model",anglePartBool=True)),
+                            "epoch": i}
+            else:
+                addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                     prediction=np.expand_dims(prediction,axis=(0,1)),
+                                                     modelName="Model",anglePartBool=False)),
+                            "epoch": i}
+            wandb.log({**logs,**addLogs})
+            plt.close('all')
+        run.finish()
 
     def predict(self, testX):
         return self.model.predict(testX)
