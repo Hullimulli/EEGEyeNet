@@ -1,11 +1,9 @@
 import tensorflow as tf
 import tensorflow.keras as keras
-from keras.callbacks import CSVLogger
 import numpy as np
 import logging
 from config import config
 import wandb
-from wandb.keras import WandbCallback
 from tqdm import tqdm
 from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
 import matplotlib.pyplot as plt
