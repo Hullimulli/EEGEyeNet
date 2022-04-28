@@ -103,11 +103,12 @@ def benchmark():
     start_time = time.time()
 
     #Load the data
-    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, config['electrodes'].astype(np.int)-1]
+    electrodeIndices = np.array(config['electrodes']).astype(np.int)
+    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, electrodeIndices-1]
     trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
 
 
-    np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing'], np.array2string(config['electrodes'])], fmt='%s')
+    np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing'], np.array2string(electrodeIndices)], fmt='%s')
     models = all_models[config['task']][config['dataset']][config['preprocessing']]
 
     ids = trainY[:, 0]

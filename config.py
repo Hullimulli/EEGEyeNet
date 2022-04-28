@@ -2,7 +2,6 @@
 # let's keep it here to have a clean code on other methods that we try
 import time
 import os
-import numpy as np
 config = dict()
 
 ##################################################################
@@ -62,8 +61,8 @@ config['framework'] = 'tensorflow' # pytorch or tensorflow
 config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
-config['electrodes'] = np.arange(129)+1
-#config['electrodes'] = np.array([1,32])
+config['electrodes'] = range(1,130)
+#config['electrodes'] = [1,32]
 
 ##################################################################
 ##################################################################

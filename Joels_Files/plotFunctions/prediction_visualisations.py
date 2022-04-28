@@ -314,7 +314,7 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
         print("Directory does not exist.")
         return
 
-    cmap = cm.get_cmap('nipy_spectral')
+    cmap = cm.get_cmap(colourMap)
     colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
     colourLight = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
     colourLight[:, 3] = 0.35
@@ -341,7 +341,7 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
         y = np.mean(prediction[i, :, :], axis=0)
         x = (np.arange(y.shape[0]) - len(modelNames) / 2) / groundTruth.shape[0] + pos
         sigmaAmp = np.std(prediction[i, :, :], axis=0)
-        plt.errorbar(x, y, yerr=sigmaAmp, color=colour[i], label=modelName)
+        plt.errorbar(x, y, yerr=sigmaAmp, color=colour[i], label=modelName, fmt='o', linestyle="None")
         for j in range(x.shape[0]):
             plt.plot(np.array([x[j], (np.arange(groundTruth.shape[0])[j] - len(modelNames) / 2) / groundTruth.shape[0]]),
                      np.array([y[j], groundTruth[j]]), c=colourLight[i])
