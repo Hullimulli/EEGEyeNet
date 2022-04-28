@@ -100,12 +100,12 @@ class BaseNet:
                     addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
                                                          prediction=np.expand_dims(prediction,axis=(0,1)),
                                                          modelName="Model",anglePartBool=True)),
-                                "epoch": i}
+                                "epoch": i+1}
                 else:
                     addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
                                                          prediction=np.expand_dims(prediction,axis=(0,1)),
                                                          modelName="Model",anglePartBool=False)),
-                                "epoch": i}
+                                "epoch": i+1}
                 wandb.log({**logs,**addLogs})
                 plt.close('all')
 

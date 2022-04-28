@@ -9,6 +9,7 @@ from DL_Models.torch_models.torch_utils.training import train_loop, validation_l
 import wandb
 from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 class Prediction_history:
     """
@@ -140,7 +141,7 @@ class BaseNet(nn.Module):
         }
 
         # Train the model 
-        for t in range(epochs):
+        for t in tqdm(range(epochs)):
             logging.info("-------------------------------")
             logging.info(f"Epoch {t+1}")
             # Run through training and validation set  
@@ -158,14 +159,14 @@ class BaseNet(nn.Module):
                                                                              prediction=np.expand_dims(prediction,
                                                                                                        axis=(0, 1)),
                                                                              modelName="Model", anglePartBool=True)),
-                               "epoch": t}
+                               "epoch": t+1}
                 else:
                     logs = {"train_loss": train_loss_epoch,"val_loss": val_loss_epoch,
                             "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
                                                                              prediction=np.expand_dims(prediction,
                                                                                                        axis=(0, 1)),
                                                                              modelName="Model", anglePartBool=False)),
-                               "epoch": t}
+                               "epoch": t+1}
                 addLogs = {}
                 if config['LR_task']:
                     addLogs = {"train_acc": train_acc_epoch, "val_acc": val_acc_epoch}
