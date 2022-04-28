@@ -7,6 +7,22 @@ import matplotlib.lines as mlines
 from config import config
 
 def getVisualisation(groundTruth: np.ndarray, prediction: np.ndarray, modelName: str,anglePartBool: bool = False):
+
+    """
+    Returns the visualisation for the task specified in the config file for one model.
+
+    @param groundTruth: Ground truth labels.
+    @type groundTruth: Numpy Array
+    @param prediction: Prediction of the model.
+    @type prediction: Numpy Array
+    @param modelName: Name of the model for the legend.
+    @type modelName: String
+    @param anglePartBool: If True, the angle visualisation is returned for the direction task.
+    @type anglePartBool: Bool
+    @return: The generated matplotlib plot.
+    @rtype: -
+    """
+
     if config['task'] == "LR_task":
         return visualizePredictionLR(groundTruth=groundTruth[:30],prediction=prediction[:,:,:30],modelNames=[modelName],
                                      directory="./",saveBool=False, colourMap="cool")
@@ -26,6 +42,28 @@ def getVisualisation(groundTruth: np.ndarray, prediction: np.ndarray, modelName:
 def visualizePredictionLR(groundTruth: np.ndarray, prediction: np.ndarray, modelNames: list,
             directory: str, filename: str = 'predictionVisualisation',
             format: str = 'pdf', saveBool: bool = True, colourMap: str = "nipy_spectral"):
+    """
+    Plots whether the average prediction of a network was left or right with a ground truth corresponding marker.
+
+    @param groundTruth: Ground truth label for each sample.
+    @type groundTruth: Numpy Array
+    @param directory: Directory where the plot has to be saved.
+    @type directory: String
+    @param prediction: Predicted label for each sample. If None, the plot is based only on the ground truth. Shape is
+    [#architectures,#models,#predictions]
+    @type prediction: Numpy Array
+    @param modelNames: List of the names of all models.
+    @type modelNames: List of Strings
+    @param filename: Name of the file as which the plot will be saved.
+    @type filename: String
+    @param format: Format of the save file.
+    @type format: String
+    @param saveBool: If True, the plot will be saved. Else it will be returned.
+    @type saveBool: Bool
+    @param colourMap: Matplotlib colour map for the plot.
+    @type colourMap: String
+    """
+
 
     #Checks
     groundTruth = groundTruth.ravel()
