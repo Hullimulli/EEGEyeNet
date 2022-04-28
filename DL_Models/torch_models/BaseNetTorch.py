@@ -6,7 +6,9 @@ import pandas as pd
 from config import config 
 import logging
 from DL_Models.torch_models.torch_utils.training import train_loop, validation_loop
-
+import wandb
+from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
+import matplotlib.pyplot as plt
 
 class Prediction_history:
     """
@@ -125,6 +127,18 @@ class BaseNet(nn.Module):
         #metrics = {'train_loss':[], 'val_loss':[], 'train_acc':[], 'val_acc':[]} if config['task'] == 'prosaccade-clf' else {'train_loss':[], 'val_loss':[]}
         best_val_loss = sys.maxsize # For early stopping 
         patience = 0
+
+        # W&B Init
+        run = wandb.init(project=config['project'], entity=config['entity'])
+        wandb.run.name = config['task'] + '_' + str(self) + "_model_nb_{}_".format(str(self.model_number)) + wandb.run.name
+        wandb.config = {
+            "model_name": str(self) + '_run_' + str(self.model_number),
+            "learning_rate": config['learning_rate'],
+            "epochs": self.epochs,
+            "batch_size": self.batch_size,
+            "task": config['task']
+        }
+
         # Train the model 
         for t in range(epochs):
             logging.info("-------------------------------")
@@ -133,6 +147,31 @@ class BaseNet(nn.Module):
             if not self.early_stopped:
                 train_loss_epoch, train_acc_epoch = train_loop(train_dataloader, self.float(), self.loss, self.loss_fn, optimizer)
                 val_loss_epoch, val_acc_epoch = validation_loop(validation_dataloader, self.float(), self.loss, self.loss_fn)
+
+                # W&B Logs
+                x_val = next(iter(validation_dataloader))[0].numpy()
+                y_val = next(iter(validation_dataloader))[1].numpy()
+                prediction = np.squeeze(self.model.predict(x_val))
+                if self.loss == "angle-loss":
+                    logs = {"train_loss": train_loss_epoch,"val_loss": val_loss_epoch,
+                            "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                                             prediction=np.expand_dims(prediction,
+                                                                                                       axis=(0, 1)),
+                                                                             modelName="Model", anglePartBool=True)),
+                               "epoch": t}
+                else:
+                    logs = {"train_loss": train_loss_epoch,"val_loss": val_loss_epoch,
+                            "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                                             prediction=np.expand_dims(prediction,
+                                                                                                       axis=(0, 1)),
+                                                                             modelName="Model", anglePartBool=False)),
+                               "epoch": t}
+                addLogs = {}
+                if config['LR_task']:
+                    addLogs = {"train_acc": train_acc_epoch, "val_acc": val_acc_epoch}
+                wandb.log({**logs, **addLogs})
+                plt.close('all')
+
                 #metrics['train_loss'].append(train_loss_epoch)
                 #metrics['val_loss'].append(val_loss_epoch)
                 #if config['task'] == 'prosaccade-clf':
@@ -152,6 +191,7 @@ class BaseNet(nn.Module):
                     best_val_loss = val_loss_epoch
                     logging.info(f"Improved validation loss to: {best_val_loss}")
                     patience = 0
+        run.finish()
                     
     def predict(self, X):
         tensor_X = torch.tensor(X).float()

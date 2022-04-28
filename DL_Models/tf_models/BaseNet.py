@@ -7,6 +7,7 @@ import wandb
 from tqdm import tqdm
 from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
 import matplotlib.pyplot as plt
+import sys
 
 class prediction_history(tf.keras.callbacks.Callback):
     """
@@ -29,6 +30,7 @@ class BaseNet:
         self.model_number = model_number
         self.input_shape = input_shape
         self.output_shape = output_shape
+        self.early_stopped = False
         self.loss = loss 
         self.nb_channels = input_shape[1]
         self.timesamples = input_shape[0]
@@ -81,26 +83,44 @@ class BaseNet:
             "task": config['task']
         }
 
-        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=20)
+        best_val_loss = sys.maxsize  # For early stopping
+        val_loss_epoch = sys.maxsize
+        patience = 0
         for i in tqdm(range(self.epochs)):
+            logging.info("-------------------------------")
+            logging.info(f"Epoch {i+1}")
+            if not self.early_stopped:
+                hist = self.model.fit(X_train, y_train, verbose=2, batch_size=self.batch_size, validation_data=(X_val, y_val),
+                                        epochs=i+1, initial_epoch=i)
+                #W&B Logs
+                logs = {str(key): value[0] for key, value in hist.history.items()}
+                val_loss_epoch = logs['val_loss']
+                prediction = np.squeeze(self.model.predict(X_val))
+                if self.loss == "angle-loss":
+                    addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                         prediction=np.expand_dims(prediction,axis=(0,1)),
+                                                         modelName="Model",anglePartBool=True)),
+                                "epoch": i}
+                else:
+                    addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
+                                                         prediction=np.expand_dims(prediction,axis=(0,1)),
+                                                         modelName="Model",anglePartBool=False)),
+                                "epoch": i}
+                wandb.log({**logs,**addLogs})
+                plt.close('all')
 
-            hist = self.model.fit(X_train, y_train, verbose=2, batch_size=self.batch_size, validation_data=(X_val, y_val),
-                                    epochs=i+1, callbacks=[early_stop], initial_epoch=i)
-            #W&B Logs
-            logs = {str(key): value[0] for key, value in hist.history.items()}
-            prediction = np.squeeze(self.model.predict(X_val))
-            if self.loss == "angle-loss":
-                addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                     prediction=np.expand_dims(prediction,axis=(0,1)),
-                                                     modelName="Model",anglePartBool=True)),
-                            "epoch": i}
-            else:
-                addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                     prediction=np.expand_dims(prediction,axis=(0,1)),
-                                                     modelName="Model",anglePartBool=False)),
-                            "epoch": i}
-            wandb.log({**logs,**addLogs})
-            plt.close('all')
+            # Impementation of early stopping
+            if config['early_stopping'] and not self.early_stopped:
+                if patience > config['patience']:
+                    logging.info(f"Early stopping the model after {i} epochs")
+                    self.early_stopped = True
+                if val_loss_epoch >= best_val_loss:
+                    logging.info(f"Validation loss did not improve, best was {best_val_loss}")
+                    patience +=1
+                else:
+                    best_val_loss = val_loss_epoch
+                    logging.info(f"Improved validation loss to: {best_val_loss}")
+                    patience = 0
         run.finish()
 
     def predict(self, testX):
