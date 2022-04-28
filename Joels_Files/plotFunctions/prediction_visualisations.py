@@ -8,13 +8,17 @@ from config import config
 
 def getVisualisation(groundTruth: np.ndarray, prediction: np.ndarray, modelName: str,anglePartBool: bool = False):
     if config['task'] == "LR_task":
-        return visualizePredictionLR(groundTruth=groundTruth[:30],prediction=prediction[:,:,:30],modelNames=[modelName],directory="./",saveBool=False)
+        return visualizePredictionLR(groundTruth=groundTruth[:30],prediction=prediction[:,:,:30],modelNames=[modelName],
+                                     directory="./",saveBool=False, colourMap="cool")
     elif config['task'] == "Direction_task":
         if not anglePartBool:
-            return visualizePredictionAmplitude(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
-        return visualizePredictionAngle(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
+            return visualizePredictionAmplitude(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],
+                                                modelNames=[modelName],directory="./",saveBool=False, colourMap="cool")
+        return visualizePredictionAngle(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],
+                                        modelNames=[modelName],directory="./",saveBool=False, colourMap="cool")
     elif config['task'] == "Position_task":
-        return visualizePredictionPosition(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],modelNames=[modelName],directory="./",saveBool=False)
+        return visualizePredictionPosition(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],
+                                           modelNames=[modelName],directory="./",saveBool=False, colourMap="cool")
     else:
         print("Task visualisation not yet implemented.")
         return
