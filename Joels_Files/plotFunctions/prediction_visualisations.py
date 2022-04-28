@@ -320,7 +320,7 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
     colourLight[:, 3] = 0.35
 
     fig = plt.figure()
-    plt.scatter((np.arange(groundTruth.shape[0]) - len(modelNames) / 2) / groundTruth.shape[0], groundTruth,
+    plt.scatter((np.arange(groundTruth.shape[0])) / groundTruth.shape[0]  - 0.5, groundTruth,
                 c='black', marker='x', label="Ground Truth")
     plt.axis('auto')
     plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%d px'))
@@ -330,20 +330,20 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
         bottom=False,  # ticks along the bottom edge are off
         top=False,  # ticks along the top edge are off
         labelbottom=False)  # labels along the bottom edge are off
-    plt.xlim((-len(modelNames) / 2 - 1.5, len(modelNames) / 2 + 1.5))
+    plt.xlim((-int(len(modelNames)/2) - 0.6, int((len(modelNames)+1)/2) + 0.6))
     plt.ylim(Boundaries)
     for i, modelName in enumerate(modelNames):
         # We want the ground truth to be in the middle.
-        if i < len(modelNames) / 2:
-            pos = i + 1
+        if i >= int(len(modelNames) / 2 + 1) - 1:
+            pos = i + 0.5 - int(len(modelNames)/2)
         else:
-            pos = i - len(modelNames)
+            pos = i - 0.5 - int(len(modelNames)/2)
         y = np.mean(prediction[i, :, :], axis=0)
-        x = (np.arange(y.shape[0]) - len(modelNames) / 2) / groundTruth.shape[0] + pos
+        x = np.arange(y.shape[0]) / groundTruth.shape[0] + pos
         sigmaAmp = np.std(prediction[i, :, :], axis=0)
         plt.errorbar(x, y, yerr=sigmaAmp, color=colour[i], label=modelName, fmt='o', linestyle="None")
         for j in range(x.shape[0]):
-            plt.plot(np.array([x[j], (np.arange(groundTruth.shape[0])[j] - len(modelNames) / 2) / groundTruth.shape[0]]),
+            plt.plot(np.array([x[j], (np.arange(groundTruth.shape[0])[j]) / groundTruth.shape[0] - 0.5]),
                      np.array([y[j], groundTruth[j]]), c=colourLight[i])
 
     plt.legend()
