@@ -12,7 +12,7 @@ config = dict()
 # 'LR_task' (dataset: 'antisaccade'):
 # 'Direction_task' (dataset: 'dots' or 'processing_speed'): dots = "Large Grid Dataset" and processing_speed = "Visual Symbol Search"
 # 'Position_task' (dataset: 'dots'):
-config['task'] = 'Direction_task'
+config['task'] = 'Position_task'
 config['dataset'] = 'dots'
 config['preprocessing'] = 'min'  # or min
 config['feature_extraction'] = False # must be set to True for ML_models operating on feature extracted data
