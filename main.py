@@ -6,9 +6,10 @@ from utils.tables_utils import print_table
 from Joels_Files.AnalEyeZor import AnalEyeZor
 import pandas as pd
 import numpy as np
-from benchmark import benchmark
+from benchmark import benchmark, split
 from utils import IOHelper
 from tqdm import tqdm
+from Joels_Files.mathFunctions import electrode_math
 
 """
 Main entry of the program
@@ -259,7 +260,21 @@ def main():
 
 
     if not local:
-        benchmark()
+        #benchmark()
+        def PFINew():
+            pathlist = electrode_math.modelPathsFromBenchmark(
+                "/home/kjoel/SA/runs/1651674753_Position_task_dots_min",
+                ["PyramidalCNN","CNN","InceptionTime","Xception","EEGNet"])
+            trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+            trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0]
+            ids = trainY[:, 0]
+            trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
+            trainY = trainY[:,1:]
+            losses = electrode_math.PFI(inputSignals=trainX[valIndices], groundTruth=trainY[valIndices], loss='mse', directory="./",filename="PFI_Pos",
+                                        modelPaths=pathlist, iterations=5)
+
+        PFINew()
+
         def train(filename,network,electrodes,prep,task,trainBool=True):
             dataset = "dots"
             if task == "LR_task":
