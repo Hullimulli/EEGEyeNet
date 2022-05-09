@@ -5,6 +5,7 @@ from config import config
 from tqdm import tqdm
 from DL_Models.tf_models.utils.losses import angle_loss
 from sklearn.metrics import mean_squared_error, log_loss
+from hyperparameters import batch_size
 
 def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list) -> list:
     #Check
@@ -46,6 +47,7 @@ def PFITensorflow(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths:
 
     base = 0
     print("Evaluating Base.")
+
     for modelPath in tqdm(modelPaths):
         model = keras.models.load_model(modelPath, compile=False)
         prediction = model(inputSignals)
@@ -67,7 +69,7 @@ def PFITensorflow(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths:
             np.random.shuffle(inputSignalsShuffled[:, :, j])
             for modelPath in modelPaths:
                 model = keras.models.load_model(modelPath, compile=False)
-                prediction = model(inputSignalsShuffled)
+                prediction = model.predict(inputSignalsShuffled,batch_size=batch_size)
                 if loss == "angle-loss":
                     electrodeLosses[j] += angle_loss(np.squeeze(groundTruth), np.squeeze(prediction))
                 elif loss == 'bce':
