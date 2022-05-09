@@ -264,7 +264,7 @@ def main():
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674753_Position_task_dots_min",
-                ["PyramidalCNN","CNN","InceptionTime","Xception","EEGNet"])
+                ["PyramidalCNN","CNN","InceptionTime","Xception"])
             trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
             trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0]
             ids = trainY[:, 0]
