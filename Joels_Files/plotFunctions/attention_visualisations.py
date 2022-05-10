@@ -41,7 +41,8 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
     grads = grads.numpy()
     if normalizeBool:
         for i in range(grads.shape[0]):
-            grads[i] = grads[i] / np.max(grads[i])
+            if np.max(grads[i]) != 0:
+                grads[i] = grads[i] / np.max(grads[i])
 
 
     model.layers[layer].activation = oldActivationType

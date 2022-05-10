@@ -119,8 +119,8 @@ def gradientPFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: l
     for modelPath in tqdm(modelPaths):
         if config['framework'] == 'tensorflow':
             model = keras.models.load_model(modelPath, compile=False)
-        baseModel = np.mean(saliencyMap(model=model,loss=loss,inputSignals=inputSignals,groundTruth=groundTruth),axis=0,keepdims=True)
-        baseModel = np.mean(baseModel,axis=1)
+        baseModel = np.nanmean(saliencyMap(model=model,loss=loss,inputSignals=inputSignals,groundTruth=groundTruth),axis=0,keepdims=True)
+        baseModel = np.nanmean(baseModel,axis=1)
         base += np.squeeze(baseModel)
 
     base = base / len(modelPaths)
