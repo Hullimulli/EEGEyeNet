@@ -6,8 +6,9 @@ from tqdm import tqdm
 from DL_Models.tf_models.utils.losses import angle_loss
 from sklearn.metrics import mean_squared_error, log_loss
 from hyperparameters import batch_size
+from ..plotFunctions.attention_visualisations import saliencyMap
 
-def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list) -> list:
+def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list, angleArchitectureBool: bool = False) -> list:
     #Check
     if not os.path.isdir(experimentFolderPath):
         raise Exception("Directory does not exist.")
@@ -20,6 +21,10 @@ def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list) -> l
             for j in architectures:
                 if i.lower().startswith(j.lower()):
                     pathList.append(os.path.join(checkpointPath,k,i))
+                if angleArchitectureBool and i.lower().startswith('_angle'+j.lower()):
+                    pathList.append(os.path.join(checkpointPath, k, i))
+                elif not angleArchitectureBool and i.lower().startswith('_amplitude'+j.lower()):
+                    pathList.append(os.path.join(checkpointPath, k, i))
     return pathList
 
 def PFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
@@ -50,7 +55,7 @@ def PFITensorflow(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths:
 
     for modelPath in tqdm(modelPaths):
         model = keras.models.load_model(modelPath, compile=False)
-        prediction = model(inputSignals)
+        prediction = prediction = model.predict(inputSignals,batch_size=batch_size)
         if loss == "angle-loss":
             base += angle_loss(np.squeeze(groundTruth), np.squeeze(prediction))
         elif loss == 'bce':
@@ -91,3 +96,38 @@ def PFITorch(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list
     #TODO
 
     pass
+
+
+def gradientPFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
+                  filename: str = "PFI") -> np.ndarray:
+
+    #Checks
+    if inputSignals.ndim != 3:
+        raise Exception("Need a 3 dimensional array as input.")
+    if not os.path.isdir(directory):
+        raise Exception("Directory does not exist.")
+    for modelPath in modelPaths:
+        if not os.path.isdir(modelPath):
+            raise Exception("Model path {} does not exist.".format(modelPath))
+
+
+    base = np.zeros([inputSignals.shape[2]])
+    print("Evaluating PFI.")
+    if config['framework'] == 'tensorflow':
+        import tensorflow.keras as keras
+
+    for modelPath in tqdm(modelPaths):
+        if config['framework'] == 'tensorflow':
+            model = keras.models.load_model(modelPath, compile=False)
+        baseModel = np.mean(saliencyMap(model=model,loss=loss,inputSignals=inputSignals,groundTruth=groundTruth),axis=0,keepdims=True)
+        baseModel = np.mean(baseModel,axis=1)
+        base += np.squeeze(baseModel)
+
+    base = base / len(modelPaths)
+
+    csvTable = np.zeros([base.shape[0],2])
+    csvTable[:,1] = base
+    csvTable[:,0] = np.arange(base.shape[0])+1
+    np.savetxt(os.path.join(directory,filename + '.csv'), csvTable, fmt='%s', delimiter=',',
+               header='Electrode Number,Avg. Gradient', comments='')
+    return base

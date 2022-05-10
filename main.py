@@ -263,14 +263,14 @@ def main():
         #benchmark()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
-                "/home/kjoel/SA/runs/1651674753_Position_task_dots_min",
-                ["PyramidalCNN","CNN","InceptionTime","Xception"])
+                "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",
+                ["PyramidalCNN","CNN","InceptionTime","Xception"],angleArchitectureBool=True)
             trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
             trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0]
             ids = trainY[:, 0]
             trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
-            trainY = trainY[:,1:]
-            losses = electrode_math.PFI(inputSignals=trainX[valIndices], groundTruth=trainY[valIndices], loss='mse', directory="./",filename="PFI_Pos",
+            trainY = trainY[:,2]
+            losses = electrode_math.PFI(inputSignals=trainX[valIndices], groundTruth=trainY[valIndices], loss='angle-loss', directory="./",filename="PFI_Angle",
                                         modelPaths=pathlist, iterations=5)
 
         PFINew()
