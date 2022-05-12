@@ -260,7 +260,7 @@ def main():
 
 
     if not local:
-        #benchmark()
+        benchmark()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",
@@ -273,7 +273,7 @@ def main():
             losses = electrode_math.PFI(inputSignals=trainX[valIndices], groundTruth=trainY[valIndices], loss='mse', directory="./",filename="PFI_Amplitude",
                                         modelPaths=pathlist, iterations=5)
 
-        PFINew()
+        #PFINew()
 
         def train(filename,network,electrodes,prep,task,trainBool=True):
             dataset = "dots"

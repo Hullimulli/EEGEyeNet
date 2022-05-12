@@ -23,7 +23,7 @@ config['include_dummy_models'] = False
 
 #WandB
 config['project'] = 'eegeye'
-config['entity'] = 'hullimulli'
+config['entity'] = 'deepeye'
 
 ##################################################################
 ##################################################################
@@ -61,8 +61,8 @@ config['framework'] = 'tensorflow' # pytorch or tensorflow
 config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
-config['electrodes'] = range(1,130)
-#config['electrodes'] = [1,32]
+#config['electrodes'] = range(1,130)
+config['electrodes'] = [1,32]
 
 ##################################################################
 ##################################################################
