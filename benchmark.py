@@ -112,8 +112,8 @@ def benchmark():
 
     #Load the data
     electrodeIndices = np.array(config['electrodes']).astype(np.int)
-    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:1000, :, electrodeIndices-1]
-    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:1000]
+    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, electrodeIndices-1]
+    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
 
 
     np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing'], np.array2string(electrodeIndices)], fmt='%s')
