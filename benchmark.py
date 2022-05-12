@@ -9,6 +9,7 @@ from config import config, create_folder
 from hyperparameters import all_models
 import os
 from utils import IOHelper
+import wandb
 
 
 # return boolean arrays with length corresponding to n_samples
@@ -60,6 +61,11 @@ def try_models(trainX, trainY, ids, models, N=5, scoring=None, scale=False, save
             logging.info(trainer)
             start_time = time.time()
 
+            # W&B Init
+            run = wandb.init(project=config['project'], entity=config['entity'])
+            wandb.run.name = config['task'] + '_' + name + "_model_nb_{}_".format(str(N)) + wandb.run.name
+            wandb.config.update({**model[1]})
+
             # Taking care of saving and loading
             path = config['checkpoint_dir'] + 'run' + str(i + 1) + '/'
             if not os.path.exists(path):
@@ -85,6 +91,8 @@ def try_models(trainX, trainY, ids, models, N=5, scoring=None, scale=False, save
 
             logging.info("--- Score: %s " % score)
             logging.info("--- Runtime: %s for seconds ---" % runtime)
+
+            run.finish()
         
         model_runs = np.array(model_runs)
         model_scores, model_runtimes = model_runs[:,0], model_runs[:,1]
@@ -104,8 +112,8 @@ def benchmark():
 
     #Load the data
     electrodeIndices = np.array(config['electrodes']).astype(np.int)
-    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, electrodeIndices-1]
-    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
+    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:1000, :, electrodeIndices-1]
+    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:1000]
 
 
     np.savetxt(config['model_dir']+'/config.csv', [config['task'], config['dataset'], config['preprocessing'], np.array2string(electrodeIndices)], fmt='%s')

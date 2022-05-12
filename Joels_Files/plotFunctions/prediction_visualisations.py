@@ -36,8 +36,7 @@ def getVisualisation(groundTruth: np.ndarray, prediction: np.ndarray, modelName:
         return visualizePredictionPosition(groundTruth=groundTruth[:10],prediction=prediction[:,:,:10],
                                            modelNames=[modelName],directory="./",saveBool=False, colourMap="cool")
     else:
-        print("Task visualisation not yet implemented.")
-        return
+        raise Exception("Task visualisation not yet implemented.")
 
 def visualizePredictionLR(groundTruth: np.ndarray, prediction: np.ndarray, modelNames: list,
             directory: str, filename: str = 'predictionVisualisation',
@@ -69,22 +68,18 @@ def visualizePredictionLR(groundTruth: np.ndarray, prediction: np.ndarray, model
     groundTruth = groundTruth.ravel()
 
     if prediction.ndim != 3:
-        print("Need a 3 dimensional array as prediction.")
-        return
+        raise Exception("Need a 3 dimensional array as prediction.")
     if groundTruth.shape[0] != prediction.shape[2]:
-        print("Shapes of predictions and ground truths do not coincide.")
-        return
+        raise Exception("Shapes of predictions and ground truths do not coincide.")
     if len(modelNames) != prediction.shape[0]:
-        print("Shapes of predictions and modelNames do not coincide.")
-        return
+        raise Exception("Shapes of predictions and modelNames do not coincide.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "nipy_spectral"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
     if not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
-        print("Ground truth contains unforseen labels.")
+        raise Exception("Ground truth contains unforseen labels.")
 
     lefts = np.atleast_1d(np.squeeze(np.argwhere(groundTruth == 0)))
     rights = np.atleast_1d(np.squeeze(np.argwhere(groundTruth == 1)))
@@ -160,20 +155,16 @@ def visualizePredictionPosition(groundTruth: np.ndarray, directory: str, predict
 
     #Checks
     if prediction.ndim != 4:
-        print("Need a 4 dimensional array as prediction.")
-        return
+        raise Exception("Need a 4 dimensional array as prediction.")
     if groundTruth.shape[0] != prediction.shape[2] or groundTruth.shape[1] != prediction.shape[3]:
-        print("Shapes of predictions and ground truths do not coincide.")
-        return
+        raise Exception("Shapes of predictions and ground truths do not coincide.")
     if len(modelNames) != prediction.shape[0]:
-        print("Shapes of predictions and modelNames do not coincide.")
-        return
+        raise Exception("Shapes of predictions and modelNames do not coincide.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "nipy_spectral"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     cmap = cm.get_cmap(colourMap)
     colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))
@@ -238,20 +229,16 @@ def visualizePredictionAngle(groundTruth: np.ndarray, directory: str, prediction
     #Checks
     groundTruth = groundTruth.ravel()
     if prediction.ndim != 3:
-        print("Need a 3 dimensional array as prediction.")
-        return
+        raise Exception("Need a 3 dimensional array as prediction.")
     if groundTruth.shape[0] != prediction.shape[2]:
-        print("Shapes of predictions and ground truths do not coincide.")
-        return
+        raise Exception("Shapes of predictions and ground truths do not coincide.")
     if len(modelNames) != prediction.shape[0]:
-        print("Shapes of predictions and modelNames do not coincide.")
-        return
+        raise Exception("Shapes of predictions and modelNames do not coincide.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "nipy_spectral"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     #Plotting
     fig = plt.figure()
@@ -341,20 +328,16 @@ def visualizePredictionAmplitude(groundTruth: np.ndarray, directory: str, predic
     #Checks
     groundTruth = groundTruth.ravel()
     if prediction.ndim != 3:
-        print("Need a 3 dimensional array as prediction.")
-        return
+        raise Exception("Need a 3 dimensional array as prediction.")
     if groundTruth.shape[0] != prediction.shape[2]:
-        print("Shapes of predictions and ground truths do not coincide.")
-        return
+        raise Exception("Shapes of predictions and ground truths do not coincide.")
     if len(modelNames) != prediction.shape[0]:
-        print("Shapes of predictions and modelNames do not coincide.")
-        return
+        raise Exception("Shapes of predictions and modelNames do not coincide.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "nipy_spectral"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     cmap = cm.get_cmap(colourMap)
     colour = cmap((1 + np.arange(len(modelNames))) / len(modelNames))

@@ -38,8 +38,7 @@ def electrodeBarPlot(values: np.ndarray , directory: str, yAxisLabel: str = "Los
         print("Invalid format. Using pdf.")
         format = 'pdf'
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     #Generating Plot
     values[np.where(values < 0)] = 0
@@ -75,8 +74,7 @@ def electrodePlot(colourValues: np.ndarray, directory: str, filename: str = "Ele
         np.append(colourValues, np.zeros([colourValues.shape[0], 3 - colourValues.shape[1]]), axis=1)
     colourValues = colourValues[:129,:3]
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     #Generating Plot
     pathOfFile = os.path.join(Path(__file__).resolve().parent,"filesForPlot")
@@ -172,11 +170,9 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
         print("Epsilon too small, using epsilon = 1.")
         epsilon = 1
     if values.shape[0] != 129:
-        print("Wrong array dimensions.")
-        return
+        raise Exception("Wrong array dimensions.")
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     #Generating Plots
     pathOfFile = os.path.join(Path(__file__).resolve().parent, "filesForPlot")

@@ -114,34 +114,28 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
     electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
     del electrodesToPlot
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
-            print("Shape of predictions and ground truths do not coincide.")
-            return
+            raise Exception("Shape of predictions and ground truths do not coincide.")
     if groundTruth.shape[0] != inputSignals.shape[0]:
-        print("Number of ground truths does not coincide with number of samples.")
-        return
+        raise Exception("Number of ground truths does not coincide with number of samples.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "gist_rainbow"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
     binaryLabelsBool = False
     if np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
         binaryLabelsBool = True
         groundTruth = groundTruth.astype(np.int)
     if not plotSignalsSeperatelyBool and not binaryLabelsBool:
-        print("Ground truth contains unforseen labels.")
-        return
+        raise Exception("Ground truth contains unforseen labels.")
     if prediction is not None and not plotSignalsSeperatelyBool:
         if not np.all(np.logical_or(prediction == 0, prediction == 1)):
-            print("Predictions contains unforseen labels.")
-            return
+            raise Exception("Predictions contains unforseen labels.")
         else:
             prediction = prediction.astype(np.int)
     if plotSignalsSeperatelyBool:
@@ -179,8 +173,7 @@ def plotSignalLR(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: s
         predictionLabel = np.zeros(groundTruth.shape).astype(np.int)
         colour = np.atleast_2d(cmap(np.array([0, 1]))[1])
     else:
-        print("Some unskilled monkeys were at work here... report that they get fired.")
-        return
+        raise Exception("Some unskilled monkeys were at work here... report that they get fired.")
 
     if meanBool:
         for e in electrodes:
@@ -298,26 +291,21 @@ def plotSignalAngle(inputSignals: np.ndarray, groundTruth: np.ndarray, directory
     electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
     del electrodesToPlot
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
-            print("Shape of predictions and ground truths do not coincide.")
-            return
+            raise Exception("Shape of predictions and ground truths do not coincide.")
     if nrOfLevels < 2:
-        print("Need at least two levels.")
-        return
+        raise Exception("Need at least two levels.")
     if groundTruth.shape[0] != inputSignals.shape[0]:
-        print("Number of ground truths does not coincide with number of samples.")
-        return
+        raise Exception("Number of ground truths does not coincide with number of samples.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "gist_rainbow"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     cmap = cm.get_cmap(colourMap)
     colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
@@ -456,26 +444,21 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
     electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
     del electrodesToPlot
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
-            print("Shape of predictions and ground truths do not coincide.")
-            return
+            raise Exception("Shape of predictions and ground truths do not coincide.")
     if nrOfLevels < 2:
-        print("Need at least two levels.")
-        return
+        raise Exception("Need at least two levels.")
     if groundTruth.shape[0] != inputSignals.shape[0]:
-        print("Number of ground truths does not coincide with number of samples.")
-        return
+        raise Exception("Number of ground truths does not coincide with number of samples.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "gist_rainbow"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     #Plot Generation
     cmap = cm.get_cmap(colourMap)
@@ -507,13 +490,14 @@ def plotSignalAmplitude(inputSignals: np.ndarray, groundTruth: np.ndarray, direc
         fig, ax = plt.subplots(figsize=(8, 4 * centers.shape[0]), dpi=160 / np.log2(nrOfLevels))
         ax.get_xaxis().set_visible(False)
         ax.set_ylim([0, maxDistance])
+        ax.set_ylabel('px')
         # centers[1] - centers[0] is used to find the general distance between to center points
         ax.set_yticks(centers - (centers[1] - centers[0]) / 2)
         if prediction is not None:
             ax.title.set_text("Average Error Distance: {} Pixels".format(error))
         plt.grid()
         for j in range(centers.shape[0]):
-            axes = ax.inset_axes([0.1, (0.1 + j) / nrOfLevels, 0.8, 0.8 / nrOfLevels])
+            axes = ax.inset_axes([0.15, (0.1 + j) / nrOfLevels, 0.8, 0.8 / nrOfLevels])
             axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
             axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
             meanTruthSignal = np.squeeze(np.mean(inputSignals[np.where(closestCenterTruth == j), :, e], axis=1))
@@ -607,30 +591,23 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
     electrodesUsedForTraining = electrodesUsedForTraining.astype(np.int)
     del electrodesToPlot
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     if groundTruth.ndim != 2:
-        print("Need a 2 dimensional array as ground truth.")
-        return
+        raise Exception("Need a 2 dimensional array as ground truth.")
     if groundTruth.shape[1] != 2:
-        print("Second dimension must be of size 2 of the ground truth array.")
-        return
+        raise Exception("Second dimension must be of size 2 of the ground truth array.")
     if prediction is not None:
         if groundTruth.shape[0] != prediction.shape[0] or groundTruth.shape[1] != prediction.shape[1]:
-            print("Shape of predictions and ground truths do not coincide.")
-            return
+            raise Exception("Shape of predictions and ground truths do not coincide.")
     if groundTruth.shape[0] != inputSignals.shape[0]:
-        print("Number of ground truths does not coincide with number of samples.")
-        return
+        raise Exception("Number of ground truths does not coincide with number of samples.")
     if nrOfLevels < 2:
-        print("Need at least two levels.")
-        return
+        raise Exception("Need at least two levels.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "gist_rainbow"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     cmap = cm.get_cmap(colourMap)
     colour = cmap(np.arange(nrOfLevels) / (nrOfLevels - 1))
@@ -683,17 +660,21 @@ def plotSignalPosition(inputSignals: np.ndarray, groundTruth: np.ndarray, direct
         ax.invert_yaxis()
         ax.set_xticks(np.arange(0, centers.shape[0] + 1) * (BoundariesX[1] - BoundariesX[0]) / centers.shape[0] + BoundariesX[0])
         ax.set_yticks(np.arange(0, centers.shape[1] + 1) * (BoundariesY[1] - BoundariesY[0]) / centers.shape[1] + BoundariesY[0])
+        ax.set_xlabel('px')
+        ax.set_ylabel('px')
         if prediction is not None:
             ax.title.set_text("Average Error Distance: {}px".format(error))
         plt.grid()
         for i in range(centers.shape[1]):
             for j in range(centers.shape[0]):
                 axes = ax.inset_axes(
-                    [(centers[j, i, 0] - BoundariesX[0]) / (BoundariesX[1] - BoundariesX[0]) - 0.8 / (2 * centers.shape[0]),
+                    [(centers[j, i, 0] - BoundariesX[0]) / (BoundariesX[1] - BoundariesX[0]) - 0.7 / (2 * centers.shape[0]),
                      np.absolute(
                          1 - (centers[j, i, 1] - BoundariesY[0]) / (BoundariesY[1] - BoundariesY[0]) - 0.8 / (2 * centers.shape[1])),
                      0.8 / centers.shape[0], 0.8 / centers.shape[1]])
                 index = j + i * centers.shape[0]
+                axes.get_xaxis().set_major_formatter(FormatStrFormatter('%d ms'))
+                axes.get_yaxis().set_major_formatter(FormatStrFormatter('%d mv'))
                 groundTruthSignal = np.squeeze(np.mean(inputSignals[np.where(closestCenterTruth == index), :, e], axis=1))
                 nrOfTruths = inputSignals[np.where(closestCenterTruth == index), :, e].shape[1]
                 nrCorrectlyPredicted = 0
@@ -771,33 +752,27 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
     """
     # Checks
     if eyeMovement.ndim != 2:
-        print("Need a 2 dimensional array as input.")
-        return
+        raise Exception("Need a 2 dimensional array as input.")
     groundTruth = groundTruth.ravel()
     if prediction is not None:
         prediction = prediction.ravel()
         if groundTruth.shape[0] != prediction.shape[0]:
-            print("Shape of predictions and ground truths do not coincide.")
-            return
+            raise Exception("Shape of predictions and ground truths do not coincide.")
     if groundTruth.shape[0] != eyeMovement.shape[0]:
-        print("Number of ground truths does not coincide with number of samples.")
-        return
+        raise Exception("Number of ground truths does not coincide with number of samples.")
     if colourMap not in plt.colormaps():
         print("Colourmap does not exist in Matplotlib. Using 'gist_rainbow'.")
         colourMap = "gist_rainbow"
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
     binaryLabelsBool = True
     if not np.all(np.logical_or(groundTruth == 0, groundTruth == 1)):
         binaryLabelsBool = False
     if not plotSignalsSeperatelyBool and not binaryLabelsBool:
-        print("Ground truth contains unforseen labels.")
-        return
+        raise Exception("Ground truth contains unforseen labels.")
     if prediction is not None and not plotSignalsSeperatelyBool:
         if not np.all(np.logical_or(prediction == 0, prediction == 1)):
-            print("Predictions contains unforseen labels.")
-            return
+            raise Exception("Predictions contains unforseen labels.")
     if plotSignalsSeperatelyBool:
         if eyeMovement.shape[0] > 100:
             print("Warning: You will generate a lot of plots.")
@@ -833,8 +808,7 @@ def plotEyeLR(eyeMovement: np.ndarray, groundTruth: np.ndarray, directory: str, 
         predictionLabel = np.zeros(groundTruth.shape).astype(np.int)
         colour = np.atleast_2d(cmap(np.array([0, 1]))[1])
     else:
-        print("Some unskilled monkeys were at work here... report that they get fired.")
-        return
+        raise Exception("Some unskilled monkeys were at work here... report that they get fired.")
 
     if meanBool:
         fig, ax = plt.subplots()

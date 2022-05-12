@@ -5,7 +5,7 @@ import logging
 from config import config
 import wandb
 from tqdm import tqdm
-from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
+from utils.wandbHelper import getPredictionVisualisations
 import matplotlib.pyplot as plt
 import sys
 
@@ -72,17 +72,6 @@ class BaseNet:
         #ckpt_dir = config['model_dir'] + '/best_models/' + config['model'] + '_nb_{}_'.format(self.model_number) + 'best_model.h5'
         #ckpt = tf.keras.callbacks.ModelCheckpoint(ckpt_dir, verbose=1, monitor='val_loss', save_best_only=True, mode='auto')
 
-        # W&B Init
-        run = wandb.init(project=config['project'], entity=config['entity'])
-        wandb.run.name = config['task'] + '_' + str(self) + "_model_nb_{}_".format(str(self.model_number)) + wandb.run.name
-        wandb.config = {
-            "model_name": str(self) + '_run_' + str(self.model_number),
-            "learning_rate": config['learning_rate'],
-            "epochs": self.epochs,
-            "batch_size": self.batch_size,
-            "task": config['task']
-        }
-
         best_val_loss = sys.maxsize  # For early stopping
         val_loss_epoch = sys.maxsize
         patience = 0
@@ -94,20 +83,11 @@ class BaseNet:
                                         epochs=i+1, initial_epoch=i)
                 #W&B Logs
                 logs = {str(key): value[0] for key, value in hist.history.items()}
+                logs['epoch'] = i+1
                 val_loss_epoch = logs['val_loss']
-                prediction = np.squeeze(self.model.predict(X_val))
-                if self.loss == "angle-loss":
-                    addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                         prediction=np.expand_dims(prediction,axis=(0,1)),
-                                                         modelName="Model",anglePartBool=True)),
-                                "epoch": i+1}
-                else:
-                    addLogs = { "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                         prediction=np.expand_dims(prediction,axis=(0,1)),
-                                                         modelName="Model",anglePartBool=False)),
-                                "epoch": i+1}
+                prediction = np.squeeze(self.model.predict(X_val[:100]))
+                addLogs = getPredictionVisualisations(modelName=str(self.model),groundTruth=y_val[:100],prediction=prediction,loss=self.loss)
                 wandb.log({**logs,**addLogs})
-                plt.close('all')
 
             # Impementation of early stopping
             if config['early_stopping'] and not self.early_stopped:
@@ -121,7 +101,6 @@ class BaseNet:
                     best_val_loss = val_loss_epoch
                     logging.info(f"Improved validation loss to: {best_val_loss}")
                     patience = 0
-        run.finish()
 
     def predict(self, testX):
         return self.model.predict(testX)

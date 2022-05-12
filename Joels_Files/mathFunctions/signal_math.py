@@ -17,11 +17,9 @@ def pca(inputSignals: np.ndarray, filename: str, directory: str):
     """
     #Checks
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     if not os.path.isdir(directory):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
 
     eigenVectors = np.zeros([inputSignals.shape[1] ,inputSignals.shape[1] ,inputSignals.shape[2]])
     for i in tqdm(range(inputSignals.shape[2])):
@@ -61,16 +59,13 @@ def pcaDimReduction(inputSignals, file, dim=2, transformBackBool = True):
 
     #Checks
     if inputSignals.ndim != 3:
-        print("Need a 3 dimensional array as input.")
-        return
+        raise Exception("Need a 3 dimensional array as input.")
     if not os.path.isfile(file):
-        print("Directory does not exist.")
-        return
+        raise Exception("Directory does not exist.")
     v = np.load(file)
 
     if inputSignals.shape[1] != v.shape[1] or inputSignals.shape[2] != v.shape[2]:
-        print("Invalid shapes.")
-        return
+        raise Exception("Invalid shapes.")
     if config['framework'] == 'tensorflow':
         import tensorflow as fr
         z = np.transpose(fr.matmul(np.transpose(v), np.transpose(inputSignals)).numpy())
@@ -91,10 +86,4 @@ def pcaDimReduction(inputSignals, file, dim=2, transformBackBool = True):
         else:
             return z[:, :dim, :]
     else:
-        print("No valid framework selected.")
-        return
-
-
-def saliencyMap(inputSignals: np.ndarray, groundTruth: np.ndarray, directory: str, modelPath: str):
-    pass
-    #TODO
+        raise Exception("No valid framework selected.")
