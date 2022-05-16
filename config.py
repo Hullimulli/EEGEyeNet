@@ -12,7 +12,7 @@ config = dict()
 # 'LR_task' (dataset: 'antisaccade'):
 # 'Direction_task' (dataset: 'dots' or 'processing_speed'): dots = "Large Grid Dataset" and processing_speed = "Visual Symbol Search"
 # 'Position_task' (dataset: 'dots'):
-config['task'] = 'Direction_task'
+config['task'] = 'Position_task'
 config['dataset'] = 'dots'
 config['preprocessing'] = 'min'  # or min
 config['feature_extraction'] = False # must be set to True for ML_models operating on feature extracted data
@@ -22,7 +22,7 @@ config['include_your_models'] = False
 config['include_dummy_models'] = False
 
 #WandB
-config['project'] = 'eegeye'
+config['project'] = 'debug'
 config['entity'] = 'deepeye'
 
 ##################################################################
@@ -62,7 +62,7 @@ config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
 #config['electrodes'] = range(1,130)
-config['electrodes'] = [125,128]
+config['electrodes'] = [17,125,128]
 
 ##################################################################
 ##################################################################
