@@ -11,7 +11,7 @@ from Joels_Files.plotFunctions import prediction_visualisations
 import time
 from sklearn.metrics import mean_squared_error
 
-def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRuns=1, findZeroCrossingBool=False,
+def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRuns=1, findZeroCrossingBool=True,
                          movingAverageFilterLength=50, defaultCrossingValue=250):
     """
 
@@ -41,8 +41,8 @@ def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRu
     ids = tempY[:, 0]
     trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
     tempX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, electrodes.astype(np.int) - 1]
-    dataX = np.zeros([tempX.shape[0], 2 * tempX.shape[2]])
-
+    #dataX = np.zeros([tempX.shape[0], 2 * tempX.shape[2]])
+    dataX = np.zeros([tempX.shape[0], tempX.shape[2]])
     if findZeroCrossingBool:
         # Moving Average
         tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
@@ -56,8 +56,9 @@ def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRu
                     zerosCrossing = defaultCrossingValue
                 if zerosCrossing == 0:
                     zerosCrossing = defaultCrossingValue
-                dataX[j, 0 + i * 2] = np.mean(tempX[j, :zerosCrossing, i])
-                dataX[j, 1 + i * 2] = np.mean(tempX[j, zerosCrossing:, i])
+                #dataX[j, 0 + i * 2] = np.mean(tempX[j, :zerosCrossing, i])
+                #dataX[j, 1 + i * 2] = np.mean(tempX[j, zerosCrossing:, i])
+                dataX[j,i] = np.mean(tempX[j, zerosCrossing:, i])
         del tempXAvg
     else:
         for i in range(tempX.shape[2]):

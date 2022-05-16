@@ -183,7 +183,7 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
         values[np.where(values < 0)] = 0
     else:
         values -= np.min(values)
-    values = 10 * np.log(values + epsilon)
+    #values = 10 * np.log(values + epsilon)
     fig = plt.figure(figsize=figSize)
     #Generating outline dictionary for mne topoplot
     outlines = dict()
