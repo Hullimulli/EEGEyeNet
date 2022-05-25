@@ -26,19 +26,20 @@ def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list, angl
     #Check
     if not os.path.isdir(experimentFolderPath):
         raise Exception("Directory does not exist.")
-    pathList = list()
     checkpointPath = os.path.join(experimentFolderPath,"checkpoint")
     runs = [x for x in os.listdir(checkpointPath) if os.path.isdir(os.path.join(checkpointPath,x))]
-    for k in runs:
-        models = [x for x in os.listdir(os.path.join(checkpointPath,k)) if os.path.isdir(os.path.join(checkpointPath,k,x))]
+    nrOfNetworks = len(runs) * len(architectures)
+    pathList = [None] * nrOfNetworks
+    for k,run in enumerate(runs):
+        models = [x for x in os.listdir(os.path.join(checkpointPath,run)) if os.path.isdir(os.path.join(checkpointPath,run,x))]
         for i in models:
-            for j in architectures:
-                if i.lower().startswith(j.lower()):
-                    pathList.append(os.path.join(checkpointPath,k,i))
-                if angleArchitectureBool and i.lower().startswith('_angle'+j.lower()):
-                    pathList.append(os.path.join(checkpointPath, k, i))
-                elif not angleArchitectureBool and i.lower().startswith('_amplitude'+j.lower()):
-                    pathList.append(os.path.join(checkpointPath, k, i))
+            for j,architecture in enumerate(architectures):
+                if i.lower().startswith(architecture.lower()):
+                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
+                if angleArchitectureBool and i.lower().startswith('_angle'+architecture.lower()):
+                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
+                elif not angleArchitectureBool and i.lower().startswith('_amplitude'+architecture.lower()):
+                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
     return pathList
 
 def PFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
