@@ -62,7 +62,7 @@ config['learning_rate'] = 1e-4
 config['early_stopping'] = True
 config['patience'] = 20
 #config['electrodes'] = range(1,130)
-config['electrodes'] = [1,32]
+config['electrodes'] = [1,17,32]
 
 ##################################################################
 ##################################################################
