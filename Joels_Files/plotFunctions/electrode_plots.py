@@ -134,7 +134,8 @@ def colourCode(values: np.ndarray, electrodes: np.ndarray = np.arange(1,130), co
 
 def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', format: str = 'pdf',
              figSize: (float, float) = (7,4.5), saveBool: bool = True, cmap: str = 'Reds',
-             valueType: str = "Loss-Ratio", cutSmallerThanZeroBool: bool = True, epsilon: float = 0.01):
+             valueType: str = "Loss-Ratio", cutSmallerThanZeroBool: bool = True, epsilon: float = 0.01,
+             logScaleBool: bool = False):
     """
     Generates a topographic map of an EEG field based on the input values.
 
@@ -183,7 +184,8 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
         values[np.where(values < 0)] = 0
     else:
         values -= np.min(values)
-    #values = 10 * np.log(values + epsilon)
+    if logScaleBool:
+        values = 10 * np.log(values + epsilon)
     fig = plt.figure(figsize=figSize)
     #Generating outline dictionary for mne topoplot
     outlines = dict()
@@ -197,10 +199,12 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
     outlines['clip_origin'] = (0,0.07)
     im, cm = mne.viz.plot_topomap(np.squeeze(values),electrodePositions[3:132,:],outlines=outlines,show=False,cmap=cmap)
     clb = fig.colorbar(im)
-    if epsilon==1:
+    if epsilon==1 and logScaleBool:
         clb.ax.set_title("{} in Db".format(valueType))
-    else:
+    elif logScaleBool:
         clb.ax.set_title("10x Log of {}, eps={}".format(valueType,epsilon))
+    else:
+        clb.ax.set_title(valueType)
     if saveBool:
         fig.savefig(os.path.join(directory, filename) + ".{}".format(format), format=format, transparent=True)
     else:

@@ -35,11 +35,11 @@ def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list, angl
         for i in models:
             for j,architecture in enumerate(architectures):
                 if i.lower().startswith(architecture.lower()):
-                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
+                    pathList[j*len(runs)+k] = os.path.join(checkpointPath, run, i)
                 if angleArchitectureBool and i.lower().startswith('_angle'+architecture.lower()):
-                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
+                    pathList[j*len(runs)+k] = os.path.join(checkpointPath, run, i)
                 elif not angleArchitectureBool and i.lower().startswith('_amplitude'+architecture.lower()):
-                    pathList[j*len(architectures)+k] = os.path.join(checkpointPath, run, i)
+                    pathList[j*len(runs)+k] = os.path.join(checkpointPath, run, i)
     return pathList
 
 def PFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
@@ -191,7 +191,7 @@ def PFITorch(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list
 
 
 def gradientPFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
-                  filename: str = "PFI") -> np.ndarray:
+                  filename: str = "PFI", stepSize: int = 256) -> np.ndarray:
 
     #Checks
     if inputSignals.ndim != 3:
@@ -203,7 +203,7 @@ def gradientPFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: l
             raise Exception("Model path {} does not exist.".format(modelPath))
 
 
-    base = np.zeros([inputSignals.shape[2]])
+    base = np.zeros(inputSignals.shape[2])
     print("Evaluating PFI.")
     if config['framework'] == 'tensorflow':
         import tensorflow.keras as keras
@@ -211,11 +211,15 @@ def gradientPFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: l
     for modelPath in tqdm(modelPaths):
         if config['framework'] == 'tensorflow':
             model = keras.models.load_model(modelPath, compile=False)
-        baseModel = np.nanmean(saliencyMap(model=model,loss=loss,inputSignals=inputSignals,groundTruth=groundTruth),axis=0,keepdims=True)
-        baseModel = np.nanmean(baseModel,axis=1)
-        base += np.squeeze(baseModel)
+        baseModel = np.zeros(inputSignals.shape[2])
+        for step in range(int(inputSignals.shape[0] / stepSize)+1):
+            baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
+                                                          inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+                                                          groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
+                                              axis=0,keepdims=True),axis=1))
+        base += baseModel
 
-    base = base / len(modelPaths)
+    base = base / (len(modelPaths)*inputSignals.shape[0])
 
     csvTable = np.zeros([base.shape[0],2])
     csvTable[:,1] = base

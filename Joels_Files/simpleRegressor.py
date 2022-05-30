@@ -11,7 +11,7 @@ from Joels_Files.plotFunctions import prediction_visualisations
 import time
 from sklearn.metrics import mean_squared_error
 
-def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRuns=1, findZeroCrossingBool=True,
+def simpleDirectionRegressor(electrodes: list,regressor="SupportVectorMachine", nrOfRuns=1, findZeroCrossingBool=True,
                          movingAverageFilterLength=50, defaultCrossingValue=250):
     """
 
@@ -40,80 +40,81 @@ def simpleDirectionRegressor(electrodes,regressor="SupportVectorMachine", nrOfRu
     tempY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1]
     ids = tempY[:, 0]
     trainIndices, valIndices, testIndices = split(ids, 0.7, 0.15, 0.15)
-    tempX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, electrodes.astype(np.int) - 1]
-    #dataX = np.zeros([tempX.shape[0], 2 * tempX.shape[2]])
-    dataX = np.zeros([tempX.shape[0], tempX.shape[2]])
-    if findZeroCrossingBool:
-        # Moving Average
-        tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
+    predictionsAmp = np.zeros([len(electrodes),tempY[testIndices].shape[0]])
+    predictionsAng = np.zeros([len(electrodes),tempY[testIndices].shape[0]])
+    for nr,el in enumerate(electrodes):
+        tempX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:, :, el.astype(np.int) - 1]
+        dataX = np.zeros([tempX.shape[0], 2 * tempX.shape[2]])
+        #dataX = np.zeros([tempX.shape[0], tempX.shape[2]])
+        if findZeroCrossingBool:
+            # Moving Average
 
-        for i in range(tempX.shape[2]):
-            for j in range(tempX.shape[0]):
-                zerosCrossing = (np.where(np.diff(np.sign(tempXAvg[j, :, i] - np.mean(tempXAvg[j, :, i]))))[0])
-                if zerosCrossing.size != 0:
-                    zerosCrossing = zerosCrossing[np.argmin(np.absolute(zerosCrossing - defaultCrossingValue))]
-                else:
-                    zerosCrossing = defaultCrossingValue
-                if zerosCrossing == 0:
-                    zerosCrossing = defaultCrossingValue
-                #dataX[j, 0 + i * 2] = np.mean(tempX[j, :zerosCrossing, i])
-                #dataX[j, 1 + i * 2] = np.mean(tempX[j, zerosCrossing:, i])
-                dataX[j,i] = np.mean(tempX[j, zerosCrossing:, i])
-        del tempXAvg
-    else:
-        for i in range(tempX.shape[2]):
-            dataX[:, 0 + i * 2] = np.mean(tempX[:, :250, i], axis=1)
-            dataX[:, 1 + i * 2] = np.mean(tempX[:, 250:, i], axis=1)
-    dataY = np.zeros(tempY.shape)
-    dataY[:, 0] = tempY[:, 1]
-    dataY[:, 1] = np.cos(tempY[:, 2])
-    dataY[:, 2] = np.sin(tempY[:, 2])
-    del tempX
-    errorsAmp = np.zeros(nrOfRuns)
-    errorsAng = np.zeros(nrOfRuns)
-    trainingTime = np.zeros(nrOfRuns)
-    for i in tqdm(range(nrOfRuns)):
-        tic = time.time()
-        if regressor == "BayesianRidge" or regressor == "Bayesian Ridge":
-            regressor = "Bayesian Ridge"
-            regrAmp = BayesianRidge()
-            regrAngOne = BayesianRidge()
-            regrAngTwo = BayesianRidge()
-        elif regressor == "SupportVectorMachine" or regressor == "Support Vector Machine":
-            regressor = "Support Vector Machine"
-            regrAmp = svm.SVR(kernel="rbf")
-            regrAngOne = svm.SVR(kernel="rbf")
-            regrAngTwo = svm.SVR(kernel="rbf")
+            tempXAvg = convolve1d(tempX, np.ones(movingAverageFilterLength) / movingAverageFilterLength, axis=1)
+            for i in range(tempX.shape[2]):
+                for j in range(tempX.shape[0]):
+                    zerosCrossing = (np.where(np.diff(np.sign(tempXAvg[j, :, i] - np.mean(tempXAvg[j, :, i]))))[0])
+                    if zerosCrossing.size != 0:
+                        zerosCrossing = zerosCrossing[np.argmin(np.absolute(zerosCrossing - defaultCrossingValue))]
+                    else:
+                        zerosCrossing = defaultCrossingValue
+                    if zerosCrossing == 0:
+                        zerosCrossing = defaultCrossingValue
+                    dataX[j, 0 + i * 2] = np.mean(tempX[j, :zerosCrossing, i])
+                    dataX[j, 1 + i * 2] = np.mean(tempX[j, zerosCrossing:, i])
+                    #dataX[j,i] = np.mean(tempX[j, zerosCrossing:, i])
+            del tempXAvg
         else:
-            regressor = "Random Forest"
-            regrAmp = RandomForestRegressor()
-            regrAngOne = RandomForestRegressor()
-            regrAngTwo = RandomForestRegressor()
-        regrAmp.fit(dataX[trainIndices], dataY[trainIndices, 0])
-        regrAngOne.fit(dataX[trainIndices], dataY[trainIndices, 1])
-        regrAngTwo.fit(dataX[trainIndices], dataY[trainIndices, 2])
-        trainingTime[i] = time.time() - tic
-        predictionAmp = regrAmp.predict(dataX[testIndices])
-        predictionAngOne = regrAngOne.predict(dataX[testIndices])
-        predictionAngTwo = regrAngTwo.predict(dataX[testIndices])
-        predictionAng = np.arctan2(predictionAngTwo, predictionAngOne)
-        errorsAmp[i] = meanSquareError(dataY[testIndices, 0], predictionAmp)
-        errorsAng[i] = angleError(tempY[testIndices, 2], predictionAng) / np.pi * 180
+            for i in range(tempX.shape[2]):
+                dataX[:, 0 + i * 2] = np.mean(tempX[:, :250, i], axis=1)
+                dataX[:, 1 + i * 2] = np.mean(tempX[:, 250:, i], axis=1)
+        dataY = np.zeros(tempY.shape)
+        dataY[:, 0] = tempY[:, 1]
+        dataY[:, 1] = np.cos(tempY[:, 2])
+        dataY[:, 2] = np.sin(tempY[:, 2])
+        del tempX
+        errorsAmp = np.zeros(nrOfRuns)
+        errorsAng = np.zeros(nrOfRuns)
+        trainingTime = np.zeros(nrOfRuns)
+        for i in tqdm(range(nrOfRuns)):
+            tic = time.time()
+            if regressor == "BayesianRidge" or regressor == "Bayesian Ridge":
+                regressor = "Bayesian Ridge"
+                regrAmp = BayesianRidge()
+                regrAngOne = BayesianRidge()
+                regrAngTwo = BayesianRidge()
+            elif regressor == "SupportVectorMachine" or regressor == "Support Vector Machine":
+                regressor = "Support Vector Machine"
+                regrAmp = svm.SVR(kernel="rbf")
+                regrAngOne = svm.SVR(kernel="rbf")
+                regrAngTwo = svm.SVR(kernel="rbf")
+            else:
+                regressor = "Random Forest"
+                regrAmp = RandomForestRegressor()
+                regrAngOne = RandomForestRegressor()
+                regrAngTwo = RandomForestRegressor()
+            regrAmp.fit(dataX[trainIndices], dataY[trainIndices, 0])
+            regrAngOne.fit(dataX[trainIndices], dataY[trainIndices, 1])
+            regrAngTwo.fit(dataX[trainIndices], dataY[trainIndices, 2])
+            trainingTime[i] = time.time() - tic
+            predictionAmp = regrAmp.predict(dataX[testIndices])
+            predictionAngOne = regrAngOne.predict(dataX[testIndices])
+            predictionAngTwo = regrAngTwo.predict(dataX[testIndices])
+            predictionAng = np.arctan2(predictionAngTwo, predictionAngOne)
+            errorsAmp[i] = meanSquareError(dataY[testIndices, 0], predictionAmp)
+            errorsAng[i] = angleError(tempY[testIndices, 2], predictionAng)
+            predictionsAmp[nr] = predictionAmp
+            predictionsAng[nr] = predictionAng
 
-        prediction_visualisations.visualizePredictionAmplitude(groundTruth=(dataY[testIndices, 0])[:10],
-                                                           prediction=np.expand_dims(predictionAmp[:10],axis=(0,1)),directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",modelNames=["SVM"],filename="SVM_Amp_Vis")
-        prediction_visualisations.visualizePredictionAngle(groundTruth=(tempY[testIndices, 2])[:10],
-                                                           prediction=np.expand_dims(predictionAng[:10],axis=(0,1)),directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",modelNames=["SVM"],filename="SVM_Ang_Vis")
-
-    print(
-        "The Average Amplitude Error is {}\u00B1{}px using {}. Training time was {}\u00B1{}s".format(np.mean(errorsAmp),
-                                                                                                     np.std(errorsAmp),
-                                                                                                     regressor, np.mean(
-                trainingTime), np.std(trainingTime)))
-    print("The Average Angle Error is {}°\u00B1{}° using {}. Training time was {}\u00B1{}s".format(np.mean(errorsAng),
-                                                                                                   np.std(errorsAng),
-                                                                                                   regressor, np.mean(
+        print(
+            "The Average Amplitude Error is {}\u00B1{}px using {} with electrodes {}. Training time was {}\u00B1{}s".format(np.mean(errorsAmp),
+                                                                                                         np.std(errorsAmp),np.array2string(el),
+                                                                                                         regressor, np.mean(
+                    trainingTime), np.std(trainingTime)))
+        print("The Average Angle Error is {}°\u00B1{}rad using {} with electrodes {}. Training time was {}\u00B1{}s".format(np.mean(errorsAng),
+                                                                                                       np.std(errorsAng),np.array2string(el),
+                                                                                                       regressor, np.mean(
             trainingTime), np.std(trainingTime)))
+    return predictionsAmp, predictionsAng
 
 def meanSquareError(y,yPred):
     return np.sqrt(mean_squared_error(y, yPred.ravel()))

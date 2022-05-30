@@ -9,7 +9,7 @@ from Joels_Files.plotFunctions import electrode_plots
 from Joels_Files.simpleRegressor import simpleDirectionRegressor
 from Joels_Files.plotFunctions import signal_plots, prediction_visualisations, attention_visualisations
 from Joels_Files.mathFunctions import electrode_math
-from Joels_Files.helperFunctions import predictor
+from Joels_Files.helperFunctions import predictor, latex
 import pandas as pd
 
 def getTestIndices():
@@ -17,6 +17,12 @@ def getTestIndices():
     ids = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:, 0]
     train, val, test = split(ids, 0.7, 0.15, 0.15)
     return test
+
+def getValIndices():
+    from benchmark import split
+    ids = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:, 0]
+    train, val, test = split(ids, 0.7, 0.15, 0.15)
+    return val
 
 
 asdf = np.arange(129)
@@ -38,25 +44,28 @@ architectures = ["InceptionTime","EEGNet","PyramidalCNN","CNN","Xception"]
 
 
 
-tasks = ["DirectionTaskTop3","DirectionTaskTop2","DirectionTaskAll"]
-electrodeIndices = [np.array([17,125,128]),np.array([125,128]),np.arange(129)+1]
-for j,i in enumerate(tasks):
-    experimentPath = "/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/"+i
-    angleArchitectureBool=True
-    filename = "Ang_"+i[13:]
-    indices = np.squeeze(getTestIndices())
-    # trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,1]
-    trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices, :, :]
-    trainX = trainX[:, :, electrodeIndices[j] - 1]
-
-    predictions = predictor.savePredictions(filename=filename, savePath=directory, inputSignals=trainX,
-                              experimentFolderPath=experimentPath, architectures=architectures,
-                              angleArchitectureBool=angleArchitectureBool)
-    del trainX
-    trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices, 2]
-    prediction_visualisations.visualizePredictionAngle(directory=directory, groundTruth=trainY[:7],
-                                                       prediction=predictions[:, :, :7], modelNames=architectures,
-                                                       filename="PredVis_"+filename)
+# tasks = ["DirectionTaskTop3Old","DirectionTaskTop2Old","DirectionTaskTop3","DirectionTaskTop2"]
+# electrodeIndices = [np.array([1,17,32]),np.array([1,32]),np.array([17,125,128]),np.array([125,128])]
+# for j,i in enumerate(tasks):
+#     experimentPath = "/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/"+i
+#     angleArchitectureBool=True
+#     filename = "Ang_"+i[13:]
+#     indices = np.squeeze(getTestIndices())
+#     temp,predictionsSVM = simpleDirectionRegressor(electrodes=[electrodeIndices[j]])
+#     asdf = np.tile(predictionsSVM,(1,5,1))
+#     # trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,1]
+#     trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices, :, :]
+#     trainX = trainX[:, :, electrodeIndices[j] - 1]
+#
+#     predictions = predictor.savePredictions(filename=filename, savePath=directory, inputSignals=trainX,
+#                               experimentFolderPath=experimentPath, architectures=architectures,
+#                               angleArchitectureBool=angleArchitectureBool)
+#     del trainX
+#     trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices, 2]
+#     predictions = np.concatenate((predictions,np.tile(predictionsSVM,(1,5,1))))
+#     prediction_visualisations.visualizePredictionAngle(directory=directory, groundTruth=trainY[:7],
+#                                                        prediction=predictions[:, :, :7], modelNames=architectures + ["SVM"],
+#                                                        filename="PredVis_"+filename)
 
 
 #benchmark()
@@ -72,18 +81,18 @@ for j,i in enumerate(tasks):
 #rightOnlyIndices = np.squeeze(np.argwhere(np.absolute(IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:,2]) <= 1*np.pi/4))
 #simpleDirectionRegressor(electrodeIndices)
 #benchmark()
-#pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/1651674753_Position_task_dots_min",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=False)
-#indices = np.squeeze(getTestIndices())
-#trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,1]
-#trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices,:,:]
+pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
+indices = np.squeeze(getValIndices())
+trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,2]
+trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices,:,:]
 #trainX = trainX[:,:,electrodeIndices-1]
 
 
 #predictor.savePredictions(filename=filename,savePath=directory,inputSignals=trainX,experimentFolderPath=experimentPath,architectures=architectures,angleArchitectureBool=angleArchitectureBool)
 
 #losses = electrode_math.PFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory,modelPaths=[pathlist[0]],iterations=1,filename='PFI_Original')
-#base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='mse', directory=directory,modelPaths=pathlist)
-#electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Pos",cmap='Reds')
+base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
+electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
 #model = keras.models.load_model(pathlist[0], compile=False)
 #grads = attention_visualisations.saliencyMap(model=model,loss='mse',inputSignals=trainX,groundTruth=trainY)
 #attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([1,32]))
@@ -92,6 +101,8 @@ for j,i in enumerate(tasks):
 #trainX=trainX-trainX[:,:50].mean(axis=1, keepdims=True)
 #eye = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:5000,:, 128]
 
+# latex.generateTable("/Users/Hullimulli/Documents/ETH/SA2/ResultsUpToDate/Statistics/AngleTask.csv",directory=directory,
+#                     filename="angleTaskLatex",transposed=False,scale=100, caption="Performance of each Network for the Angle Task.")
 
 
 #signal_plots.plotSignalAmplitude(inputSignals=trainX,groundTruth=trainY,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",electrodesToPlot=electrodeIndices,electrodesUsedForTraining=electrodeIndices,filename="ForSunday_SignalVisualitation_Amplitude",nrOfLevels=6,maxValue=200)
