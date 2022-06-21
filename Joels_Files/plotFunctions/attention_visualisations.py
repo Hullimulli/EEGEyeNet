@@ -6,9 +6,14 @@ from matplotlib.ticker import FormatStrFormatter
 
 def saliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, layer: int = -1, normalizeBool: bool = True) -> np.ndarray:
     if config['framework'] == 'tensorflow':
-        return saliencyMapTensorflow(model, inputSignals, groundTruth, loss, layer)
+        return saliencyMapTensorflow(model, inputSignals, groundTruth, loss, layer, normalizeBool)
 
+def aggregatedLayerSaliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str) -> np.ndarray:
+    if config['framework'] == 'tensorflow':
+        return aggregatedLayerSaliencyMapTensorflow(model, inputSignals, groundTruth, loss)
 
+def fullGradSaliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str) -> np.ndarray:
+    pass
 
 def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str ,layer: int = -1, normalizeBool: bool = True) -> np.ndarray:
     import tensorflow.keras as keras
@@ -24,7 +29,7 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
         loss = lambda y,yPred: tf.sqrt(tf.square(tf.math.atan2(tf.sin(yPred - y), tf.cos(yPred - y))))
 
     inputSignals = tf.convert_to_tensor(inputSignals)
-    if layer == -1:
+    if layer == -1 or len(model.layers)-1 == layer:
         with tf.GradientTape() as g:
             g.watch(inputSignals)
             outputs = model(inputSignals,training=False)
@@ -36,7 +41,7 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
         with tf.GradientTape() as g:
             g.watch(inputSignals)
             outputs = auxModel(inputSignals,training=False)
-
+            outputs = keras.backend.mean(outputs,axis=2)
             grads = keras.backend.abs(g.gradient(outputs,inputSignals))
     grads = grads.numpy()
     if normalizeBool:
@@ -48,6 +53,35 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
     model.layers[layer].activation = oldActivationType
 
     return grads
+
+
+def aggregatedLayerSaliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str) -> np.ndarray:
+    layers = [x for x in range(1, len(model.layers)) if "activation" in model.layers[x].get_config()['name']]
+    layers = layers + [len(model.layers)-1]
+    grads = None
+    for i in layers:
+        if grads is None:
+            grads = saliencyMapTensorflow(model=model,loss=loss,inputSignals=inputSignals,groundTruth=groundTruth,layer=i)
+        else:
+            grads += saliencyMapTensorflow(model=model, loss=loss, inputSignals=inputSignals,
+                                                         groundTruth=groundTruth, layer=i)
+
+    return grads / len(layers)
+
+def fullGradTensorflow(model,inputSignals: np.ndarray, groundTruth: np.ndarray) -> np.ndarray:
+    import tensorflow.keras as keras
+    import tensorflow as tf
+
+
+    grads = np.zeros(inputSignals.shape[1:])
+
+    for i in range(len(model.layers)):
+        b = None
+        if "batchnormalization" in model.layer[i].get_config()['name'].lower():
+            b = - (model.layer[i].moving_mean * model.layer[i].gamma
+                   / tf.sqrt(model.moving_var + model.layer[i].eps)) + model.layer[i].beta
+        elif model.layer[i].bias is not None:
+            b = model.layer[i].bias
 
 
 def plotSaliencyMap(inputSignals: np.ndarray, groundTruth: np.ndarray, gradients: np.ndarray, directory: str,

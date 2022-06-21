@@ -26,13 +26,15 @@ def getValIndices():
 
 
 asdf = np.arange(129)
+directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
+
 #electrode_plots.electrodeBarPlot(asdf,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/")
 #colours = electrode_plots.colourCode(-asdf)
 #electrode_plots.electrodePlot(colours,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/")
 
 #electrode_plots.topoPlot(asdf,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/")
-directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
-architectures = ["InceptionTime","EEGNet","PyramidalCNN","CNN","Xception"]
+
+#architectures = ["InceptionTime","EEGNet","PyramidalCNN","CNN","Xception"]
 #indices = np.squeeze(getTestIndices())
 #predictions = np.load(os.path.join(directory,"Direction_task_Angle_All.npy"))
 #trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,2]
@@ -49,23 +51,34 @@ architectures = ["InceptionTime","EEGNet","PyramidalCNN","CNN","Xception"]
 # for j,i in enumerate(tasks):
 #     experimentPath = "/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/"+i
 #     angleArchitectureBool=True
-#     filename = "Ang_"+i[13:]
+#     filename = "Pos_"+i[12:]
 #     indices = np.squeeze(getTestIndices())
-#     temp,predictionsSVM = simpleDirectionRegressor(electrodes=[electrodeIndices[j]])
-#     asdf = np.tile(predictionsSVM,(1,5,1))
+#     #temp,predictionsSVM = simpleDirectionRegressor(electrodes=[electrodeIndices[j]])
+#     #asdf = np.tile(predictionsSVM,(1,5,1))
 #     # trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,1]
 #     trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices, :, :]
 #     trainX = trainX[:, :, electrodeIndices[j] - 1]
 #
-#     predictions = predictor.savePredictions(filename=filename, savePath=directory, inputSignals=trainX,
-#                               experimentFolderPath=experimentPath, architectures=architectures,
-#                               angleArchitectureBool=angleArchitectureBool)
-#     del trainX
+#     # predictions = predictor.savePredictions(filename=filename, savePath=directory, inputSignals=trainX,
+#     #                           experimentFolderPath=experimentPath, architectures=architectures,
+#     #                           angleArchitectureBool=angleArchitectureBool)
+#     #
 #     trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices, 2]
-#     predictions = np.concatenate((predictions,np.tile(predictionsSVM,(1,5,1))))
-#     prediction_visualisations.visualizePredictionAngle(directory=directory, groundTruth=trainY[:7],
-#                                                        prediction=predictions[:, :, :7], modelNames=architectures + ["SVM"],
-#                                                        filename="PredVis_"+filename)
+#     # #predictions = np.concatenate((predictions,np.tile(predictionsSVM,(1,5,1))))
+#     # prediction_visualisations.visualizePredictionPosition(directory=directory, groundTruth=trainY[:5],
+#     #                                                    prediction=np.mean(predictions[:, :, :5],axis=1,keepdims=True), modelNames=architectures,
+#     #                                                    filename="PredVis_"+filename)
+#
+#     pathlist = electrode_math.modelPathsFromBenchmark(
+#         "/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/{}".format(i),
+#         ["PyramidalCNN", "Xception", "InceptionTime", "CNN"], angleArchitectureBool=angleArchitectureBool)
+#     for path in pathlist:
+#         model = keras.models.load_model(path, compile=False)
+#         grads = attention_visualisations.saliencyMap(model=model, loss='angle-loss', inputSignals=trainX[[0]],
+#                                                      groundTruth=trainY[[0]])
+#         attention_visualisations.plotSaliencyMap(inputSignals=trainX[[0]], groundTruth=trainY[[0]], gradients=grads,
+#                                                 directory=directory, filename="AttentionVisualisation_{}_{}".format(i,os.path.basename(path)),
+#                                                 electrodesToPlot=electrodeIndices[j], electrodesUsedForTraining=electrodeIndices[j])
 
 
 #benchmark()
@@ -81,21 +94,25 @@ architectures = ["InceptionTime","EEGNet","PyramidalCNN","CNN","Xception"]
 #rightOnlyIndices = np.squeeze(np.argwhere(np.absolute(IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][:,2]) <= 1*np.pi/4))
 #simpleDirectionRegressor(electrodeIndices)
 #benchmark()
-pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
-indices = np.squeeze(getValIndices())
-trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,2]
-trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices,:,:]
 #trainX = trainX[:,:,electrodeIndices-1]
 
 
 #predictor.savePredictions(filename=filename,savePath=directory,inputSignals=trainX,experimentFolderPath=experimentPath,architectures=architectures,angleArchitectureBool=angleArchitectureBool)
 
 #losses = electrode_math.PFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory,modelPaths=[pathlist[0]],iterations=1,filename='PFI_Original')
-base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
-electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
-#model = keras.models.load_model(pathlist[0], compile=False)
-#grads = attention_visualisations.saliencyMap(model=model,loss='mse',inputSignals=trainX,groundTruth=trainY)
-#attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([1,32]))
+#base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
+#electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
+pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
+model = keras.models.load_model(pathlist[6], compile=False)
+indices = np.squeeze(np.argwhere(getValIndices()))
+trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,2]
+trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices,:,:]
+
+base = electrode_math.aggregatedLayerGradientBasedFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
+electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Full Gradient")
+#grads = attention_visualisations.saliencyMap(model,trainX,trainY,'angle-loss')
+
+#attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125,128]),filename="OldAttentionVisualisation")
 #signal_math.pca(trainX,filename="test",directory=directory)
 #trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][:,:, electrodeIndices-1]
 #trainX=trainX-trainX[:,:50].mean(axis=1, keepdims=True)
@@ -106,7 +123,7 @@ electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cma
 
 
 #signal_plots.plotSignalAmplitude(inputSignals=trainX,groundTruth=trainY,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",electrodesToPlot=electrodeIndices,electrodesUsedForTraining=electrodeIndices,filename="ForSunday_SignalVisualitation_Amplitude",nrOfLevels=6,maxValue=200)
-#signal_plots.plotSignalAngle(inputSignals=trainX,groundTruth=trainY,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",electrodesToPlot=electrodeIndices,electrodesUsedForTraining=electrodeIndices,filename="ForSunday_SignalVisualitation_Angle",nrOfLevels=8,maxValue=100)
+#signal_plots.plotSignalAngle(inputSignals=trainX,groundTruth=trainY,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",electrodesToPlot=np.array([1,32]),electrodesUsedForTraining=np.arange(129)+1,filename="ForSunday_SignalVisualitation_Angle",nrOfLevels=8,maxValue=100)
 #signal_plots.plotSignalPosition(inputSignals=trainX,groundTruth=trainY,directory="/Users/Hullimulli/Documents/ETH/SA2/debugFolder/",electrodesToPlot=electrodeIndices,electrodesUsedForTraining=electrodeIndices,filename="Back_SignalVisualitation_Pos",nrOfLevels=9,maxValue=100)
 #signal_plots.plotSignalAngle(inputSignals=signal_math.pcaDimReduction(trainX,file=directory+"test.npy"),groundTruth=trainY,directory=directory,filename="Vis",electrodesToPlot= electrodeIndices,electrodesUsedForTraining=electrodeIndices,nrOfLevels=8)
 
