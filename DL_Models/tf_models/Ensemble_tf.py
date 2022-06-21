@@ -63,8 +63,8 @@ class Ensemble_tf:
         for i in range(self.nb_models):
             logging.info("------------------------------------------------------------------------------------")
             logging.info('Start fitting model number {}/{} ...'.format(i+1, self.nb_models))
-            model = self.model(loss=self.loss, model_number=i, batch_size=self.batch_size, **self.model_params)
-            self.models.append(model )
+            model = self.model(model_name = self.model_name, loss=self.loss, model_number=i, batch_size=self.batch_size, **self.model_params)
+            self.models.append(model)
             model.fit(trainX, trainY, validX, validY)
             logging.info('Finished fitting model number {}/{} ...'.format(i+1, self.nb_models))
 

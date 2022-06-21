@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from config import config 
 import logging 
 
-def create_dataloader(X, y, batch_size, model_name, drop_last=True):
+def create_dataloader(X, y, batch_size, model_name, shuffle=True, drop_last=True):
     """
     Input: X, y of type np.array
     Return: pytorch dataloader containing the dataset of X and y that returns batches of size batch_size 
@@ -23,4 +23,4 @@ def create_dataloader(X, y, batch_size, model_name, drop_last=True):
     #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
     # Create dataset and dataloader 
     dataset = TensorDataset(tensor_x, tensor_y)
-    return DataLoader(dataset, batch_size=batch_size, drop_last=drop_last, num_workers=1)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, num_workers=1)

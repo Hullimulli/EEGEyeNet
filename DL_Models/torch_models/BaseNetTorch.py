@@ -6,45 +6,14 @@ import pandas as pd
 from config import config 
 import logging
 from DL_Models.torch_models.torch_utils.training import train_loop, validation_loop
-import wandb
-from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+from DL_Models.torch_models.torch_utils.DiceLoss import collate_fn
 
-class Prediction_history:
-    """
-    Collect predictions on the dataset in the given dataloader
-    Called after each epoch by BaseNet 
-    """
-    def __init__(self, dataloader, model) -> None:
-        """
-        predhis: a list of lists (one for each epoch) of tensors (one for each batch of length batch_size)
-        """
-        self.dataloader = dataloader
-        self.predhis = []
-        self.model = model
-
-    def on_epoch_end(self):
-        with torch.no_grad():
-            y_pred = []
-            for batch, (x, y) in enumerate(self.dataloader):
-                # Move batch to GPU
-                if torch.cuda.is_available():
-                    x = x.cuda()
-                    y = y.cuda()
-                pred = self.model(x)
-                y_pred.append(pred) 
-                # Remove batch from GPU 
-                del x
-                del y 
-                torch.cuda.empty_cache()
-            self.predhis.append(y_pred)
 
 class BaseNet(nn.Module):
     """
     BaseNet class for ConvNet and EEGnet to inherit common functionality 
     """
-    def __init__(self, loss, input_shape, output_shape, epochs=50, verbose=True, model_number=0):
+    def __init__(self, model_name, path, loss, input_shape, output_shape, epochs=50, verbose=True, model_number=0):
         """
         Initialize common variables of models based on BaseNet, e.g. ConvNet or EEGNET 
         Create the common output layer dependent on the task to run 
@@ -58,6 +27,8 @@ class BaseNet(nn.Module):
         self.nb_channels = self.input_shape[1]
         self.early_stopped = False
         self.loss = loss
+        self.path = path
+        self.model_name = model_name
 
         # Create output layer depending on task
         if loss == 'bce':
@@ -77,8 +48,19 @@ class BaseNet(nn.Module):
             self.output_layer = nn.Sequential(
                 nn.Linear(in_features=self.get_nb_features_output_layer(), out_features=output_shape) 
             )
+        elif loss == 'dice':
+            from DL_Models.torch_models.torch_utils.DiceLoss import DiceLoss
+            dice_weights = 1e4 * np.array([0.00823, 0.1249, 0.8669]) # 1/part of each class normalized to sum to 1 0.00823, 0.1249, 0.8669
+            logging.info(f"Dice weights: {dice_weights}")
+            self.loss_fn = DiceLoss( # already contains softmax over dim=1 
+                weight=torch.tensor(dice_weights),
+                p=2,
+                reduction='mean')
+            self.output_layer = nn.Sequential(
+                nn.Linear(in_features=self.get_nb_features_output_layer(), out_features=output_shape) 
+            )
         else:
-            raise ValueError("Choose a valid task")
+            raise ValueError("Choose a valid loss function!")
 
         if verbose and self.model_number == 0:
             logging.info(f"Using loss fct: {self.loss_fn}")
@@ -125,61 +107,19 @@ class BaseNet(nn.Module):
         #prediction_ensemble = Prediction_history(dataloader=test_dataloader, model=self)
         # Create datastructures to collect metrics and implement early stopping
         epochs = self.epochs
-        #metrics = {'train_loss':[], 'val_loss':[], 'train_acc':[], 'val_acc':[]} if config['task'] == 'prosaccade-clf' else {'train_loss':[], 'val_loss':[]}
+        metrics = {'train_loss':[], 'val_loss':[]}
         best_val_loss = sys.maxsize # For early stopping 
         patience = 0
-
-        # W&B Init
-        run = wandb.init(project=config['project'], entity=config['entity'])
-        wandb.run.name = config['task'] + '_' + str(self) + "_model_nb_{}_".format(str(self.model_number)) + wandb.run.name
-        wandb.config = {
-            "model_name": str(self) + '_run_' + str(self.model_number),
-            "learning_rate": config['learning_rate'],
-            "epochs": self.epochs,
-            "batch_size": self.batch_size,
-            "task": config['task']
-        }
-
         # Train the model 
-        for t in tqdm(range(epochs)):
+        for t in range(epochs):
             logging.info("-------------------------------")
             logging.info(f"Epoch {t+1}")
             # Run through training and validation set  
             if not self.early_stopped:
                 train_loss_epoch, train_acc_epoch = train_loop(train_dataloader, self.float(), self.loss, self.loss_fn, optimizer)
                 val_loss_epoch, val_acc_epoch = validation_loop(validation_dataloader, self.float(), self.loss, self.loss_fn)
-
-                # W&B Logs
-                x_val = next(iter(validation_dataloader))[0].numpy()
-                y_val = next(iter(validation_dataloader))[1].numpy()
-                prediction = np.squeeze(self.model.predict(x_val))
-                if self.loss == "angle-loss":
-                    logs = {"train_loss": train_loss_epoch,"val_loss": val_loss_epoch,
-                            "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                                             prediction=np.expand_dims(prediction,
-                                                                                                       axis=(0, 1)),
-                                                                             modelName="Model", anglePartBool=True)),
-                               "epoch": t+1}
-                else:
-                    logs = {"train_loss": train_loss_epoch,"val_loss": val_loss_epoch,
-                            "visualisation": wandb.Image(getVisualisation(groundTruth=y_val,
-                                                                             prediction=np.expand_dims(prediction,
-                                                                                                       axis=(0, 1)),
-                                                                             modelName="Model", anglePartBool=False)),
-                               "epoch": t+1}
-                addLogs = {}
-                if config['LR_task']:
-                    addLogs = {"train_acc": train_acc_epoch, "val_acc": val_acc_epoch}
-                wandb.log({**logs, **addLogs})
-                plt.close('all')
-
-                #metrics['train_loss'].append(train_loss_epoch)
-                #metrics['val_loss'].append(val_loss_epoch)
-                #if config['task'] == 'prosaccade-clf':
-                    #metrics['train_acc'].append(train_acc_epoch)
-                    #metrics['val_acc'].append(val_acc_epoch) 
-            # Add the predictions on the validation set, even if model was early stopped, later we will compute ensemble metrics on them 
-            #prediction_ensemble.on_epoch_end()
+                metrics['train_loss'].append(train_loss_epoch)
+                metrics['val_loss'].append(val_loss_epoch)
             # Impementation of early stopping 
             if config['early_stopping'] and not self.early_stopped:
                 if patience > config['patience']:
@@ -190,12 +130,20 @@ class BaseNet(nn.Module):
                     patience +=1 
                 else:
                     best_val_loss = val_loss_epoch
+                    self.save()  # save the new best model
                     logging.info(f"Improved validation loss to: {best_val_loss}")
                     patience = 0
-        run.finish()
+        
+        return metrics['train_loss'], metrics['val_loss']
                     
     def predict(self, X):
         tensor_X = torch.tensor(X).float()
         if torch.cuda.is_available():
             tensor_X.cuda()
         return self(tensor_X).detach().numpy()
+
+    def save(self):
+        ckpt_dir = self.path + self.model_name + \
+            '_nb_{}'.format(self.model_number) + '.pth'
+        torch.save(self.state_dict(), ckpt_dir)
+        logging.info(f"Saved new best model (on validation data) to ckpt_dir")

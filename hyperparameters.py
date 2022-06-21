@@ -238,7 +238,7 @@ nb_models = 1
 batch_size = 64
 input_shape = (1, 258) if config['feature_extraction'] else (500, len(config['electrodes']))
 depth = 12
-epochs = 50
+epochs = 1
 verbose = True
 
 our_DL_models = {
@@ -301,18 +301,40 @@ our_DL_models = {
             },
             'min' : {
                 'amplitude' : {
+                    'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
                     'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                     'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                    'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                    'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                    'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'epochs' : epochs, 'verbose' : verbose}],
+                    'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                    'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
                     'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                        'epochs' : epochs, 'F1' : 16, 'F2' : 256, 'verbose' : verbose, 'D' : 4, 'kernel_size' : 256, 'dropout_rate' : 0.5}],
                     'InceptionTime' : [Ensemble, {'model_name': 'InceptionTime', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                               'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
-                    'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
-                                              'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
                     'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
                 },
                 'angle' : {
+                    'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                    'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'epochs' : epochs, 'verbose' : verbose}],
+                    'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                    'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                    'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                    'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
                     'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                     'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
                     'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'angle-loss', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
@@ -385,6 +407,18 @@ our_DL_models = {
     'Position_task' : {
         'dots' : {
             'max' : {
+                'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'epochs' : epochs, 'verbose' : verbose}],
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
                 'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
                                     'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
                 'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
@@ -397,6 +431,18 @@ our_DL_models = {
                                               'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
             },
             'min' : {
+                'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'epochs' : epochs, 'verbose' : verbose}],    
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
                 'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
                                     'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
                 'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
@@ -406,6 +452,106 @@ our_DL_models = {
                 'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
                                               'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
                 'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
+            }
+        }
+    },
+    'Path_task' : {
+        'dots' : {
+            'max' : {
+                'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'epochs' : epochs, 'verbose' : verbose}],
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                       'epochs' : epochs, 'F1' : 16, 'F2' : 256, 'verbose' : verbose, 'D' : 4, 'kernel_size' : 256, 'dropout_rate' : 0.5}],
+                'InceptionTime' : [Ensemble, {'model_name': 'InceptionTime', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
+                'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
+            },
+            'min' : {
+                'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'TransformerSimple' : [Ensemble, {'model_name': 'TransformerSimple', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'epochs' : epochs, 'verbose' : verbose}],    
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                       'epochs' : epochs, 'F1' : 16, 'F2' : 256, 'verbose' : verbose, 'D' : 4, 'kernel_size' : 256, 'dropout_rate' : 0.5}],
+                'InceptionTime' : [Ensemble, {'model_name': 'InceptionTime', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
+                'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 2,
+                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
+            }
+        }
+    },
+    'Segmentation_task' : {
+        'dots' : {
+            'max' : {
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'epochs' : epochs, 'verbose' : verbose}],
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                       'epochs' : epochs, 'F1' : 16, 'F2' : 256, 'verbose' : verbose, 'D' : 4, 'kernel_size' : 256, 'dropout_rate' : 0.5}],
+                'InceptionTime' : [Ensemble, {'model_name': 'InceptionTime', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                              'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                              'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
+                'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
+            },
+            'min' : {
+                'GCN' : [Ensemble, {'model_name': 'GCN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64}],
+                'UNet' : [Ensemble, {'model_name': 'UNet', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'epochs' : epochs, 'verbose' : verbose}],    
+                'LSTM' : [Ensemble, {'model_name': 'LSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'ConvLSTM' : [Ensemble, {'model_name': 'ConvLSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'biLSTM' : [Ensemble, {'model_name': 'biLSTM', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth, 'hidden_size': 64, 'dropout':0.5}],
+                'CNN' : [Ensemble, {'model_name': 'CNN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                    'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'EEGNet' : [Ensemble, {'model_name' : 'EEGNet', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                       'epochs' : epochs, 'F1' : 16, 'F2' : 256, 'verbose' : verbose, 'D' : 4, 'kernel_size' : 256, 'dropout_rate' : 0.5}],
+                'InceptionTime' : [Ensemble, {'model_name': 'InceptionTime', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                              'kernel_size': 64, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : True, 'depth' : depth}],
+                'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
+                                              'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
+                'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss': 'dice', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1500,
                                               'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
             }
         }

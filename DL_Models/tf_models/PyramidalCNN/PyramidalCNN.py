@@ -11,7 +11,7 @@ class PyramidalCNN(ConvNet):
     The Classifier_PyramidalCNN is one of the simplest classifiers. It implements the class ConvNet, which is made of modules with a
     specific depth, where for each depth the number of filters is increased.
     """
-    def __init__(self, loss, model_number, batch_size, input_shape, output_shape, kernel_size=16, epochs = 50, nb_filters=16, verbose=True,
+    def __init__(self, model_name, path, loss, model_number, batch_size, input_shape, output_shape, kernel_size=16, epochs = 50, nb_filters=16, verbose=True,
                     use_residual=False, depth=6):
 
         super(PyramidalCNN, self).__init__(input_shape=input_shape, output_shape=output_shape, loss=loss, kernel_size=kernel_size, epochs=epochs, nb_filters=nb_filters,

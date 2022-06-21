@@ -3,11 +3,10 @@ import tensorflow.keras as keras
 import numpy as np
 import logging
 from config import config
+import sys
 import wandb
 from tqdm import tqdm
 from utils.wandbHelper import getPredictionVisualisations
-import matplotlib.pyplot as plt
-import sys
 
 class prediction_history(tf.keras.callbacks.Callback):
     """
@@ -71,7 +70,6 @@ class BaseNet:
         #csv_logger = CSVLogger(config['batches_log'], append=True, separator=';')
         #ckpt_dir = config['model_dir'] + '/best_models/' + config['model'] + '_nb_{}_'.format(self.model_number) + 'best_model.h5'
         #ckpt = tf.keras.callbacks.ModelCheckpoint(ckpt_dir, verbose=1, monitor='val_loss', save_best_only=True, mode='auto')
-
         best_val_loss = sys.maxsize  # For early stopping
         val_loss_epoch = sys.maxsize
         patience = 0
@@ -86,7 +84,7 @@ class BaseNet:
                 logs['epoch'] = i+1
                 val_loss_epoch = logs['val_loss']
                 prediction = np.squeeze(self.model.predict(X_val[:100]))
-                addLogs = getPredictionVisualisations(modelName=str(self.model),groundTruth=y_val[:100],prediction=prediction,loss=self.loss)
+                addLogs = getPredictionVisualisations(modelName=str(self),groundTruth=y_val[:100],prediction=prediction,loss=self.loss)
                 wandb.log({**logs,**addLogs})
 
             # Impementation of early stopping
