@@ -6,7 +6,7 @@ from tqdm import tqdm
 from DL_Models.tf_models.utils.losses import angle_loss
 from sklearn.metrics import mean_squared_error, log_loss
 from hyperparameters import batch_size
-from ..plotFunctions.attention_visualisations import saliencyMap, aggregatedLayerSaliencyMap
+from ..plotFunctions.attention_visualisations import saliencyMap, fullGrad
 from ..helperFunctions.modelLoader import returnTorchModel
 
 def modelPathsFromBenchmark(experimentFolderPath: str, architectures: list, angleArchitectureBool: bool = False) -> list:
@@ -71,8 +71,7 @@ def PFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, los
     if config['framework'] == 'tensorflow':
         return PFITensorflow(inputSignals = inputSignals, groundTruth = groundTruth, modelPaths=modelPaths, loss=loss, directory = directory, filename = filename,iterations = iterations)
     elif config['framework'] == 'pytorch':
-        raise Exception("Pytorch is not yet implemented.")
-        #return PFITorch(inputSignals = inputSignals, groundTruth = groundTruth, modelPaths=modelPaths, loss=loss, directory = directory, filename = filename,iterations = iterations)
+        return PFITorch(inputSignals = inputSignals, groundTruth = groundTruth, modelPaths=modelPaths, loss=loss, directory = directory, filename = filename,iterations = iterations)
     else:
         raise Exception("PFI not available for framework.")
 
@@ -135,27 +134,24 @@ def PFITorch(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list
              filename: str = "PFI", iterations: int = 5) -> np.ndarray:
 
     import torch
-
-
-        #Checks
+    #Checks
     if inputSignals.ndim != 3:
         raise Exception("Need a 3 dimensional array as input.")
     if not os.path.isdir(directory):
         raise Exception("Directory does not exist.")
-
     for modelPath in modelPaths:
-        if not os.path.isdir(modelPath):
+        if not os.path.isfile(modelPath):
             raise Exception("Model path {} does not exist.".format(modelPath))
 
-
-    base = 0
-    print("Evaluating Base.")
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    base = 0
+    inputSignals = np.transpose(inputSignals, (0, 2, 1))
+    print("Evaluating Base.")
     for modelPath in tqdm(modelPaths):
-        model = returnTorchModel(modelPath)
-        model = model.load_state_dict(torch.load(modelPath))
+        model = returnTorchModel(modelPath, loss=loss)
         model.eval()
-        prediction = model.predict(torch.from_numpy(inputSignals),batch_size=batch_size).numpy()
+        model.double()
+        prediction = model(torch.from_numpy(inputSignals).double().to(device)).cpu().detach().numpy()
         if loss == "angle-loss":
             base += angle_loss(np.squeeze(groundTruth), np.squeeze(prediction))
         elif loss == 'bce':
@@ -165,17 +161,18 @@ def PFITorch(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list
         else:
             raise Exception("Error function not yet implemented.")
     base = base / len(modelPaths)
-    electrodeLosses = np.zeros(inputSignals.shape[2])
+    electrodeLosses = np.zeros(inputSignals.shape[1])
 
     print("Evaluating PFI.")
-    for j in tqdm(range(inputSignals.shape[2])):
+    for j in tqdm(range(inputSignals.shape[1])):
         for i in range(iterations):
             inputSignalsShuffled = inputSignals.copy()
             np.random.shuffle(inputSignalsShuffled[:, :, j])
             for modelPath in modelPaths:
-                model = torch.load(modelPath)
+                model = returnTorchModel(modelPath, loss=loss)
                 model.eval()
-                prediction = model.predict(torch.from_numpy(inputSignalsShuffled),batch_size=batch_size).numpy()
+                model.double()
+                prediction = model(torch.from_numpy(inputSignalsShuffled).double().to(device)).cpu().detach().numpy()
                 if loss == "angle-loss":
                     electrodeLosses[j] += angle_loss(np.squeeze(groundTruth), np.squeeze(prediction))
                 elif loss == 'bce':
@@ -194,7 +191,7 @@ def PFITorch(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list
 
 
 def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
-                  filename: str = "PFI", stepSize: int = 256) -> np.ndarray:
+                  filename: str = "PFI", stepSize: int = 256, method: str = "Saliency") -> np.ndarray:
 
     #Checks
     if inputSignals.ndim != 3:
@@ -202,7 +199,7 @@ def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPath
     if not os.path.isdir(directory):
         raise Exception("Directory does not exist.")
     for modelPath in modelPaths:
-        if not os.path.isdir(modelPath):
+        if not os.path.isdir(modelPath) and config['framework'] == 'tensorflow' or config['framework'] == 'pytorch' and not os.path.isfile(modelPath):
             raise Exception("Model path {} does not exist.".format(modelPath))
 
 
@@ -210,16 +207,33 @@ def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPath
     print("Evaluating PFI.")
     if config['framework'] == 'tensorflow':
         import tensorflow.keras as keras
-
+    elif config['framework'] == 'pytorch':
+        import torch
+    else:
+        raise Exception("gradientBasedFI not available for framework.")
     for modelPath in tqdm(modelPaths):
         if config['framework'] == 'tensorflow':
             model = keras.models.load_model(modelPath, compile=False)
+        elif config['framework'] == 'pytorch':
+            model = returnTorchModel(path=modelPath)
         baseModel = np.zeros(inputSignals.shape[2])
         for step in range(int(inputSignals.shape[0] / stepSize)+1):
-            baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
-                                                          inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
-                                                          groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
-                                              axis=0,keepdims=True),axis=1))
+            if "saliency" in method.lower():
+                baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
+                                                              inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+                                                              groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
+                                                  axis=0,keepdims=True),axis=1))
+            elif "full" in method.lower() and "no" in method.lower():
+                baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
+                                                              inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+                                                              groundTruth=groundTruth[step*stepSize:(step+1)*stepSize],
+                                                              includeInputBool=True),
+                                                  axis=0,keepdims=True),axis=1))
+            elif "full" in method.lower():
+                baseModel += np.squeeze(np.nanmean(np.nansum(fullGrad(model=model,loss=loss,
+                                                              inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+                                                              groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
+                                                  axis=0,keepdims=True),axis=1))
         base += baseModel
 
     base = base / (len(modelPaths)*inputSignals.shape[0])
@@ -232,41 +246,41 @@ def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPath
     return base
 
 
-def aggregatedLayerGradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
-                  filename: str = "PFI", stepSize: int = 256) -> np.ndarray:
-
-    #Checks
-    if inputSignals.ndim != 3:
-        raise Exception("Need a 3 dimensional array as input.")
-    if not os.path.isdir(directory):
-        raise Exception("Directory does not exist.")
-    for modelPath in modelPaths:
-        if not os.path.isdir(modelPath):
-            raise Exception("Model path {} does not exist.".format(modelPath))
-
-
-    base = np.zeros(inputSignals.shape[2])
-    print("Evaluating PFI.")
-    if config['framework'] == 'tensorflow':
-        import tensorflow.keras as keras
-
-    for modelPath in tqdm(modelPaths):
-        if config['framework'] == 'tensorflow':
-            keras.backend.clear_session()
-            model = keras.models.load_model(modelPath, compile=False)
-        baseModel = np.zeros(inputSignals.shape[2])
-        for step in range(int(inputSignals.shape[0] / stepSize)+1):
-            baseModel += np.squeeze(np.nanmean(np.nansum(aggregatedLayerSaliencyMap(model=model,loss=loss,
-                                                          inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
-                                                          groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
-                                              axis=0,keepdims=True),axis=1))
-        base += baseModel
-
-    base = base / (len(modelPaths)*inputSignals.shape[0])
-
-    csvTable = np.zeros([base.shape[0],2])
-    csvTable[:,1] = base
-    csvTable[:,0] = np.arange(base.shape[0])+1
-    np.savetxt(os.path.join(directory,filename + '.csv'), csvTable, fmt='%s', delimiter=',',
-               header='Electrode Number,Avg. Gradient', comments='')
-    return base
+# def aggregatedLayerGradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPaths: list, loss: str, directory: str,
+#                   filename: str = "PFI", stepSize: int = 256) -> np.ndarray:
+#
+#     #Checks
+#     if inputSignals.ndim != 3:
+#         raise Exception("Need a 3 dimensional array as input.")
+#     if not os.path.isdir(directory):
+#         raise Exception("Directory does not exist.")
+#     for modelPath in modelPaths:
+#         if not os.path.isdir(modelPath):
+#             raise Exception("Model path {} does not exist.".format(modelPath))
+#
+#
+#     base = np.zeros(inputSignals.shape[2])
+#     print("Evaluating PFI.")
+#     if config['framework'] == 'tensorflow':
+#         import tensorflow.keras as keras
+#
+#     for modelPath in tqdm(modelPaths):
+#         if config['framework'] == 'tensorflow':
+#             keras.backend.clear_session()
+#             model = keras.models.load_model(modelPath, compile=False)
+#         baseModel = np.zeros(inputSignals.shape[2])
+#         for step in range(int(inputSignals.shape[0] / stepSize)+1):
+#             baseModel += np.squeeze(np.nanmean(np.nansum(aggregatedLayerSaliencyMap(model=model,loss=loss,
+#                                                           inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+#                                                           groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
+#                                               axis=0,keepdims=True),axis=1))
+#         base += baseModel
+#
+#     base = base / (len(modelPaths)*inputSignals.shape[0])
+#
+#     csvTable = np.zeros([base.shape[0],2])
+#     csvTable[:,1] = base
+#     csvTable[:,0] = np.arange(base.shape[0])+1
+#     np.savetxt(os.path.join(directory,filename + '.csv'), csvTable, fmt='%s', delimiter=',',
+#                header='Electrode Number,Avg. Gradient', comments='')
+#     return base
