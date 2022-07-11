@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow.keras as keras
+import tensorflow as tf
 from benchmark import benchmark
 from utils import IOHelper
 from config import config
@@ -9,8 +10,10 @@ from Joels_Files.plotFunctions import electrode_plots
 from Joels_Files.simpleRegressor import simpleDirectionRegressor
 from Joels_Files.plotFunctions import signal_plots, prediction_visualisations, attention_visualisations
 from Joels_Files.mathFunctions import electrode_math
-from Joels_Files.helperFunctions import predictor, latex
+from Joels_Files.helperFunctions import predictor, latex, modelLoader
 import pandas as pd
+from tqdm import tqdm
+from copy import copy
 
 def getTestIndices():
     from benchmark import split
@@ -102,15 +105,45 @@ directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
 #losses = electrode_math.PFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory,modelPaths=[pathlist[0]],iterations=1,filename='PFI_Original')
 #base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
 #electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
-pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
-model = keras.models.load_model(pathlist[6], compile=False)
-indices = np.squeeze(np.argwhere(getValIndices()))
-trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][indices,2]
-trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][indices,:,:]
+pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=False)
+path = ['/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth']
+#model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
 
-base = electrode_math.aggregatedLayerGradientBasedFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
-electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Full Gradient")
-#grads = attention_visualisations.saliencyMap(model,trainX,trainY,'angle-loss')
+model = keras.models.load_model(pathlist[11], compile=False)
+config['framework'] = 'tensorflow'
+
+
+initializer = keras.initializers.RandomNormal()
+weights = [initializer(shape=weight.shape) for weight in model.trainable_weights]
+
+
+#indices = np.squeeze(np.argwhere(getValIndices()))
+trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][[300],1]
+trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][[300],:,:]
+
+
+#model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
+grads = attention_visualisations.fullGrad(model,trainX,trainY,'mse')
+
+attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125, 128]),filename="Debug_FullGrad")
+
+grads = attention_visualisations.saliencyMap(model,trainX,trainY,'mse')
+
+attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125]),filename="Debug_Saliency")
+
+grads = attention_visualisations.saliencyMap(model, trainX, trainY, 'mse',includeInputBool=True)
+
+attention_visualisations.plotSaliencyMap(inputSignals=trainX, groundTruth=trainY, gradients=grads,
+                                         directory=directory, electrodesToPlot=np.array([125]),
+                                         filename="Debug_SaliencyInp")
+
+
+
+#base = electrode_math.gradientBasedFI(inputSignals=trainX,groundTruth=trainY,modelPaths=path,directory=directory,filename='PFI_Torch_Grad',loss='mse',method="FullgradNoBias")
+#electrode_plots.topoPlot(base,directory=directory,filename="FullGradPFI_Torch_Amp",cmap='Blues',valueType = "Avg. FullGrad")
+#base = electrode_math.aggregatedLayerGradientBasedFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
+#electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Full Gradient")
+#grads = attention_visualisations.fullGradTensorflow(model,trainX,trainY,'angle-loss')
 
 #attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125,128]),filename="OldAttentionVisualisation")
 #signal_math.pca(trainX,filename="test",directory=directory)

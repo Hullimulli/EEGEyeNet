@@ -23,7 +23,6 @@ def fullGrad(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str
         raise Exception("SaliencyMap not available for framework.")
 
 def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str , normalizeBool: bool = True, includeInputBool: bool = False) -> np.ndarray:
-    import tensorflow.keras as keras
     import tensorflow as tf
 
     if loss == "bce":

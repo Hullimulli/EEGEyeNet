@@ -99,7 +99,7 @@ def try_models(trainX, trainY, ids, models, N=1, scoring=None, scale=True, save_
                 trainer.load(path)
 
             if config['save_models'] and config['include_ML_models']: # DL models save only based on validation set metric 
-                trainer.save(path+save_trail)
+                trainer.save(path)
 
             if config['include_DL_models']:
                 logging.info(f"Loading best validation model to compute score on test set...")

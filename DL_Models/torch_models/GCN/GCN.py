@@ -11,7 +11,7 @@ from torch.nn.parameter import Parameter
 from torch.nn.modules.pooling import MaxPool1d
 from abc import ABC
 from DL_Models.torch_models.BaseNetTorch import BaseNet 
-import pytorch_lightning as pl 
+# import pytorch_lightning as pl
 
 
 """taken from https://github.com/wei-mao-2019/LearnTrajDep/."""
@@ -143,12 +143,12 @@ class GCN(BaseNet):
 		self.final_features=32
 		self.node_n = 129
 		self.num_stage = 20
-		self.dct_n = 500
+		self.dct_n = self.timesamples # so that it could fit other form of data
 		#self.output_unit = get_torch_activation(output_unit) if output_unit else None 
 
 		super().__init__(model_name=model_name, path=path, model_number=model_number, loss=loss, input_shape=input_shape, output_shape=output_shape, epochs=epochs, verbose=verbose)
 
-		input_feature = 500
+		input_feature = self.timesamples
 		hidden_feature = hidden_size
 		p_dropout = 0.7
 		dct_matrices = get_dct_matrix(input_feature)
@@ -226,7 +226,7 @@ class GCN(BaseNet):
 		"""
 		Return number of features passed into the output layer of the network 
 		"""
-		return self.final_features*self.node_n # + 128 for LSTM 
+		return self.final_features*self.input_channels # + 128 for LSTM
 
 
 if __name__ == "__main__":
