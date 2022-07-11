@@ -14,11 +14,11 @@ def saliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: 
         raise Exception("SaliencyMap not available for framework.")
 
 
-def fullGrad(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True) -> np.ndarray:
+def fullGrad(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True, biasOnlyBool: bool = False) -> np.ndarray:
     if config['framework'] == 'tensorflow':
-        return fullGradTensorflow(model, inputSignals, groundTruth, loss, normalizeBool)
+        return fullGradTensorflow(model, inputSignals, groundTruth, loss, normalizeBool, biasOnlyBool)
     elif config['framework'] == 'pytorch':
-        return fullGradTorch(model, inputSignals, groundTruth, loss, normalizeBool)
+        return fullGradTorch(model, inputSignals, groundTruth, loss, normalizeBool, biasOnlyBool)
     else:
         raise Exception("SaliencyMap not available for framework.")
 
@@ -88,7 +88,7 @@ def saliencyMapTorch(model, inputSignals: np.ndarray, groundTruth: np.ndarray, l
     return grads
 
 
-def fullGradTensorflow(model,inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True) -> np.ndarray:
+def fullGradTensorflow(model,inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True, biasOnlyBool: bool = False) -> np.ndarray:
     import tensorflow.keras as keras
     import tensorflow as tf
 
@@ -174,7 +174,10 @@ def fullGradTensorflow(model,inputSignals: np.ndarray, groundTruth: np.ndarray, 
         if grads is not None:
             del g
             lmd = 1
-            map = grads / np.max(grads) + lmd * biasMap / nrOfBiases
+            if biasOnlyBool:
+                map = biasMap / nrOfBiases
+            else:
+                map = grads / np.max(grads) + lmd * biasMap / nrOfBiases
 
     if normalizeBool:
         for i in range(map.shape[0]):
@@ -184,7 +187,7 @@ def fullGradTensorflow(model,inputSignals: np.ndarray, groundTruth: np.ndarray, 
 
 
 
-def fullGradTorch(model,inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True) -> np.ndarray:
+def fullGradTorch(model,inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True, biasOnlyBool: bool = False) -> np.ndarray:
     import torch
     import torch.nn as nn
 
@@ -266,7 +269,10 @@ def fullGradTorch(model,inputSignals: np.ndarray, groundTruth: np.ndarray, loss:
                 biasMap[[input]] += np.atleast_3d(intermedGrad)
                 nrOfBiases+=1
         lmd = 1
-        map[[input]] = map[[input]] / np.max(map[[input]]) + lmd * biasMap[[input]] / nrOfBiases
+        if biasOnlyBool:
+            map[[input]] = biasMap[[input]] / nrOfBiases
+        else:
+            map[[input]] = map[[input]] / np.max(map[[input]]) + lmd * biasMap[[input]] / nrOfBiases
 
     if normalizeBool:
         for i in range(map.shape[0]):

@@ -983,7 +983,7 @@ def experiment(trainX, trainY):
         output_shape = 25
     else:
         if config['task'].startswith('Direction'):
-            output_shape = 2
+            output_shape = 1
         elif config['task'].startswith('Position'):
             output_shape = 2
         elif config['task'].startswith('Advanced_Direction'):
@@ -1019,26 +1019,26 @@ def experiment(trainX, trainY):
 
     models_direction = {
         'amplitude':{
-            # 'CNNMultiTask': [CNNMultiTask,
-            #                  {'input_shape': input_shape, 'output_shape': output_shape, 'depth': 12, 'mode': '1DT',
-            #                   'path': path, 'multitask': multitask,
-            #                   'use_SEB': use_SEB, 'use_self_attention': use_self_attention}],
+            'CNNMultiTask': [CNNMultiTask,
+                             {'input_shape': input_shape, 'output_shape': output_shape, 'depth': 12, 'mode': '1DT',
+                              'path': path, 'multitask': multitask,
+                              'use_SEB': use_SEB, 'use_self_attention': use_self_attention}],
             # 'Autoencoder': [Autoencoder, {'input_shape':input_shape,'output_shape': 1,'n_rep':n_rep,'path':path,
             #                               'using_bn': False,'saveModel_suffix':'amplitude'}]
-            'GCNAdj': [GCNAdj, {'input_shape': input_shape, 'output_shape': output_shape, 'path': path,
-                                'manipulate_parak': manipulate_parak, 'threshold': threshold,
-                                'init':GCN_init,'init_domain':GCN_init_domain}]
+            # 'GCNAdj': [GCNAdj, {'input_shape': input_shape, 'output_shape': output_shape, 'path': path,
+            #                     'manipulate_parak': manipulate_parak, 'threshold': threshold,
+            #                     'init':GCN_init,'init_domain':GCN_init_domain}]
         },
         'angle':{
-            # 'CNNMultiTask': [CNNMultiTask,
-            #                  {'input_shape': input_shape, 'output_shape': output_shape, 'depth': 12, 'mode': '1DT',
-            #                   'path': path, 'multitask': multitask,
-            #                   'use_SEB': use_SEB, 'use_self_attention': use_self_attention}],
+            'CNNMultiTask': [CNNMultiTask,
+                             {'input_shape': input_shape, 'output_shape': output_shape, 'depth': 12, 'mode': '1DT',
+                              'path': path, 'multitask': multitask,
+                              'use_SEB': use_SEB, 'use_self_attention': use_self_attention}],
             # 'Autoencoder': [Autoencoder, {'input_shape': input_shape, 'output_shape': 1, 'n_rep': n_rep, 'path': path,
             #                               'using_bn': False,'saveModel_suffix':'angle'}]
-            'GCNAdj': [GCNAdj, {'input_shape': input_shape, 'output_shape': output_shape, 'path': path,
-                                'manipulate_parak': manipulate_parak, 'threshold': threshold,
-                                'init':GCN_init,'init_domain':GCN_init_domain}]
+            # 'GCNAdj': [GCNAdj, {'input_shape': input_shape, 'output_shape': output_shape, 'path': path,
+            #                     'manipulate_parak': manipulate_parak, 'threshold': threshold,
+            #                     'init':GCN_init,'init_domain':GCN_init_domain}]
 
         }
 
