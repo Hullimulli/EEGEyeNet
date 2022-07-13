@@ -959,9 +959,11 @@ def try_models(trainX, trainY, ids, models, N=1, scoring=None, scale=False, save
 
 
 def experiment(trainX, trainY):
-    path = "./ninasArchitecture/checkpoint/"
-    np.savetxt('./ninasArchitecture/config.csv', [config['task'], config['dataset'], config['preprocessing']], fmt='%s')
-    #path = config['checkpoint_dir']
+    path = './ninasArchitecture/Amplitude/'
+    config['model_dir'] = path
+    np.savetxt(path+'config.csv', [config['task'], config['dataset'], config['preprocessing']], fmt='%s')
+    path = path+'checkpoint/'
+    config['checkpoint_dir'] = path
     # only for dataset labeled_1000:
     second_half = False
     if config['task'] != 'Advanced_Direction_task':
@@ -1064,31 +1066,31 @@ def experiment(trainX, trainY):
                        isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
                        manipulate_parak=manipulate_parak, threshold=threshold,
                        save_trail='_amplitude',loss_func_pred_type='smoothl1')
-            print('----------ANGLE----------')
-            scoring2 = (lambda y, y_pred: np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - y_pred.ravel()), np.cos(y - y_pred.ravel()))))))
-            scoring2 = (lambda y, y_pred: np.sqrt(
-                np.mean(np.square(np.arctan2(np.sin(y - y_pred), np.cos(y - y_pred))))))
-
-            y2 = trainY[:,2] # The first column are the Id-s, second are the amplitude labels, we take the third which are the angle labels
-            try_models(trainX=trainX, trainY=y2, ids=ids, models=models_direction['angle'], scoring=scoring2,
-                       multitask=multitask, data_boost=data_boost,
-                       isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
-                       manipulate_parak=manipulate_parak, threshold=threshold,
-                       save_trail='_angle',loss_func_pred_type='cosloss')
-
-            print('----------SHIFT----------')
-            scoring2 = (lambda y, y_pred: np.linalg.norm(y - y_pred, axis=1).mean())  # Euclidean distance
-
-            y_row = trainY[:,1:]
-            y = copy.deepcopy(y_row)
-            y[:,0] = np.cos(y_row[:,1])*y_row[:,0]
-            y[:,1] = np.sin(y_row[:,1])*y_row[:,0]
-
-            try_models(trainX=trainX, trainY=y, ids=ids, models=models, scoring=scoring2, multitask=multitask,
-                            data_boost=data_boost,
-                            isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
-                            manipulate_parak=manipulate_parak, threshold=threshold,
-                            loss_func_pred_type='smoothl1')
+            # print('----------ANGLE----------')
+            # scoring2 = (lambda y, y_pred: np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - y_pred.ravel()), np.cos(y - y_pred.ravel()))))))
+            # scoring2 = (lambda y, y_pred: np.sqrt(
+            #     np.mean(np.square(np.arctan2(np.sin(y - y_pred), np.cos(y - y_pred))))))
+            #
+            # y2 = trainY[:,2] # The first column are the Id-s, second are the amplitude labels, we take the third which are the angle labels
+            # try_models(trainX=trainX, trainY=y2, ids=ids, models=models_direction['angle'], scoring=scoring2,
+            #            multitask=multitask, data_boost=data_boost,
+            #            isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
+            #            manipulate_parak=manipulate_parak, threshold=threshold,
+            #            save_trail='_angle',loss_func_pred_type='cosloss')
+            #
+            # print('----------SHIFT----------')
+            # scoring2 = (lambda y, y_pred: np.linalg.norm(y - y_pred, axis=1).mean())  # Euclidean distance
+            #
+            # y_row = trainY[:,1:]
+            # y = copy.deepcopy(y_row)
+            # y[:,0] = np.cos(y_row[:,1])*y_row[:,0]
+            # y[:,1] = np.sin(y_row[:,1])*y_row[:,0]
+            #
+            # try_models(trainX=trainX, trainY=y, ids=ids, models=models, scoring=scoring2, multitask=multitask,
+            #                 data_boost=data_boost,
+            #                 isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
+            #                 manipulate_parak=manipulate_parak, threshold=threshold,
+            #                 loss_func_pred_type='smoothl1')
         else:
             raise ValueError("This task cannot be predicted (is not implemented yet) with the given dataset.")
 
