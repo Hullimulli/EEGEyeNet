@@ -959,7 +959,7 @@ def try_models(trainX, trainY, ids, models, N=1, scoring=None, scale=False, save
 
 
 def experiment(trainX, trainY):
-    path = './ninasArchitecture/Shift/'
+    path = './ninasArchitecture/Angle/'
     config['model_dir'] = path
     np.savetxt(path+'config.csv', [config['task'], config['dataset'], config['preprocessing']], fmt='%s')
     path = path+'checkpoint/'
