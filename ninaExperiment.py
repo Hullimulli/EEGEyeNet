@@ -959,7 +959,7 @@ def try_models(trainX, trainY, ids, models, N=1, scoring=None, scale=False, save
 
 
 def experiment(trainX, trainY):
-    path = './ninasArchitecture/Angle/'
+    path = './ninasArchitecture/Amplitude/'
     config['model_dir'] = path
     np.savetxt(path+'config.csv', [config['task'], config['dataset'], config['preprocessing']], fmt='%s')
     path = path+'checkpoint/'
@@ -1058,25 +1058,25 @@ def experiment(trainX, trainY):
 
     elif config['task'] == 'Direction_task':
         if config['dataset'] == 'dots':
-            # print('----------AMPLITUDE----------')
-            # scoring = (lambda y, y_pred : np.sqrt(mean_squared_error(y, y_pred.ravel())))
-            # y1 = trainY[:,1] # The first column are the Id-s, we take the second which are amplitude labels
-            # try_models(trainX=trainX, trainY=y1, ids=ids, models=models_direction['amplitude'], scoring=scoring,
-            #            multitask=multitask, data_boost=data_boost,
-            #            isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
-            #            manipulate_parak=manipulate_parak, threshold=threshold,
-            #            save_trail='_amplitude',loss_func_pred_type='smoothl1')
-            print('----------ANGLE----------')
-            scoring2 = (lambda y, y_pred: np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - y_pred.ravel()), np.cos(y - y_pred.ravel()))))))
-            scoring2 = (lambda y, y_pred: np.sqrt(
-                np.mean(np.square(np.arctan2(np.sin(y - y_pred), np.cos(y - y_pred))))))
-
-            y2 = trainY[:,2] # The first column are the Id-s, second are the amplitude labels, we take the third which are the angle labels
-            try_models(trainX=trainX, trainY=y2, ids=ids, models=models_direction['angle'], scoring=scoring2,
+            print('----------AMPLITUDE----------')
+            scoring = (lambda y, y_pred : np.sqrt(mean_squared_error(y, y_pred.ravel())))
+            y1 = trainY[:,1] # The first column are the Id-s, we take the second which are amplitude labels
+            try_models(trainX=trainX, trainY=y1, ids=ids, models=models_direction['amplitude'], scoring=scoring,
                        multitask=multitask, data_boost=data_boost,
                        isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
                        manipulate_parak=manipulate_parak, threshold=threshold,
-                       save_trail='_angle',loss_func_pred_type='cosloss')
+                       save_trail='_amplitude',loss_func_pred_type='smoothl1')
+            # print('----------ANGLE----------')
+            # scoring2 = (lambda y, y_pred: np.sqrt(np.mean(np.square(np.arctan2(np.sin(y - y_pred.ravel()), np.cos(y - y_pred.ravel()))))))
+            # scoring2 = (lambda y, y_pred: np.sqrt(
+            #     np.mean(np.square(np.arctan2(np.sin(y - y_pred), np.cos(y - y_pred))))))
+            #
+            # y2 = trainY[:,2] # The first column are the Id-s, second are the amplitude labels, we take the third which are the angle labels
+            # try_models(trainX=trainX, trainY=y2, ids=ids, models=models_direction['angle'], scoring=scoring2,
+            #            multitask=multitask, data_boost=data_boost,
+            #            isClassification=isClassification, saveScale=saveScale, manipulateX=manipulateX,
+            #            manipulate_parak=manipulate_parak, threshold=threshold,
+            #            save_trail='_angle',loss_func_pred_type='cosloss')
 
             # print('----------SHIFT----------')
             # scoring2 = (lambda y, y_pred: np.linalg.norm(y - y_pred, axis=1).mean())  # Euclidean distance
