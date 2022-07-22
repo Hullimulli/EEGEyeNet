@@ -65,5 +65,8 @@ def loadModelTorch(name:str):
     elif name == 'ConvLSTM':
         from DL_Models.torch_models.ConvLSTM.ConvLSTM import ConvLSTM
         return ConvLSTM
+    elif name == 'CNNMultiTask':
+        from DL_Models.torch_models.CNN.CNNMultiTask import CNNMultiTask
+        return CNNMultiTask
     else:
         raise Exception("choose valid model")

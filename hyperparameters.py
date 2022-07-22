@@ -283,7 +283,7 @@ our_DL_models = {
                     'PyramidalCNN' : [Ensemble, {'model_name': 'PyramidalCNN', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
                                               'kernel_size': 16, 'epochs' : epochs, 'nb_filters' : 16, 'verbose' : verbose, 'use_residual' : False, 'depth' : 6}],
                     'Xception' : [Ensemble, {'model_name': 'Xception', 'nb_models' : nb_models, 'loss':'mse', 'batch_size': batch_size, 'input_shape': input_shape, 'output_shape' : 1,
-                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}]
+                                              'kernel_size': 40, 'epochs' : epochs, 'nb_filters' : 64, 'verbose' : verbose, 'use_residual' : True, 'depth' : 18}],
 
                 },
                 'angle' : {

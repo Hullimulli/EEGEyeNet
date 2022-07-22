@@ -8,6 +8,7 @@ from pathlib import Path
 import matplotlib.cm as cm
 import scipy.io as sio
 import mne
+import matplotlib.animation as animation
 
 def electrodeBarPlot(values: np.ndarray , directory: str, yAxisLabel: str = "Loss Ratio",
                      filename: str = "Electrode_Loss" ,format: str = 'pdf' ,colour: str = 'red',
@@ -209,5 +210,52 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
         fig.savefig(os.path.join(directory, filename) + ".{}".format(format), format=format, transparent=True)
     else:
         plt.show()
+    plt.close()
+
+
+def movie(input: np.ndarray, directory: str, slowDownFactor: float=10,filename: str='movie',cmap: str='seismic'):
+    """
+    Returns a topoplot movie.
+    @param input: a 2 dimensional numpy array with shape [#samples,129]
+    @type
+    @param slowDownFactor: How many times slower the movie has to be played. (Seems not to be properly working.)
+    @type slowDownFactor: Float
+    @param filename: Name of the output.
+    @type filename: String
+    @param cmap: A matplotlib colour map.
+    @type cmap: String
+    @return:
+    @rtype:
+    """
+    input = np.atleast_2d(input)
+    if input.shape[1] != 129:
+        raise Exception("Wrong input dimensions.")
+
+    if cmap not in plt.colormaps():
+        print("Colourmap does not exist in Matplotlib.")
+        cmap = "Reds"
+
+    pathOfFile = os.path.join(Path(__file__).resolve().parent, "filesForPlot")
+    electrodePositions = sio.loadmat(os.path.join(pathOfFile, "lay129_head.mat"))['lay129_head']['pos'][0][0]
+    outline = sio.loadmat(os.path.join(pathOfFile, "lay129_head.mat"))['lay129_head']['outline'][0][0]
+    mask = sio.loadmat(os.path.join(pathOfFile, "lay129_head.mat"))['lay129_head']['mask'][0][0]
+    fig = plt.figure(figsize=(7,4.5))
+    #Generating outline dictionary for mne topoplot
+    outlines = dict()
+    outlines["mask_pos"] = (mask[0, 0][:, 0], mask[0, 0][:, 1])
+    outlines["head"] = (outline[0, 0][:, 0], outline[0, 0][:, 1])
+    outlines["nose"] = (outline[0, 1][:, 0], outline[0, 1][:, 1])
+    outlines["ear_left"] = (outline[0, 2][:, 0], outline[0, 2][:, 1])
+    outlines["ear_right"] = (outline[0, 3][:, 0], outline[0, 3][:, 1])
+    #This cuts out parts of the colour circle
+    outlines['clip_radius'] = (0.5,) * 2
+    outlines['clip_origin'] = (0,0.07)
+    maxValue = np.max(np.abs(input))
+    def update(i):
+        im, cm = mne.viz.plot_topomap(np.squeeze(input[i]),electrodePositions[3:132,:], contours=0,vmin=-maxValue, vmax=maxValue,outlines=outlines,show=False,cmap=cmap)
+        return im,
+
+    ani = animation.FuncAnimation(fig, update, frames=500)
+    ani.save(os.path.join(directory, filename+'.mp4'), fps=int(500 / slowDownFactor), writer='imagemagick')
     plt.close()
 

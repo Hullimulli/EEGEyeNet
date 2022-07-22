@@ -11,6 +11,7 @@ from utils import IOHelper
 from tqdm import tqdm
 from Joels_Files.mathFunctions import electrode_math
 from ninaExperiment import experiment
+from Joels_Files.TwoDArchitecture.Train import method
 
 """
 Main entry of the program
@@ -20,9 +21,8 @@ All configurations (parameters) of this benchmark are specified in config.py
 
 def main():
     # Setting up logging
-
     #asdf = AnalEyeZor(task='LR_task',dataset='antisaccade',preprocessing='max', trainBool=False, path="/Users/Hullimulli/Documents/ETH/SA2/run1/",models=["InceptionTime"],featureExtraction=True)
-    local = True
+    local = False
 
 
     #asdf = AnalEyeZor(task='LR_task', dataset='antisaccade', preprocessing='min', trainBool=False, models=["InceptionTime"],featureExtraction=False)
@@ -42,6 +42,7 @@ def main():
 
 
         trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
+        trainX.transpose((0,2,1))
         start_time = time.time()
         print('Starting the experiment...')
 
@@ -76,7 +77,8 @@ def main():
 
 
     if not local:
-        benchmark()
+        method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='eegeye')
+        method.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",

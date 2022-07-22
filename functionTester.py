@@ -14,6 +14,7 @@ from Joels_Files.helperFunctions import predictor, latex, modelLoader
 import pandas as pd
 from tqdm import tqdm
 from copy import copy
+from tempMultiCNN import getModel
 
 def getTestIndices():
     from benchmark import split
@@ -105,37 +106,55 @@ directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
 #losses = electrode_math.PFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory,modelPaths=[pathlist[0]],iterations=1,filename='PFI_Original')
 #base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
 #electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
-pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=False)
+pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
 path = ['/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth']
 #model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
 
-model = keras.models.load_model(pathlist[11], compile=False)
-config['framework'] = 'tensorflow'
+#model = keras.models.load_model(pathlist[6], compile=False)
+#config['framework'] = 'tensorflow'
 
-
-initializer = keras.initializers.RandomNormal()
-weights = [initializer(shape=weight.shape) for weight in model.trainable_weights]
-
+model = getModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/attentionModel/Angle/checkpoint/CNNMultiTask_nb_0_.pth',type='angle')
 
 #indices = np.squeeze(np.argwhere(getValIndices()))
-trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)[1][[300],1]
-trainX = IOHelper.get_npz_data(config['data_dir'], verbose=True)[0][[300],:,:]
+with np.load(config['data_dir'] + config['all_EEG_file']) as f:
+    trainX = f[config['trainX_variable']][[300]]
+    trainY = f[config['trainY_variable']][[300],2]
+start = 0
+end = 250
+#trainX[0,499,124] = 0
+#trainX[0,start:end,124] = np.interp(np.arange(end-start), [start,end-1], [trainX[0,start,124],trainX[0,end-1,124]]) + np.random.normal(scale=5,size=end-start)
+#trainX[0,start:end,124] = trainX[0,start:end,124] + np.random.normal(scale=5,size=end-start)
+#trainX[0,start:end,124] = -trainX[0,start:end,124]
 
 
 #model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
-grads = attention_visualisations.fullGrad(model,trainX,trainY,'mse')
+# grads = attention_visualisations.fullGrad(model,trainX,trainY,'angle-loss',biasOnlyBool=True)
+# maxValue = np.percentile(grads,40)
+# print(maxValue)
+# temp = copy(trainX)
+# temp[np.where(grads<=maxValue)] = 0
+# prediction = model(temp,training=False)
+# attention_visualisations.plotSaliencyMap(inputSignals=temp,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125]),filename="00Debug_FullGradBias_{}".format(np.array2string(np.squeeze(prediction))))
+trainX = np.transpose(trainX,axes=(0,2,1))
+grads = attention_visualisations.saliencyMap(model,trainX,trainY,'angle-loss',includeInputBool=True,absoluteValueBool = False)
+grads = grads[0].T
+electrode_plots.movie(grads,directory=directory)
+# maxValue = np.percentile(grads,40)
+# print(maxValue)
+# temp = copy(trainX)
+# temp[np.where(grads<=maxValue)] = 0
+# prediction = model(temp,training=False)
+#attention_visualisations.plotSaliencyMap(inputSignals=temp,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125]),filename="00Debug_FullGrad_{}".format(np.array2string(np.squeeze(prediction))))
 
-attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125, 128]),filename="Debug_FullGrad")
-
-grads = attention_visualisations.saliencyMap(model,trainX,trainY,'mse')
-
-attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125]),filename="Debug_Saliency")
-
-grads = attention_visualisations.saliencyMap(model, trainX, trainY, 'mse',includeInputBool=True)
-
-attention_visualisations.plotSaliencyMap(inputSignals=trainX, groundTruth=trainY, gradients=grads,
-                                         directory=directory, electrodesToPlot=np.array([125]),
-                                         filename="Debug_SaliencyInp")
+# grads = attention_visualisations.saliencyMap(model,trainX,trainY,'mse')
+#
+# attention_visualisations.plotSaliencyMap(inputSignals=trainX,groundTruth=trainY,gradients=grads,directory=directory,electrodesToPlot=np.array([125]),filename="Debug_Saliency")
+#
+# grads = attention_visualisations.saliencyMap(model, trainX, trainY, 'mse',includeInputBool=True)
+#
+# attention_visualisations.plotSaliencyMap(inputSignals=trainX, groundTruth=trainY, gradients=grads,
+#                                          directory=directory, electrodesToPlot=np.array([125]),
+#                                          filename="Debug_SaliencyInp")
 
 
 

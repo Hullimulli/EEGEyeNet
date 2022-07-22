@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from scipy.interpolate import interp1d
 
-def saliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True, includeInputBool: bool = False) -> np.ndarray:
+def saliencyMap(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True,
+                includeInputBool: bool = False, absoluteValueBool: bool = True) -> np.ndarray:
     if config['framework'] == 'tensorflow':
-        return saliencyMapTensorflow(model, inputSignals, groundTruth, loss, normalizeBool, includeInputBool)
+        return saliencyMapTensorflow(model, inputSignals, groundTruth, loss, normalizeBool, includeInputBool, absoluteValueBool)
     elif config['framework'] == 'pytorch':
-        return saliencyMapTorch(model, inputSignals, groundTruth, loss, normalizeBool, includeInputBool)
+        return saliencyMapTorch(model, inputSignals, groundTruth, loss, normalizeBool, includeInputBool, absoluteValueBool)
     else:
         raise Exception("SaliencyMap not available for framework.")
 
@@ -22,7 +23,8 @@ def fullGrad(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str
     else:
         raise Exception("SaliencyMap not available for framework.")
 
-def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str , normalizeBool: bool = True, includeInputBool: bool = False) -> np.ndarray:
+def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str ,
+                          normalizeBool: bool = True, includeInputBool: bool = False, absoluteValueBool: bool = True) -> np.ndarray:
     import tensorflow as tf
 
     if loss == "bce":
@@ -45,7 +47,8 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
 
     if includeInputBool:
         grads = grads * inputSignals
-    grads = np.abs(grads)
+    if absoluteValueBool:
+        grads = np.abs(grads)
 
     if normalizeBool:
         for i in range(grads.shape[0]):
@@ -56,7 +59,8 @@ def saliencyMapTensorflow(model, inputSignals: np.ndarray, groundTruth: np.ndarr
     return grads
 
 
-def saliencyMapTorch(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True, includeInputBool: bool = False) -> np.ndarray:
+def saliencyMapTorch(model, inputSignals: np.ndarray, groundTruth: np.ndarray, loss: str, normalizeBool: bool = True,
+                     includeInputBool: bool = False, absoluteValueBool: bool = True) -> np.ndarray:
     import torch
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.eval()
@@ -79,7 +83,8 @@ def saliencyMapTorch(model, inputSignals: np.ndarray, groundTruth: np.ndarray, l
         grads[i] = np.transpose(temp.grad.data.cpu().detach().numpy(), (0, 2, 1))
         if includeInputBool:
             grads[i] = grads[i] * np.transpose(inputSignals[i].cpu().detach().numpy())
-        grads[i] = np.abs(grads[i])
+        if absoluteValueBool:
+            grads[i] = np.abs(grads[i])
     if normalizeBool:
         for i in range(grads.shape[0]):
             if np.max(grads[i]) != 0:
