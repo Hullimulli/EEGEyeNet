@@ -77,7 +77,7 @@ def main():
 
 
     if not local:
-        task = method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='')
+        task = method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='eegeye')
         task.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
