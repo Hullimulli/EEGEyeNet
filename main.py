@@ -77,8 +77,8 @@ def main():
 
 
     if not local:
-        method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='')
-        method.fit()
+        task = method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='')
+        task.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",
