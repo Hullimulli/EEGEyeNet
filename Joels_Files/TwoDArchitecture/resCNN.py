@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class resCNN:
 
-    def __init__(self,filters: list = [1024,512,256,128,64]):
+    def __init__(self,filters: list = [128,256,512,1024]):
         self.filters = filters
         self.initializer = 'he_uniform'
 
