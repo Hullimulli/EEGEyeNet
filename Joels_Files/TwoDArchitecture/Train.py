@@ -1,5 +1,5 @@
-from dataLoader import loadData, split
-from resCNN import resCNN
+from .dataLoader import loadData, split
+from .resCNN import resCNN
 import os
 import tensorflow.keras as keras
 import wandb
@@ -7,9 +7,9 @@ from tqdm import tqdm
 import numpy as np
 import time
 import tensorflow as tf
-from updateModel import mseUpdate,angleLossUpdate, mse, angle_loss
+from .updateModel import mseUpdate,angleLossUpdate, mse, angle_loss
 from config import config
-from preprocess import convertToImage
+from .preprocess import convertToImage
 
 class method:
 

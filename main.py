@@ -69,7 +69,7 @@ def main():
         experiment(trainX, trainY)
         print('Finish the experiment.')
 
-    print("--- Runtime: %s seconds ---" % (time.time() - start_time))
+        print("--- Runtime: %s seconds ---" % (time.time() - start_time))
 
 
 
@@ -77,7 +77,7 @@ def main():
 
 
     if not local:
-        method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='eegeye')
+        method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='')
         method.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
