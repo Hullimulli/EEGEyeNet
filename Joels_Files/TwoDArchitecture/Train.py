@@ -73,8 +73,8 @@ class method:
             self.model = self.architecture.buildModel(inputShape=self.inputShape)
 
         if self.wandbProject != "":
-            wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate, "Nr_Samples": self.nrOfSamples,
-                           "Patch_Shape": "{},{}".format(self.inputShape[1], self.inputShape[2]), "Training Set": inputPath})
+            wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
+                           "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])), "Training Set": inputPath})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
