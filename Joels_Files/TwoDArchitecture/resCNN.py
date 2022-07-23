@@ -3,10 +3,11 @@ import tensorflow as tf
 
 class resCNN:
 
-    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = []):
+    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [], residualBool: bool = True):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
+        self.residualBool = residualBool
 
     def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True):
 
@@ -22,7 +23,9 @@ class resCNN:
         x = keras.layers.Conv2D(filters=nrOfFilters, kernel_size=3, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(x)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.add([residual,x])
+
+        if self.residualBool:
+            x = keras.layers.add([residual,x])
 
         x = keras.layers.Activation("relu")(x)
 
