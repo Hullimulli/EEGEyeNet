@@ -77,7 +77,7 @@ def main():
 
 
     if not local:
-        task = method(directory='./MultiDNet', nrOfEpochs=10, wandbProject='eegeye')
+        task = method(name='resCNN_norm',directory='./MultiDNet', nrOfEpochs=10, wandbProject='eegeye')
         #task = method(directory='/Users/Hullimulli/Documents/ETH/SA2/dev_EEGEyeNet', nrOfEpochs=10, wandbProject='',batchSize=8)
         task.fit()
         def PFINew():
