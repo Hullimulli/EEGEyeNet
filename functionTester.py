@@ -107,13 +107,14 @@ directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
 #base = electrode_math.gradientPFI(inputSignals=trainX,groundTruth=trainY,loss='angle-loss', directory=directory, modelPaths=pathlist, filename="PFI_Ang_Sal")
 #electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
 pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
-path = ['/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth']
+#path = ['/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth']
 #model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
 
-#model = keras.models.load_model(pathlist[6], compile=False)
-#config['framework'] = 'tensorflow'
+model = keras.models.load_model(pathlist[1], compile=False)
+print(model.summary())
+config['framework'] = 'tensorflow'
 
-model = getModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/attentionModel/Angle/checkpoint/CNNMultiTask_nb_0_.pth',type='angle')
+#model = getModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/attentionModel/Angle/checkpoint/CNNMultiTask_nb_0_.pth',type='angle')
 
 #indices = np.squeeze(np.argwhere(getValIndices()))
 with np.load(config['data_dir'] + config['all_EEG_file']) as f:

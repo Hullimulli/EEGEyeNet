@@ -1,5 +1,5 @@
 from .dataLoader import loadData, split
-from .resCNN import resCNN
+from .resCNN import resCNN, resCNN1D
 import os
 import tensorflow.keras as keras
 import wandb
@@ -15,15 +15,28 @@ class method:
 
     def __init__(self,name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 32, nrOfEpochs:int = 10,wandbProject:str = "", continueTrainingBool: bool = False,
-                 loss:str = 'mse'):
+                 loss:str = 'mse', convDimension: int = 2):
         self.model = None
         self.name = name
         self.epochs = nrOfEpochs
         self.batchSize = batchSize
         self.nrOfSamples = nrOfSamples
         self.checkpointPath = os.path.join(directory, self.name)
-        self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
-        self.architecture = resCNN()
+        if convDimension == 2:
+            self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
+            self.preprocess = convertToImage
+            self.architecture = resCNN()
+        elif convDimension == 3:
+            self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
+        elif convDimension == 1:
+            self.inputShape = (500,129)
+            self.architecture = resCNN1D()
+            self.preprocess = lambda x: x
+        else:
+            self.inputShape = (129, 500)
+            self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
+            self.architecture = resCNN1D()
+
         self.learningRate = 0.0001
         self.wandbProject = wandbProject
 
@@ -59,11 +72,6 @@ class method:
         if self.model is None:
             self.model = self.architecture.buildModel(inputShape=self.inputShape)
 
-        trainable_count = int(
-            np.sum([keras.backend.count_params(p) for p in self.model.trainable_weights]))
-        non_trainable_count = int(
-            np.sum([keras.backend.count_params(p) for p in self.model.non_trainable_weights]))
-
         if self.wandbProject != "":
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate, "Nr_Samples": self.nrOfSamples,
                            "Patch_Shape": "{},{}".format(self.inputShape[1], self.inputShape[2]), "Training Set": inputPath})
@@ -82,7 +90,7 @@ class method:
             nrOfBatches = 0.0
             totNrOfBatches = len(p) / self.batchSize
             for batch in range(0, len(p), self.batchSize):
-                input = convertToImage(inputs[p[batch:batch + self.batchSize]])
+                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
                 loss_values_temp, grads = self.update(model=self.model, input=input,
                                                     ground=targets[p[batch:batch + self.batchSize],targetIndex])
                 loss_values += loss_values_temp
@@ -106,7 +114,7 @@ class method:
             nrOfBatches = 0.0
             self.model.save(self.checkpointPath+'/last')
             for batch in range(0, len(p), self.batchSize):
-                input = convertToImage(inputs[p[batch:batch + self.batchSize]])
+                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
                 if batch + self.batchSize > len(p):
                     nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
@@ -130,7 +138,7 @@ class method:
         test_loss = 0
         nrOfBatches = 0.0
         for batch in range(0, len(testIndices), self.batchSize):
-            input = convertToImage(inputs[testIndices[batch:batch + self.batchSize]])
+            input = self.preprocess(inputs[testIndices[batch:batch + self.batchSize]])
             if batch + self.batchSize > len(p):
                 nrOfBatches += (len(p) - batch) / self.batchSize
             else:
