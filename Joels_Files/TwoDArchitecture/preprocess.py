@@ -18,11 +18,14 @@ def getElectrodeIndices():
     return electrodePositions
 
 
-def convertToImage(dataX: np.ndarray):
+def convertToImage(dataX: np.ndarray, normalize:bool = True):
     electrodePositions = getElectrodeIndices()
     map = np.zeros([dataX.shape[0],32,32,dataX.shape[1]])
     for j,i in enumerate(electrodePositions):
         map[:,i[1],i[0],:] = dataX[:,:,j]
+    if normalize:
+        map = map - np.min(map,axis=(1,2,3),keepdims=True)
+        map = map / np.max(map,axis=(1,2,3),keepdims=True)
 
     return map
 
