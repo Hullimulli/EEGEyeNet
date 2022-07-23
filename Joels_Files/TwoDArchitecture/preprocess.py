@@ -18,14 +18,11 @@ def getElectrodeIndices():
     return electrodePositions
 
 
-def convertToImage(dataX: np.ndarray, normalize:bool = True):
+def convertToImage(dataX: np.ndarray):
     electrodePositions = getElectrodeIndices()
     map = np.zeros([dataX.shape[0],32,32,dataX.shape[1]])
     for j,i in enumerate(electrodePositions):
         map[:,i[1],i[0],:] = dataX[:,:,j]
-    if normalize:
-        map = map - np.min(map,axis=(1,2,3),keepdims=True)
-        map = map / np.max(map,axis=(1,2,3),keepdims=True)
 
     return map
 
@@ -34,6 +31,7 @@ def checkImageConfiguration():
     electrodePositions = sio.loadmat(os.path.join(pathOfFile, "lay129_head.mat"))['lay129_head']['pos'][0][0]
 
     electrodePositions = 37.5*electrodePositions[3:132]
+    #37.5
 
 
     plt.scatter(electrodePositions[:,0],electrodePositions[:,1])
@@ -41,4 +39,15 @@ def checkImageConfiguration():
     coordMax = np.amax(np.abs(electrodePositions), axis=0)
     print(coordMax)
     plt.scatter(electrodePositions[:, 0], electrodePositions[:, 1])
+    plt.show()
+    plt.cla()
+    electrodePositions = electrodePositions.astype(np.int)
+    electrodePositions[:,0] -= np.min(electrodePositions[:,0])
+    electrodePositions[:, 1] -= np.min(electrodePositions[:, 1])
+    map = np.zeros([(1+coordMax[0])*2,(1+coordMax[1])*2])
+    for j,i in enumerate(electrodePositions):
+        if map[i[1],i[0]] != 0:
+            print('Already has Value for {}'.format(j+1))
+        map[i[1],i[0]] = j
+    plt.imshow(map,cmap="jet")
     plt.show()

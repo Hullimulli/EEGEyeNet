@@ -3,8 +3,9 @@ import tensorflow as tf
 
 class resCNN:
 
-    def __init__(self,filters: list = [128,256,512,1024]):
-        self.filters = filters
+    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [1024,512,256,128]):
+        self.convFilters = convFilters
+        self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
 
     def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True):
@@ -20,7 +21,7 @@ class resCNN:
 
         x = keras.layers.Conv2D(filters=nrOfFilters, kernel_size=3, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(x)
-        x = x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.BatchNormalization()(x)
         x = keras.layers.add([residual,x])
 
         x = keras.layers.Activation("relu")(x)
@@ -33,12 +34,15 @@ class resCNN:
     def buildModel(self, inputShape: (int ,int ,int), loss="mse"):
         inputs = keras.Input(shape=inputShape)
         x = inputs
-        for filters in self.filters:
+        for filters in self.convFilters:
             x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters)
 
         x = keras.layers.GlobalAveragePooling2D()(x)
+        for filters in self.denseFilters:
+            x = keras.layers.Dense(filters, activation="relu",
+                               kernel_initializer=self.initializer, use_bias=False)(x)
         outputs = keras.layers.Dense(1, activation="relu",
-                                     kernel_initializer=self.initializer, use_bias=False)(x)
+                               kernel_initializer=self.initializer, use_bias=False)(x)
 
         model = keras.Model(inputs, outputs)
         model.compile(optimizer="adam" ,loss=loss)

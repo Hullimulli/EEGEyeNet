@@ -50,6 +50,7 @@ class method:
             run = wandb.init(project=self.wandbProject, entity='hullimulli')
             wandb.run.name = self.name + "_" + wandb.run.name
             wandbConfig = wandb.config
+        print(self.model.summary())
         inputPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_X.npy'
         targetPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_Y.npy'
         targetIndex = 1
@@ -62,10 +63,6 @@ class method:
             np.sum([keras.backend.count_params(p) for p in self.model.trainable_weights]))
         non_trainable_count = int(
             np.sum([keras.backend.count_params(p) for p in self.model.non_trainable_weights]))
-
-        print('Total params: {:,}'.format(trainable_count + non_trainable_count))
-        print('Trainable params: {:,}'.format(trainable_count))
-        print('Non-trainable params: {:,}'.format(non_trainable_count))
 
         if self.wandbProject != "":
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate, "Nr_Samples": self.nrOfSamples,
