@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class resCNN:
 
-    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [1024,512,256,128]):
+    def __init__(self,convFilters: list = [128,64,64], denseFilters: list = []):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
@@ -53,7 +53,7 @@ class resCNN:
 
 class resCNN1D:
 
-    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [1024,512,256,128]):
+    def __init__(self,convFilters: list = [64,64,64], denseFilters: list = []):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
@@ -64,12 +64,12 @@ class resCNN1D:
                                        kernel_initializer=self.initializer)(
             previousLayer)
 
-        x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=64, padding="same", use_bias=False,
+        x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=16, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(previousLayer)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Activation("relu")(x)
 
-        x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=64, padding="same", use_bias=False,
+        x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=16, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.add([residual,x])
