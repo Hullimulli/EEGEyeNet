@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class resCNN:
 
-    def __init__(self,convFilters: list = [128,64,64], denseFilters: list = []):
+    def __init__(self,convFilters: list = [128,256,512], denseFilters: list = []):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
@@ -51,29 +51,18 @@ class resCNN:
 
 
 
-class resCNN1D:
+class CNN1D:
 
-    def __init__(self,convFilters: list = [64,64,64], denseFilters: list = []):
+    def __init__(self,convFilters: list = [16,32,48,64,80,96], denseFilters: list = []):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
 
     def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True):
 
-        residual = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=1, padding="same", use_bias=False,
-                                       kernel_initializer=self.initializer)(
-            previousLayer)
-
         x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=16, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(previousLayer)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Activation("relu")(x)
-
-        x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=16, padding="same", use_bias=False,
-                                kernel_initializer=self.initializer)(x)
-        x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.add([residual,x])
-
         x = keras.layers.Activation("relu")(x)
 
         if reduceBool:

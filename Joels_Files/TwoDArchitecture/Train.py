@@ -1,5 +1,5 @@
 from .dataLoader import loadData, split
-from .resCNN import resCNN, resCNN1D
+from .resCNN import resCNN, CNN1D
 from .PyramidalCNN import PyramidalCNN
 import os
 import tensorflow.keras as keras
@@ -31,13 +31,13 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)
-            self.architecture = resCNN1D()
+            self.architecture = CNN1D()
             #self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
             self.preprocess = lambda x: x
         else:
             self.inputShape = (129, 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
-            self.architecture = resCNN1D()
+            self.architecture = CNN1D()
 
         self.learningRate = 0.0001
         self.wandbProject = wandbProject

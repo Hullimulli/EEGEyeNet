@@ -77,8 +77,8 @@ def main():
 
 
     if not local:
-        task = method(name='resCNN_1D', convDimension=1, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
-        #task = method(directory='/Users/Hullimulli/Documents/ETH/SA2/dev_EEGEyeNet', nrOfEpochs=10, convDimension=2,wandbProject='',batchSize=8)
+        #task = method(name='resCNN_1D', convDimension=1, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        task = method(directory='/Users/Hullimulli/Documents/ETH/SA2/dev_EEGEyeNet', nrOfEpochs=10, convDimension=1,wandbProject='',batchSize=8)
         task.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
