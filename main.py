@@ -77,7 +77,7 @@ def main():
 
 
     if not local:
-        task = method(name='CNN_2D', convDimension=2, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        task = method(name='PyrCNN_1D', convDimension=1, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
         #task = method(directory='/Users/Hullimulli/Documents/ETH/SA2/dev_EEGEyeNet', nrOfEpochs=10, convDimension=1,wandbProject='',batchSize=8)
         task.fit()
         def PFINew():
