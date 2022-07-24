@@ -81,6 +81,7 @@ class method:
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
         trainingTime = time.time()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learningRate)
         for e in pbar:
             loss_values = 0
             tic = time.time()
@@ -88,7 +89,6 @@ class method:
             # Permute
             p = np.random.permutation(len(trainIndices))
 
-            optimizer = tf.keras.optimizers.Adam(learning_rate=self.learningRate)
             nrOfBatches = 0.0
             totNrOfBatches = len(p) / self.batchSize
             for batch in range(0, len(p), self.batchSize):
