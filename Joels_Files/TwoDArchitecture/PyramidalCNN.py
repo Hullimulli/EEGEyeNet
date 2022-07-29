@@ -30,6 +30,13 @@ class PyramidalCNN(ConvNet):
         x = tf.keras.layers.MaxPool1D(pool_size=2, strides=2)(x)
         return x
 
+    def _shortcut_layer(self, input_tensor, out_tensor):
+        shortcut_y = tf.keras.layers.Conv1D(filters=int(out_tensor.shape[-1]), kernel_size=1, padding='same', use_bias=False)(input_tensor)
+        shortcut_y = tf.keras.layers.BatchNormalization()(shortcut_y)
+        x = tf.keras.layers.Add()([shortcut_y, out_tensor])
+        x = tf.keras.layers.Activation('relu')(x)
+        return x
+
     def buildModel(self,inputShape=None):
         input_layer = tf.keras.layers.Input(self.input_shape)
 
@@ -59,4 +66,5 @@ class PyramidalCNN(ConvNet):
             raise ValueError("Choose valid loss function")
 
         model = tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
         return model

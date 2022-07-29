@@ -20,7 +20,7 @@ def getElectrodeIndices():
 
 def convertToImage(dataX: np.ndarray,normalizeBool: bool = True):
     electrodePositions = getElectrodeIndices()
-    map = np.zeros([dataX.shape[0],32,32,dataX.shape[1]])
+    map = np.zeros([dataX.shape[0],32,32,dataX.shape[1]],dtype=np.float32)
     for j,i in enumerate(electrodePositions):
         map[:,i[1],i[0],:] = dataX[:,:,j]
 

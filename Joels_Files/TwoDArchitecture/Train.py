@@ -31,8 +31,8 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)
-            #self.architecture = CNN1D()
-            self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
+            self.architecture = CNN1D()
+            #self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
             self.preprocess = lambda x: x
         else:
             self.inputShape = (129, 500)
@@ -48,7 +48,7 @@ class method:
             self.loss = angle_loss
         else:
             self.update = mseUpdate
-            self.loss = mse
+            self.loss = tf.keras.losses.MeanSquaredError()
 
         self.model = self.architecture.buildModel(inputShape=self.inputShape)
         if not os.path.exists(self.checkpointPath):
@@ -81,7 +81,6 @@ class method:
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
         trainingTime = time.time()
-        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learningRate)
         for e in pbar:
             loss_values = 0
             tic = time.time()
@@ -93,14 +92,14 @@ class method:
             totNrOfBatches = len(p) / self.batchSize
             for batch in range(0, len(p), self.batchSize):
                 input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
-                loss_values_temp, grads = self.update(model=self.model, input=input,
-                                                    ground=targets[p[batch:batch + self.batchSize],targetIndex])
+                target = targets[p[batch:batch + self.batchSize],targetIndex].astype(np.float32)
+                loss_values_temp = self.update(model=self.model, input=input,
+                                                    ground=target)
                 loss_values += loss_values_temp
                 if batch + self.batchSize > len(p):
                     nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
                     nrOfBatches += 1
-                optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
                 estimateOfArrival = int((time.time() - tic) / nrOfBatches * (totNrOfBatches-nrOfBatches)/60)
                 pbar.set_description(
                     "epoch: {}, patch {}/{}, loss: {}, eta: {}min".format(e+1,batch, len(p),loss_values / nrOfBatches,estimateOfArrival))
@@ -155,5 +154,5 @@ class method:
 
         if self.wandbProject != "":
             run.finish()
-        print("Total training time of {}h".format(trainingTime / 3600))
+        print("Total training time of {}min".format(trainingTime / 60))
 

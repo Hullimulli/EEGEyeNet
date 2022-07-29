@@ -87,6 +87,6 @@ class CNN1D:
                                kernel_initializer=self.initializer, use_bias=False)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer="adam" ,loss=loss)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
 
         return model

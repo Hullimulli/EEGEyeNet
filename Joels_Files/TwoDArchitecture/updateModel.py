@@ -13,16 +13,22 @@ def angle_loss(a, b):
 def mse(pred,ground):
     return tf.math.reduce_mean(tf.square(pred - ground))
 
+@tf.function
 def mseUpdate(model,input, ground):
+    loss = tf.keras.losses.MeanSquaredError()
     with tf.GradientTape() as tape:
         pred = model(input, training=True)
-        loss_value = mse(pred, ground)
+        loss_value = loss(pred, ground)
+    grads = tape.gradient(loss_value, model.trainable_variables)
+    model.optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    return loss_value
 
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
-
+@tf.function
 def angleLossUpdate(model,input, ground):
     with tf.GradientTape() as tape:
         pred = model(input, training=True)
-        loss_value = angle_loss(pred, ground)
+        loss_value = 100*angle_loss(pred, ground)
+    grads = tape.gradient(loss_value, model.trainable_variables)
+    model.optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+    return loss_value
