@@ -31,7 +31,7 @@ class resCNN3D:
         x = keras.layers.Activation("relu")(x)
 
         if reduceBool:
-            x = keras.layers.MaxPool2D(pool_size=(2,2), padding="same")(x)
+            x = keras.layers.MaxPool3D(pool_size=(2,2), padding="same")(x)
 
         return x
 
@@ -41,7 +41,7 @@ class resCNN3D:
         for filters in self.convFilters:
             x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters)
 
-        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.GlobalAveragePooling3D()(x)
         for filters in self.denseFilters:
             x = keras.layers.Dense(filters, activation="relu",
                                kernel_initializer=self.initializer, use_bias=False)(x)
