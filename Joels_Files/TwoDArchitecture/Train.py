@@ -69,7 +69,6 @@ class method:
             run = wandb.init(project=self.wandbProject, entity='hullimulli')
             wandb.run.name = self.name + "_" + wandb.run.name
             wandbConfig = wandb.config
-        print(self.model.summary())
         inputPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_X.npy'
         targetPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_Y.npy'
         targetIndex = 1
@@ -78,10 +77,15 @@ class method:
         if self.model is None:
             self.model = self.architecture.buildModel(inputShape=self.inputShape)
 
+        self.model.summary()
+
         if self.wandbProject != "":
+            stringlist = []
+            self.model.summary(print_fn=lambda x: stringlist.append(x))
+            short_model_summary = "\n".join(stringlist)
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model": self.model.summary()})
+                                "Training Set": inputPath, "Model": short_model_summary})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
