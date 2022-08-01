@@ -8,18 +8,19 @@ from tqdm import tqdm
 import numpy as np
 import time
 import tensorflow as tf
-from .updateModel import mseUpdate,angleLossUpdate, mse, angle_loss
 from config import config
 from .preprocess import convertToImage, convertToVideo
 from sklearn.metrics import mean_squared_error
+from .updateModel import mseUpdate, angleLossUpdate, mse, angle_loss
 
 class method:
 
-    def __init__(self,name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
+    def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 32, nrOfEpochs:int = 10,wandbProject:str = "", continueTrainingBool: bool = False,
                  loss:str = 'mse', convDimension: int = 2, seed: int = 0):
+
         self.model = None
-        self.name = name
+        self.name = name+'_{}D'.format(convDimension)
         self.epochs = nrOfEpochs
         self.batchSize = batchSize
         self.nrOfSamples = nrOfSamples
@@ -86,7 +87,7 @@ class method:
             self.model.summary(print_fn=lambda x: stringlist.append(x))
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model": stringlist})
+                                "Training Set": inputPath, "Model": stringlist, "Model_Name": self.name})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf

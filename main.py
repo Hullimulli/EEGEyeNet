@@ -12,6 +12,8 @@ from tqdm import tqdm
 from Joels_Files.mathFunctions import electrode_math
 from ninaExperiment import experiment
 from Joels_Files.TwoDArchitecture.Train import method
+import tensorflow.keras as keras
+import tensorflow as tf
 
 """
 Main entry of the program
@@ -77,9 +79,12 @@ def main():
 
 
     if not local:
-        task = method(name='CNN_2D_NoNorm_{}'.format(0), seed=0,convDimension=2, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
-        #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=1,nrOfEpochs=50, convDimension=1,wandbProject='',batchSize=32)
+        task = method(name='CNN_Norm', seed=0,convDimension=3, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=0,nrOfEpochs=1, convDimension=1,wandbProject='',batchSize=32)
         task.fit()
+
+            #TODO Argparse
+
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",
