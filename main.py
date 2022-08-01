@@ -79,7 +79,7 @@ def main():
 
 
     if not local:
-        task = method(name='CNN_Norm', seed=0,convDimension=3, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        task = method(name='CNN_Norm', seed=0,convDimension=3, directory='./MultiDNet', nrOfEpochs=50, batchSize=4,wandbProject='eegeye')
         #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=0,nrOfEpochs=1, convDimension=1,wandbProject='',batchSize=32)
         task.fit()
 
