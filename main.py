@@ -78,7 +78,7 @@ def main():
 
     if not local:
         task = method(name='CNN_1D', convDimension=1, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
-        #task = method(directory='/Users/Hullimulli/Documents/ETH/SA2/dev_EEGEyeNet', nrOfEpochs=30, convDimension=1,wandbProject='',batchSize=32)
+        #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', nrOfEpochs=50, convDimension=1,wandbProject='',batchSize=32)
         task.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
