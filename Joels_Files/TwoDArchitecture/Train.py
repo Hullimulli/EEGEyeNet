@@ -1,5 +1,5 @@
 from .dataLoader import loadData, split
-from .resCNN import resCNN, CNN1D
+from .resCNN import resCNN2D, CNN1D
 from .PyramidalCNN import PyramidalCNN
 import os
 import tensorflow.keras as keras
@@ -17,17 +17,20 @@ class method:
 
     def __init__(self,name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 32, nrOfEpochs:int = 10,wandbProject:str = "", continueTrainingBool: bool = False,
-                 loss:str = 'mse', convDimension: int = 2):
+                 loss:str = 'mse', convDimension: int = 2, seed: int = 0):
         self.model = None
         self.name = name
         self.epochs = nrOfEpochs
         self.batchSize = batchSize
         self.nrOfSamples = nrOfSamples
         self.checkpointPath = os.path.join(directory, self.name)
+        self.seed = seed
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             self.preprocess = convertToImage
-            self.architecture = resCNN()
+            self.architecture = resCNN2D(residualBool=False)
         elif convDimension == 3:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
@@ -77,7 +80,8 @@ class method:
 
         if self.wandbProject != "":
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
-                           "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])), "Training Set": inputPath})
+                           "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
+                                "Training Set": inputPath, "Model": self.model.summary()})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
@@ -94,8 +98,8 @@ class method:
             for batch in range(0, len(p), self.batchSize):
                 input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
                 target = targets[p[batch:batch + self.batchSize],targetIndex].astype(np.float32)
-                loss_values_temp = self.update(model=self.model, input=input,
-                                                    ground=target)
+                loss_values_temp = self.update(model=self.model, input=tf.convert_to_tensor(input),
+                                                    ground=tf.convert_to_tensor(target), seed=tf.convert_to_tensor(self.seed+batch))
                 loss_values += loss_values_temp
                 if batch + self.batchSize > len(p):
                     nrOfBatches += (len(p) - batch) / self.batchSize

@@ -1,7 +1,7 @@
 import tensorflow.keras as keras
 import tensorflow as tf
 
-class resCNN:
+class resCNN2D:
 
     def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [], residualBool: bool = True):
         self.convFilters = convFilters
@@ -34,7 +34,7 @@ class resCNN:
 
         return x
 
-    def buildModel(self, inputShape: (int ,int ,int), loss="mse"):
+    def buildModel(self, inputShape: (int ,int ,int)):
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
@@ -48,7 +48,7 @@ class resCNN:
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer="adam" ,loss=loss)
+        model.compile(optimizer="adam")
 
         return model
 
@@ -73,7 +73,7 @@ class CNN1D:
 
         return x
 
-    def buildModel(self, inputShape: (int ,int ,int), loss="mse"):
+    def buildModel(self, inputShape: (int ,int ,int)):
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:

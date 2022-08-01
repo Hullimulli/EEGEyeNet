@@ -14,9 +14,10 @@ def mse(pred,ground):
     return tf.math.reduce_mean(tf.square(pred - ground))
 
 @tf.function
-def mseUpdate(model,input, ground):
+def mseUpdate(model,input, ground, seed):
     loss = tf.keras.losses.MeanSquaredError()
     with tf.GradientTape() as tape:
+        tf.random.set_seed(seed)
         pred = model(input, training=True)
         loss_value = loss(pred, ground)
     grads = tape.gradient(loss_value, model.trainable_variables)
@@ -24,8 +25,9 @@ def mseUpdate(model,input, ground):
     return loss_value
 
 @tf.function
-def angleLossUpdate(model,input, ground):
+def angleLossUpdate(model,input, ground, seed):
     with tf.GradientTape() as tape:
+        tf.random.set_seed(seed)
         pred = model(input, training=True)
         loss_value = 100*angle_loss(pred, ground)
     grads = tape.gradient(loss_value, model.trainable_variables)
