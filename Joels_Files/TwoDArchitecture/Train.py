@@ -82,10 +82,9 @@ class method:
         if self.wandbProject != "":
             stringlist = []
             self.model.summary(print_fn=lambda x: stringlist.append(x))
-            short_model_summary = "\n".join(stringlist)
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model": short_model_summary})
+                                "Training Set": inputPath, "Model": stringlist})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
