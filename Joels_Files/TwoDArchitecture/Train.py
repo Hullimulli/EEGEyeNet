@@ -1,5 +1,5 @@
 from .dataLoader import loadData, split
-from .resCNN import resCNN2D, CNN1D
+from .resCNN import resCNN2D, CNN1D, resCNN3D
 from .PyramidalCNN import PyramidalCNN
 import os
 import tensorflow.keras as keras
@@ -10,7 +10,7 @@ import time
 import tensorflow as tf
 from .updateModel import mseUpdate,angleLossUpdate, mse, angle_loss
 from config import config
-from .preprocess import convertToImage
+from .preprocess import convertToImage, convertToVideo
 from sklearn.metrics import mean_squared_error
 
 class method:
@@ -32,6 +32,8 @@ class method:
             self.preprocess = convertToImage
             self.architecture = resCNN2D(residualBool=False)
         elif convDimension == 3:
+            self.preprocess = convertToVideo
+            self.architecture = resCNN3D(residualBool=False)
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)

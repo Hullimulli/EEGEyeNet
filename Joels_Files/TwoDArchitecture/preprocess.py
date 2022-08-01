@@ -18,7 +18,7 @@ def getElectrodeIndices():
     return electrodePositions
 
 
-def convertToImage(dataX: np.ndarray,normalizeBool: bool = True):
+def convertToImage(dataX: np.ndarray,normalizeBool: bool = False):
     electrodePositions = getElectrodeIndices()
     map = np.zeros([dataX.shape[0],32,32,dataX.shape[1]],dtype=np.float32)
     for j,i in enumerate(electrodePositions):
@@ -27,7 +27,18 @@ def convertToImage(dataX: np.ndarray,normalizeBool: bool = True):
     if normalizeBool:
          map = map - np.min(map,axis=(1,2,3),keepdims=True)
          map = map / np.max(map,axis=(1,2,3),keepdims=True)
+    return map
 
+
+def convertToVideo(dataX: np.ndarray,normalizeBool: bool = True):
+    electrodePositions = getElectrodeIndices()
+    map = np.zeros([dataX.shape[0],32,32,dataX.shape[1],1],dtype=np.float32)
+    for j,i in enumerate(electrodePositions):
+        map[:,i[1],i[0],:,0] = dataX[:,:,j]
+
+    if normalizeBool:
+         map = map - np.min(map,axis=(1,2,3),keepdims=True)
+         map = map / np.max(map,axis=(1,2,3),keepdims=True)
     return map
 
 def checkImageConfiguration():
