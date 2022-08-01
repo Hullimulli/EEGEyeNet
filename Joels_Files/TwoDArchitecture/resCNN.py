@@ -31,7 +31,7 @@ class resCNN3D:
         x = keras.layers.Activation("relu")(x)
 
         if reduceBool:
-            x = keras.layers.MaxPool3D(pool_size=(2,2), padding="same")(x)
+            x = keras.layers.MaxPool3D(pool_size=(2,2,2), padding="same")(x)
 
         return x
 
