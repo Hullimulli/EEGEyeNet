@@ -30,10 +30,10 @@ class method:
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             self.preprocess = convertToImage
-            self.architecture = resCNN2D(residualBool=False)
+            self.architecture = resCNN2D(residualBool=True)
         elif convDimension == 3:
             self.preprocess = convertToVideo
-            self.architecture = resCNN3D(residualBool=False)
+            self.architecture = resCNN3D(residualBool=True)
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)

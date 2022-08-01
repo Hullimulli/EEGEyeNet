@@ -77,7 +77,7 @@ def main():
 
 
     if not local:
-        task = method(name='CNN_2D_NoNorm_NoRes_{}'.format(0), seed=0,convDimension=2, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        task = method(name='CNN_2D_NoNorm_{}'.format(0), seed=0,convDimension=2, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
         #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=1,nrOfEpochs=50, convDimension=1,wandbProject='',batchSize=32)
         task.fit()
         def PFINew():
