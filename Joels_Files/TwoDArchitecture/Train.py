@@ -11,6 +11,7 @@ import tensorflow as tf
 from .updateModel import mseUpdate,angleLossUpdate, mse, angle_loss
 from config import config
 from .preprocess import convertToImage
+from sklearn.metrics import mean_squared_error
 
 class method:
 
@@ -48,7 +49,7 @@ class method:
             self.loss = angle_loss
         else:
             self.update = mseUpdate
-            self.loss = tf.keras.losses.MeanSquaredError()
+            self.loss = (lambda y_pred, y: mean_squared_error(y, y_pred.ravel()))
 
         self.model = self.architecture.buildModel(inputShape=self.inputShape)
         if not os.path.exists(self.checkpointPath):
@@ -120,12 +121,13 @@ class method:
                     nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
                     nrOfBatches += 1
-                val_loss += self.loss(self.model(input,training=False),targets[p[batch:batch + self.batchSize],targetIndex])
-            val_loss = tf.sqrt(val_loss / nrOfBatches)
+                val_loss += self.loss(self.model(input,training=False).numpy(),targets[p[batch:batch + self.batchSize],targetIndex])
+            val_loss = np.sqrt(val_loss / nrOfBatches)
             if val_loss < valLoss:
                 valLoss = val_loss
                 self.model.save(self.checkpointPath + '/best')
-            print("val_score after epoch {}: {}".format(e+1,val_loss))
+            if self.wandbProject == "":
+                print("val_score after epoch {}: {}".format(e+1,val_loss))
             inferenceTime = (time.time() - tic) / len(valIndices)
             if self.wandbProject != "":
                 wandb.log({"train_loss": train_loss, "val_score": val_loss,
@@ -144,9 +146,9 @@ class method:
                 nrOfBatches += (len(p) - batch) / self.batchSize
             else:
                 nrOfBatches += 1
-            test_loss += self.loss(self.model(input, training=False),
+            test_loss += self.loss(self.model(input, training=False).numpy(),
                                   targets[testIndices[batch:batch + self.batchSize], targetIndex])
-        test_loss = tf.sqrt(test_loss / nrOfBatches)
+        test_loss = np.sqrt(test_loss / nrOfBatches)
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":

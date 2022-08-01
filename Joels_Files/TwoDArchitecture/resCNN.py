@@ -44,8 +44,8 @@ class resCNN:
         for filters in self.denseFilters:
             x = keras.layers.Dense(filters, activation="relu",
                                kernel_initializer=self.initializer, use_bias=False)(x)
-        outputs = keras.layers.Dense(1, activation="relu",
-                               kernel_initializer=self.initializer, use_bias=False)(x)
+        outputs = keras.layers.Dense(1, activation="linear",
+                               kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
         model.compile(optimizer="adam" ,loss=loss)
@@ -83,8 +83,8 @@ class CNN1D:
         for filters in self.denseFilters:
             x = keras.layers.Dense(filters, activation="relu",
                                kernel_initializer=self.initializer, use_bias=False)(x)
-        outputs = keras.layers.Dense(1, activation="relu",
-                               kernel_initializer=self.initializer, use_bias=False)(x)
+        outputs = keras.layers.Dense(1, activation="linear",
+                               kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
