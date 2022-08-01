@@ -77,10 +77,9 @@ def main():
 
 
     if not local:
-        for i in range(5):
-            task = method(name='CNN_1D_Rev_nb_{}'.format(i), seed=i,convDimension=0, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
-            #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=1,nrOfEpochs=50, convDimension=1,wandbProject='',batchSize=32)
-            task.fit()
+        task = method(name='CNN_2D_NoNorm_NoRes_{}'.format(0), seed=0,convDimension=2, directory='./MultiDNet', nrOfEpochs=50, wandbProject='eegeye')
+        #task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=1,nrOfEpochs=50, convDimension=1,wandbProject='',batchSize=32)
+        task.fit()
         def PFINew():
             pathlist = electrode_math.modelPathsFromBenchmark(
                 "/home/kjoel/SA/runs/1651674768_Direction_task_dots_min",
