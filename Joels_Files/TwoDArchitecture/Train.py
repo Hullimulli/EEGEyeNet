@@ -26,12 +26,13 @@ class method:
         self.nrOfSamples = nrOfSamples
         self.checkpointPath = os.path.join(directory, self.name)
         self.seed = seed
+        self.convDimension = convDimension
         tf.random.set_seed(seed)
         np.random.seed(seed)
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             self.preprocess = convertToImage
-            self.architecture = resCNN2D(residualBool=True)
+            self.architecture = resCNN2D(residualBool=True, convFilters=[256,128,64])
         elif convDimension == 3:
             self.preprocess = convertToVideo
             self.architecture = resCNN3D(residualBool=True)
@@ -44,7 +45,7 @@ class method:
         else:
             self.inputShape = (129, 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
-            self.architecture = CNN1D()
+            self.architecture = CNN1D(kernelSize=5)
 
         self.learningRate = 0.0001
         self.wandbProject = wandbProject
@@ -87,7 +88,8 @@ class method:
             self.model.summary(print_fn=lambda x: stringlist.append(x))
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model": stringlist, "Model_Name": self.name})
+                                "Training Set": inputPath, "Model": stringlist, "Model_Name": self.name,
+                                "Type": self.convDimension, "Batch_Sizer": self.batchSize})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
