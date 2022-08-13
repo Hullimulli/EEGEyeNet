@@ -3,6 +3,7 @@ from .resCNN import resCNN2D, CNN1D, resCNN3D
 from .PyramidalCNN import PyramidalCNN
 import os
 import tensorflow.keras as keras
+from keras.utils.layer_utils import count_params
 import wandb
 from tqdm import tqdm
 import numpy as np
@@ -83,11 +84,9 @@ class method:
 
         self.model.summary()
 
-        trainable_count = int(
-            np.sum([keras.backend.count_params(p) for p in set(self.model.trainable_weights)]))
+        trainable_count = count_params(self.model.trainable_weights)
 
-        non_trainable_count = int(
-            np.sum([keras.backend.count_params(p) for p in set(self.model.non_trainable_weights)]))
+        non_trainable_count = count_params(self.model.non_trainable_weights)
 
         nr_params = non_trainable_count + trainable_count
         if self.wandbProject != "":
