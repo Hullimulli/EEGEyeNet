@@ -84,11 +84,9 @@ class method:
 
         self.model.summary()
 
-        trainable_count = count_params(self.model.trainable_weights)
-
-        non_trainable_count = count_params(self.model.non_trainable_weights)
-
-        nr_params = non_trainable_count + trainable_count
+        trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
+        non_trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.non_trainable_weights])
+        nr_params = trainable_count + non_trainable_count
         if self.wandbProject != "":
             stringlist = []
             self.model.summary(print_fn=lambda x: stringlist.append(x))
