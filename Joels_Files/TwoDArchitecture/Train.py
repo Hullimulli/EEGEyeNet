@@ -83,13 +83,23 @@ class method:
 
         self.model.summary()
 
+        trainable_count = int(
+            np.sum([keras.backend.count_params(p) for p in set(self.model.trainable_weights)]))
+
+        non_trainable_count = int(
+            np.sum([keras.backend.count_params(p) for p in set(self.model.non_trainable_weights)]))
+
+        nr_params = non_trainable_count + trainable_count
         if self.wandbProject != "":
             stringlist = []
             self.model.summary(print_fn=lambda x: stringlist.append(x))
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model": stringlist, "Model_Name": self.name,
-                                "Type": self.convDimension, "Batch_Sizer": self.batchSize})
+                                "Training Set": inputPath, "Model_Name": self.name,
+                                "Type": self.convDimension, "Batch_Size": self.batchSize,
+                                "Trainable_Params": trainable_count,
+                                "Non_Trainable_Params": non_trainable_count,
+                                "Nr_Of_Params": nr_params, "Model": stringlist})
 
         pbar = tqdm(range(self.epochs))
         valLoss = np.inf
