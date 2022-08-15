@@ -44,7 +44,7 @@ def main():
 
 
         trainX, trainY = IOHelper.get_npz_data(config['data_dir'], verbose=True)
-        #trainX.transpose((0,2,1))
+        trainX = trainX.transpose((0,2,1))
         start_time = time.time()
         print('Starting the experiment...')
 
