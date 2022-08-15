@@ -16,12 +16,11 @@ from .updateModel import mseUpdate, angleLossUpdate, mse, angle_loss
 class method:
 
     def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
-                 batchSize: int = 32, nrOfEpochs:int = 10,wandbProject:str = "", continueTrainingBool: bool = False,
+                 batchSize: int = 32, wandbProject:str = "", continueTrainingBool: bool = False,
                  loss:str = 'mse', convDimension: int = 2, seed: int = 0):
 
         self.model = None
         self.name = name+'_{}D'.format(convDimension)
-        self.epochs = nrOfEpochs
         self.batchSize = batchSize
         self.nrOfSamples = nrOfSamples
         self.checkpointPath = os.path.join(directory, self.name)
@@ -69,10 +68,10 @@ class method:
                 pass
 
 
-    def fit(self):
+    def fit(self, nrOfEpochs: int = 50, saveBool: bool = True):
         if self.wandbProject != "":
             run = wandb.init(project=self.wandbProject, entity='hullimulli')
-            wandb.run.name = self.name + "_" + wandb.run.name
+            wandb.run.name = self.name
             wandbConfig = wandb.config
         inputPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_X.npy'
         targetPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_Y.npy'
@@ -98,7 +97,7 @@ class method:
                                 "Non_Trainable_Params": non_trainable_count,
                                 "Nr_Of_Params": nr_params, "Model": stringlist})
 
-        pbar = tqdm(range(self.epochs))
+        pbar = tqdm(range(nrOfEpochs))
         valLoss = np.inf
         trainingTime = time.time()
         for e in pbar:
@@ -133,7 +132,8 @@ class method:
             tic = time.time()
             val_loss = 0
             nrOfBatches = 0.0
-            self.model.save(self.checkpointPath+'/last')
+            if saveBool:
+                self.model.save(self.checkpointPath+'/last')
             for batch in range(0, len(p), self.batchSize):
                 input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
                 if batch + self.batchSize > len(p):
@@ -144,7 +144,8 @@ class method:
             val_loss = np.sqrt(val_loss / nrOfBatches)
             if val_loss < valLoss:
                 valLoss = val_loss
-                self.model.save(self.checkpointPath + '/best')
+                if saveBool:
+                    self.model.save(self.checkpointPath + '/best')
             if self.wandbProject == "":
                 print("val_score after epoch {}: {}".format(e+1,val_loss))
             inferenceTime = (time.time() - tic) / len(valIndices)
