@@ -56,14 +56,16 @@ class resCNN3D:
 class resCNN2D:
 
     def __init__(self,convFilters: list = [128,256,512], denseFilters: list = [], residualBool: bool = True,
-                 kernelSize: int = 3):
+                 kernelSize: int = 3, maxPoolSize: int = (2,2)):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
         self.residualBool = residualBool
         self.kernelSize = kernelSize
+        self.maxPoolSize = maxPoolSize
 
-    def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True, kernelSize: int = 3):
+    def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True, kernelSize: int = 3,
+                          maxPoolSize: int = (2,2)):
 
         residual = keras.layers.Conv2D(filters=nrOfFilters, kernel_size=1, padding="same", use_bias=False,
                                        kernel_initializer=self.initializer)(
@@ -84,7 +86,7 @@ class resCNN2D:
         x = keras.layers.Activation("relu")(x)
 
         if reduceBool:
-            x = keras.layers.MaxPool2D(pool_size=(2,2), padding="same")(x)
+            x = keras.layers.MaxPool2D(pool_size=maxPoolSize, padding="same")(x)
 
         return x
 
@@ -92,7 +94,8 @@ class resCNN2D:
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
-            x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters, kernelSize=self.kernelSize)
+            x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters, kernelSize=self.kernelSize,
+                                       maxPoolSize=self.maxPoolSize)
 
         x = keras.layers.GlobalAveragePooling2D()(x)
         for filters in self.denseFilters:
@@ -110,13 +113,16 @@ class resCNN2D:
 
 class CNN1D:
 
-    def __init__(self,convFilters: list = [16,32,48,64,80,96], denseFilters: list = [], kernelSize: int = 16):
+    def __init__(self,convFilters: list = [16,32,48,64,80,96], denseFilters: list = [], kernelSize: int = 16,
+                 maxPoolSize: int = 2):
         self.convFilters = convFilters
         self.denseFilters = denseFilters
         self.initializer = 'he_uniform'
         self.kernelSize = kernelSize
+        self.maxPoolSize = maxPoolSize
 
-    def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True, kernelSize: int = 16):
+    def downSamplingBlock(self ,previousLayer, nrOfFilters: int, reduceBool: bool = True, kernelSize: int = 16,
+                          maxPoolSize: int = 2):
 
         x = keras.layers.Conv1D(filters=nrOfFilters, kernel_size=kernelSize, padding="same", use_bias=False,
                                 kernel_initializer=self.initializer)(previousLayer)
@@ -124,7 +130,7 @@ class CNN1D:
         x = keras.layers.Activation("relu")(x)
 
         if reduceBool:
-            x = keras.layers.MaxPool1D(pool_size=2, padding="same")(x)
+            x = keras.layers.MaxPool1D(pool_size=maxPoolSize, padding="same")(x)
 
         return x
 
@@ -132,7 +138,8 @@ class CNN1D:
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
-            x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters, kernelSize=self.kernelSize)
+            x = self.downSamplingBlock(previousLayer=x ,nrOfFilters=filters, kernelSize=self.kernelSize,
+                                       maxPoolSize=self.maxPoolSize)
 
         x = keras.layers.GlobalAveragePooling1D()(x)
         for filters in self.denseFilters:

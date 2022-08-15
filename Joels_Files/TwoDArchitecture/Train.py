@@ -32,7 +32,7 @@ class method:
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             self.preprocess = convertToImage
-            self.architecture = resCNN2D(residualBool=True, convFilters=[256,128,64])
+            self.architecture = resCNN2D(residualBool=True, convFilters=[64,64,64,64,64,64,64,64,64,64,64,64])
         elif convDimension == 3:
             self.preprocess = convertToVideo
             self.architecture = resCNN3D(residualBool=True)
@@ -45,7 +45,8 @@ class method:
         else:
             self.inputShape = (129, 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
-            self.architecture = CNN1D(kernelSize=5)
+            #self.architecture = CNN1D(kernelSize=5)
+            self.architecture = CNN1D(convFilters=[64,64,64,64,64,64,64,64,64,64,64,64],kernelSize=64, maxPoolSize=9)
 
         self.learningRate = 0.0001
         self.wandbProject = wandbProject
