@@ -38,7 +38,9 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)
-            self.architecture = CNN1D()
+            #self.architecture = CNN1D()
+            self.architecture = CNN1D(convFilters=[64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64], kernelSize=64,
+                                      maxPoolSize=9)
             #self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
             self.preprocess = lambda x: x
         else:
