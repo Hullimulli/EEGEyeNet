@@ -54,7 +54,7 @@ class SelfAttentionBlock(nn.Module):
         attention_weights = torch.sum(attention_weights,dim=1)
         # get it from both dimensions
         # attention_weights = torch.sum(attention_weights, dim=1)+ torch.sum(attention_weights, dim=2)
-        attention_weights = nn.functional.sigmoid(attention_weights)
+        attention_weights = torch.sigmoid(attention_weights)
         attention_weights = torch.unsqueeze(attention_weights,dim=-1)
 
         # output = torch.matmul(attention_weights, v)  # (..., num_heads, attn_dim, depth)
