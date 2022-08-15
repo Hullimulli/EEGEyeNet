@@ -1006,7 +1006,7 @@ def experiment(trainX, trainY):
         manipulate_parak = None
     GCN_init = True
     GCN_init_domain = True
-
+    print(input_shape)
     models = {
         'CNNMultiTask':[CNNMultiTask,{'input_shape':input_shape,'output_shape':output_shape,'depth':12,'mode':'1DT','path':path,'multitask':multitask,
                                       'use_SEB':use_SEB,'use_self_attention':use_self_attention}],
