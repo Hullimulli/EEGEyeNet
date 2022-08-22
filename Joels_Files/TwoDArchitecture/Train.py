@@ -198,7 +198,7 @@ class method:
 
 
 
-    def fitNoMemOpt(self, nrOfEpochs: int = 50):
+    def fitNoMemOpt(self, nrOfEpochs: int = 50, saveBool: bool = True):
         if self.wandbProject != "":
             run = wandb.init(project=self.wandbProject, entity='hullimulli')
             wandb.run.name = self.name
@@ -233,50 +233,82 @@ class method:
                                 "Nr_Of_Params": nr_params, "Model": stringlist})
 
         pbar = tqdm(range(nrOfEpochs))
+        valLoss = np.inf
         trainingTime = time.time()
-
-        best_val_loss = sys.maxsize  # For early stopping
-        valLoss = sys.maxsize
-        patience = 0
-        early_stopped = False
         for e in pbar:
+            loss_values = 0
             tic = time.time()
-            if not early_stopped:
-                hist = self.model.fit(inputs[trainIndices], targets[trainIndices], verbose=2, batch_size=self.batchSize, validation_data=(inputs[valIndices], targets[valIndices]),
-                                        epochs=e+1, initial_epoch=e)
-                #W&B Logs
-                logs = {str(key): value[0] for key, value in hist.history.items()}
-                logs['epoch'] = e+1
-                val_loss_epoch = logs['val_loss']
-                train_loss_epoch = logs[list(logs.keys())[0]]
-                if self.wandbProject == "":
-                    print("val_score after epoch {}: {}".format(e + 1, val_loss_epoch))
-                inferenceTime = (time.time() - tic) / len(valIndices)
-                trainTime = (time.time() - tic) / 60
-                if self.wandbProject != "":
-                    wandb.log({"train_loss": train_loss_epoch, "val_score": val_loss_epoch,
-                               "train_time (min)": trainTime,
-                               "epoch": e + 1,
-                               "inference_time (s)": inferenceTime})
 
-            # Impementation of early stopping
-            if config['early_stopping'] and not early_stopped:
-                if patience > config['patience']:
-                    early_stopped = True
-                if val_loss_epoch >= valLoss:
-                    patience +=1
+            # Permute
+            p = np.random.permutation(len(trainIndices))
+
+            nrOfBatches = 0.0
+            totNrOfBatches = len(p) / self.batchSize
+            for batch in range(0, len(p), self.batchSize):
+                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
+                target = targets[p[batch:batch + self.batchSize], targetIndex].astype(np.float32)
+                hist = self.model.train_on_batch(input,target)
+                loss_values_temp = hist.history.values()[0]
+
+                loss_values += loss_values_temp
+                if batch + self.batchSize > len(p):
+                    nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
-                    best_val_loss = val_loss_epoch
-                    patience = 0
+                    nrOfBatches += 1
+                estimateOfArrival = int((time.time() - tic) / nrOfBatches * (totNrOfBatches - nrOfBatches) / 60)
+                pbar.set_description(
+                    "epoch: {}, patch {}/{}, loss: {}, eta: {}min".format(e + 1, batch, len(p),
+                                                                          loss_values / nrOfBatches, estimateOfArrival))
 
+            # Validation
+            trainTime = (time.time() - tic) / 60
+            train_loss = loss_values / nrOfBatches
 
+            p = valIndices
 
-            #Test
-        test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices],batch_size=self.batchSize)),targets[testIndices]))
+            tic = time.time()
+            val_loss = 0
+            nrOfBatches = 0.0
+            if saveBool:
+                self.model.save(self.checkpointPath + '/last')
+            for batch in range(0, len(p), self.batchSize):
+                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
+                if batch + self.batchSize > len(p):
+                    nrOfBatches += (len(p) - batch) / self.batchSize
+                else:
+                    nrOfBatches += 1
+                val_loss += self.loss(self.model(input, training=False).numpy(),
+                                      targets[p[batch:batch + self.batchSize], targetIndex])
+            val_loss = np.sqrt(val_loss / nrOfBatches)
+            if val_loss < valLoss:
+                valLoss = val_loss
+                if saveBool:
+                    self.model.save(self.checkpointPath + '/best')
+            if self.wandbProject == "":
+                print("val_score after epoch {}: {}".format(e + 1, val_loss))
+            inferenceTime = (time.time() - tic) / len(valIndices)
+            if self.wandbProject != "":
+                wandb.log({"train_loss": train_loss, "val_score": val_loss,
+                           "train_time (min)": trainTime,
+                           "epoch": e + 1,
+                           "inference_time (s)": inferenceTime})
+
+        # Test
+        test_loss = 0
+        nrOfBatches = 0.0
+        for batch in range(0, len(testIndices), self.batchSize):
+            input = self.preprocess(inputs[testIndices[batch:batch + self.batchSize]])
+            if batch + self.batchSize > len(p):
+                nrOfBatches += (len(p) - batch) / self.batchSize
+            else:
+                nrOfBatches += 1
+            test_loss += self.loss(self.model(input, training=False).numpy(),
+                                   targets[testIndices[batch:batch + self.batchSize], targetIndex])
+        test_loss = np.sqrt(test_loss / nrOfBatches)
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
-            wandb.log({"test_score": test_loss,"runtime": trainingTime})
+            wandb.log({"test_score": test_loss, "runtime": trainingTime})
 
         if self.wandbProject != "":
             run.finish()

@@ -13,4 +13,4 @@ task = method(task='angle', directory='./MultiDNet', batchSize=32, wandbProject=
 # task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed, convDimension=1,
 #               wandbProject='',batchSize=32, task='amplitude')
 #task.fit(nrOfEpochs=50, saveBool=False)
-task.fitNoMemOpt(nrOfEpochs=50)
+task.fitNoMemOpt(nrOfEpochs=50, saveBool=False)
