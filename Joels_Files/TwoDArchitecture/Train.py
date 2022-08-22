@@ -12,15 +12,14 @@ from config import config
 from .preprocess import convertToImage, convertToVideo
 from sklearn.metrics import mean_squared_error
 from .updateModel import mseUpdate, angleLossUpdate, mse, angle_loss
-import sys
-from utils import IOHelper
+from utils.wandbHelper import getPredictionVisualisations
 
 class method:
 
     def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 32, wandbProject:str = "", continueTrainingBool: bool = False,
                  loss:str = 'mse', convDimension: int = 2, seed: int = 0, task: str = 'amplitude'):
-
+        config['framework'] = 'tensorflow'
         self.model = None
         self.name = name+'_{}D'.format(convDimension)
         self.batchSize = batchSize
@@ -48,9 +47,11 @@ class method:
                 self.architecture = CNN1D()
             #self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
             self.preprocess = lambda x: x
+            self.inversePreprocess = lambda x: x
         else:
             self.inputShape = (129, 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
+            self.inversePreprocess = lambda x: np.transpose(x, axes=(0, 2, 1))
             if self.name == 'CNN_N':
                 self.architecture = CNN1D(convFilters=[64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64], kernelSize=64,
                                           maxPoolSize=9)
@@ -66,10 +67,12 @@ class method:
             self.update = angleLossUpdate
             self.loss = angle_loss
             self.lossForFit = angle_loss
+            self.lossName = loss
         else:
             self.update = mseUpdate
             self.loss = (lambda y_pred, y: mean_squared_error(y, y_pred.ravel()))
             self.lossForFit = 'mse'
+            self.lossName = 'mse'
 
         self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
         if not os.path.exists(self.checkpointPath):
@@ -200,7 +203,12 @@ class method:
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
-            wandb.log({"test_score": test_loss,"runtime": trainingTime})
+            logs = {"test_score": test_loss,"runtime": trainingTime}
+            prediction = self.model.predict(self.preprocess(inputs[[testIndices[:16]]]))
+            addLogs = getPredictionVisualisations(self.model,self.name,inputs[[testIndices[:16]]],
+                                                  targets[[testIndices[:16]]],prediction,self.lossName,
+                                                  preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
+            wandb.log({**logs, **addLogs})
 
         if self.wandbProject != "":
             run.finish()

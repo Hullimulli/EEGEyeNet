@@ -209,7 +209,7 @@ def topoPlot(values: np.ndarray, directory: str, filename: str = 'topoPlot', for
     if saveBool:
         fig.savefig(os.path.join(directory, filename) + ".{}".format(format), format=format, transparent=True)
     else:
-        plt.show()
+        return plt
     plt.close()
 
 
