@@ -17,7 +17,7 @@ class method:
 
     def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 32, wandbProject:str = "", continueTrainingBool: bool = False,
-                 loss:str = 'mse', convDimension: int = 2, seed: int = 0):
+                 loss:str = 'mse', convDimension: int = 2, seed: int = 0, task: str = 'amplitude'):
 
         self.model = None
         self.name = name+'_{}D'.format(convDimension)
@@ -26,6 +26,7 @@ class method:
         self.checkpointPath = os.path.join(directory, self.name)
         self.seed = seed
         self.convDimension = convDimension
+        self.task = task
         tf.random.set_seed(seed)
         np.random.seed(seed)
         if convDimension == 2:
@@ -38,7 +39,7 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 1:
             self.inputShape = (500,129)
-            if self.name is 'CNN_N':
+            if self.name == 'CNN_N':
                 self.architecture = CNN1D(convFilters=[64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64], kernelSize=64,
                                           maxPoolSize=9)
             else:
@@ -48,7 +49,7 @@ class method:
         else:
             self.inputShape = (129, 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
-            if self.name is 'CNN_N':
+            if self.name == 'CNN_N':
                 self.architecture = CNN1D(convFilters=[64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64], kernelSize=64,
                                           maxPoolSize=9)
             else:
@@ -56,7 +57,8 @@ class method:
 
         self.learningRate = 0.0001
         self.wandbProject = wandbProject
-
+        if self.task=='angle':
+            loss = 'angle-loss'
 
         if loss=='angle-loss':
             self.update = angleLossUpdate
@@ -82,7 +84,12 @@ class method:
             wandbConfig = wandb.config
         inputPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_X.npy'
         targetPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_Y.npy'
-        targetIndex = 1
+        if self.task == 'amplitude':
+            targetIndex = 1
+        elif self.task == 'angle':
+            targetIndex = 2
+        else:
+            targetIndex = [1,2]
         inputs, targets = loadData(inputPath,targetPath)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
         if self.model is None:
@@ -98,7 +105,7 @@ class method:
             self.model.summary(print_fn=lambda x: stringlist.append(x))
             wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
                            "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Training Set": inputPath, "Model_Name": self.name,
+                                "Training Set": inputPath, "Model_Name": self.name, "Task": self.task,
                                 "Type": self.convDimension, "Batch_Size": self.batchSize,
                                 "Trainable_Params": trainable_count,
                                 "Non_Trainable_Params": non_trainable_count,
