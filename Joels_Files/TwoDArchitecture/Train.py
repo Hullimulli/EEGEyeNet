@@ -248,7 +248,7 @@ class method:
                 logs = {str(key): value[0] for key, value in hist.history.items()}
                 logs['epoch'] = e+1
                 val_loss_epoch = logs['val_loss']
-                train_loss_epoch = logs['train_loss']
+                train_loss_epoch = logs[0]
                 if self.wandbProject == "":
                     print("val_score after epoch {}: {}".format(e + 1, val_loss_epoch))
                 inferenceTime = (time.time() - tic) / len(valIndices)
