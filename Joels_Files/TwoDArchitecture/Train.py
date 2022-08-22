@@ -71,7 +71,7 @@ class method:
             self.loss = (lambda y_pred, y: mean_squared_error(y, y_pred.ravel()))
             self.lossForFit = 'mse'
 
-        self.model = self.architecture.buildModel(inputShape=self.inputShape)
+        self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
         if not os.path.exists(self.checkpointPath):
             os.mkdir(self.checkpointPath)
         elif continueTrainingBool:
