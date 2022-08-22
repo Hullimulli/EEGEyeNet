@@ -12,6 +12,8 @@ from config import config
 from .preprocess import convertToImage, convertToVideo
 from sklearn.metrics import mean_squared_error
 from .updateModel import mseUpdate, angleLossUpdate, mse, angle_loss
+import sys
+from utils import IOHelper
 
 class method:
 
@@ -63,9 +65,11 @@ class method:
         if loss=='angle-loss':
             self.update = angleLossUpdate
             self.loss = angle_loss
+            self.lossForFit = angle_loss
         else:
             self.update = mseUpdate
             self.loss = (lambda y_pred, y: mean_squared_error(y, y_pred.ravel()))
+            self.lossForFit = 'mse'
 
         self.model = self.architecture.buildModel(inputShape=self.inputShape)
         if not os.path.exists(self.checkpointPath):
@@ -191,4 +195,90 @@ class method:
         if self.wandbProject != "":
             run.finish()
         print("Total training time of {}min".format(trainingTime / 60))
+
+
+
+    def fitNoMemOpt(self, nrOfEpochs: int = 50):
+        if self.wandbProject != "":
+            run = wandb.init(project=self.wandbProject, entity='hullimulli')
+            wandb.run.name = self.name
+            wandbConfig = wandb.config
+        if self.task == 'amplitude':
+            targetIndex = 1
+        elif self.task == 'angle':
+            targetIndex = 2
+        else:
+            targetIndex = [1,2]
+        inputs, targets = IOHelper.get_npz_data(config['data_dir'], verbose=True)
+        trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
+        targets = targets[targetIndex]
+        inputs = self.preprocess(inputs)
+        if self.model is None:
+            self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
+
+        self.model.summary()
+
+        trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
+        non_trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.non_trainable_weights])
+        nr_params = trainable_count + non_trainable_count
+        if self.wandbProject != "":
+            stringlist = []
+            self.model.summary(print_fn=lambda x: stringlist.append(x))
+            wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
+                           "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
+                                "Model_Name": self.name, "Task": self.task,
+                                "Type": self.convDimension, "Batch_Size": self.batchSize,
+                                "Trainable_Params": trainable_count,
+                                "Non_Trainable_Params": non_trainable_count,
+                                "Nr_Of_Params": nr_params, "Model": stringlist})
+
+        pbar = tqdm(range(nrOfEpochs))
+        trainingTime = time.time()
+
+        best_val_loss = sys.maxsize  # For early stopping
+        valLoss = sys.maxsize
+        patience = 0
+        early_stopped = False
+        for e in pbar:
+            tic = time.time()
+            if not early_stopped:
+                hist = self.model.fit(inputs[trainIndices], targets[trainIndices], verbose=2, batch_size=self.batchSize, validation_data=(inputs[valIndices], targets[valIndices]),
+                                        epochs=e+1, initial_epoch=e)
+                #W&B Logs
+                logs = {str(key): value[0] for key, value in hist.history.items()}
+                logs['epoch'] = e+1
+                val_loss_epoch = logs['val_loss']
+                train_loss_epoch = logs['train_loss']
+                if self.wandbProject == "":
+                    print("val_score after epoch {}: {}".format(e + 1, val_loss_epoch))
+                inferenceTime = (time.time() - tic) / len(valIndices)
+                trainTime = (time.time() - tic) / 60
+                if self.wandbProject != "":
+                    wandb.log({"train_loss": train_loss_epoch, "val_score": val_loss_epoch,
+                               "train_time (min)": trainTime,
+                               "epoch": e + 1,
+                               "inference_time (s)": inferenceTime})
+
+            # Impementation of early stopping
+            if config['early_stopping'] and not early_stopped:
+                if patience > config['patience']:
+                    early_stopped = True
+                if val_loss_epoch >= valLoss:
+                    patience +=1
+                else:
+                    best_val_loss = val_loss_epoch
+                    patience = 0
+
+
+
+            #Test
+            test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices],batch_size=self.batchSize),targets[testIndices])))
+            print("test_score: {}".format(test_loss))
+            trainingTime = time.time() - trainingTime
+            if self.wandbProject != "":
+                wandb.log({"test_score": test_loss,"runtime": trainingTime})
+
+            if self.wandbProject != "":
+                run.finish()
+            print("Total training time of {}min".format(trainingTime / 60))
 

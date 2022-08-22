@@ -35,7 +35,7 @@ class resCNN3D:
 
         return x
 
-    def buildModel(self, inputShape: (int ,int ,int)):
+    def buildModel(self, inputShape: (int ,int ,int),loss):
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
@@ -49,7 +49,7 @@ class resCNN3D:
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer="adam")
+        model.compile(optimizer="adam",loss=loss)
 
         return model
 
@@ -90,7 +90,7 @@ class resCNN2D:
 
         return x
 
-    def buildModel(self, inputShape: (int ,int ,int)):
+    def buildModel(self, inputShape: (int ,int ,int),loss):
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
@@ -105,7 +105,7 @@ class resCNN2D:
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer="adam")
+        model.compile(optimizer="adam",loss=loss)
 
         return model
 
@@ -134,7 +134,7 @@ class CNN1D:
 
         return x
 
-    def buildModel(self, inputShape: (int ,int ,int)):
+    def buildModel(self, inputShape: (int ,int ,int),loss):
         inputs = keras.Input(shape=inputShape)
         x = inputs
         for filters in self.convFilters:
@@ -149,6 +149,6 @@ class CNN1D:
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4))
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),loss=loss)
 
         return model
