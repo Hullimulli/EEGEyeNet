@@ -5,7 +5,29 @@ from Joels_Files.plotFunctions.attention_visualisations import saliencyMap, plot
 import matplotlib.pyplot as plt
 
 
+def getPredictionVisualisationsSimple(modelName: str, groundTruth: np.ndarray, prediction: np.ndarray, loss: str):
 
+    groundTruth = np.atleast_1d(np.squeeze(groundTruth))
+    prediction = np.atleast_1d(np.squeeze(prediction))
+
+    if loss == "angle-loss":
+        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
+                                                                         prediction=np.expand_dims(prediction,
+                                                                                                   axis=(0, 1)),
+                                                                         modelName=modelName, anglePartBool=True))}
+    elif loss == 'bce':
+        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
+                                                                         prediction=np.expand_dims(prediction,
+                                                                                                   axis=(0, 1)),
+                                                                         modelName=modelName, anglePartBool=False))}
+    else:
+        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
+                                                                         prediction=np.expand_dims(prediction,
+                                                                                                   axis=(0, 1)),
+                                                                         modelName=modelName, anglePartBool=False))}
+    plt.close('all')
+
+    return logs
 
 def getPredictionVisualisations(model, modelName: str, inputSignals: np.ndarray, groundTruth: np.ndarray, prediction: np.ndarray,loss: str,
                                 electrodesToPlot: np.ndarray = np.array([1,32,125,128]),

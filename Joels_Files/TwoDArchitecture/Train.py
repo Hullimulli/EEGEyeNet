@@ -38,6 +38,11 @@ class method:
             self.preprocess = convertToVideo
             self.architecture = resCNN3D(residualBool=True)
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
+        elif convDimension == 12:
+            self.preprocess = lambda x: np.expand_dims(x,axis=-1)
+            self.inputShape = (500, 129, 1)
+            self.architecture = resCNN2D(residualBool=True,kernelSize=5)
+            self.batchSize = self.batchSize // 4
         elif convDimension == 1:
             self.inputShape = (500,129)
             if self.name == 'CNN_N':
