@@ -96,8 +96,9 @@ class method:
             targetIndex = [1,2]
         inputs, targets = loadData(inputPath,targetPath)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
+        targets = targets[:,targetIndex]
         if self.model is None:
-            self.model = self.architecture.buildModel(inputShape=self.inputShape)
+            self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
 
         self.model.summary()
 
@@ -129,9 +130,12 @@ class method:
             totNrOfBatches = len(p) / self.batchSize
             for batch in range(0, len(p), self.batchSize):
                 input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
-                target = targets[p[batch:batch + self.batchSize],targetIndex].astype(np.float32)
-                loss_values_temp = self.update(model=self.model, input=tf.convert_to_tensor(input),
-                                                    ground=tf.convert_to_tensor(target), seed=tf.convert_to_tensor(self.seed+batch))
+                target = targets[p[batch:batch + self.batchSize]].astype(np.float32)
+                if self.task == 'angle':
+                    loss_values_temp = self.model.train_on_batch(tf.convert_to_tensor(input), tf.convert_to_tensor(target))
+                else:
+                    loss_values_temp = self.update(model=self.model, input=tf.convert_to_tensor(input),
+                                                        ground=tf.convert_to_tensor(target), seed=tf.convert_to_tensor(self.seed+batch))
                 loss_values += loss_values_temp
                 if batch + self.batchSize > len(p):
                     nrOfBatches += (len(p) - batch) / self.batchSize
@@ -158,7 +162,10 @@ class method:
                     nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
                     nrOfBatches += 1
-                val_loss += self.loss(self.model(input,training=False).numpy(),targets[p[batch:batch + self.batchSize],targetIndex])
+                if self.task == 'angle':
+                    val_loss = self.model.test_on_batch(input,targets[p[batch:batch + self.batchSize]])
+                else:
+                    val_loss += self.loss(self.model(input,training=False).numpy(),targets[p[batch:batch + self.batchSize]])
             val_loss = np.sqrt(val_loss / nrOfBatches)
             if val_loss < valLoss:
                 valLoss = val_loss
@@ -184,131 +191,16 @@ class method:
                 nrOfBatches += (len(p) - batch) / self.batchSize
             else:
                 nrOfBatches += 1
-            test_loss += self.loss(self.model(input, training=False).numpy(),
-                                  targets[testIndices[batch:batch + self.batchSize], targetIndex])
+            if self.task == 'angle':
+                test_loss = self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
+            else:
+                test_loss += self.loss(self.model(input, training=False).numpy(),
+                                  targets[testIndices[batch:batch + self.batchSize]])
         test_loss = np.sqrt(test_loss / nrOfBatches)
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
             wandb.log({"test_score": test_loss,"runtime": trainingTime})
-
-        if self.wandbProject != "":
-            run.finish()
-        print("Total training time of {}min".format(trainingTime / 60))
-
-
-
-    def fitNoMemOpt(self, nrOfEpochs: int = 50, saveBool: bool = True):
-        if self.wandbProject != "":
-            run = wandb.init(project=self.wandbProject, entity='hullimulli')
-            wandb.run.name = self.name
-            wandbConfig = wandb.config
-        if self.task == 'amplitude':
-            targetIndex = [1]
-        elif self.task == 'angle':
-            targetIndex = [2]
-        else:
-            targetIndex = [1,2]
-        inputs, targets = IOHelper.get_npz_data(config['data_dir'], verbose=True)
-        trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
-        targets = targets[:,targetIndex]
-        inputs = self.preprocess(inputs)
-        if self.model is None:
-            self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
-
-        self.model.summary()
-
-        trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
-        non_trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.non_trainable_weights])
-        nr_params = trainable_count + non_trainable_count
-        if self.wandbProject != "":
-            stringlist = []
-            self.model.summary(print_fn=lambda x: stringlist.append(x))
-            wandbConfig.update({"Directory": self.checkpointPath, "Learning_Rate": self.learningRate,
-                           "Input_Shape": "{}".format(','.join([str(s) for s in self.inputShape])),
-                                "Model_Name": self.name, "Task": self.task,
-                                "Type": self.convDimension, "Batch_Size": self.batchSize,
-                                "Trainable_Params": trainable_count,
-                                "Non_Trainable_Params": non_trainable_count,
-                                "Nr_Of_Params": nr_params, "Model": stringlist})
-
-        pbar = tqdm(range(nrOfEpochs))
-        valLoss = np.inf
-        trainingTime = time.time()
-        for e in pbar:
-            loss_values = 0
-            tic = time.time()
-
-            # Permute
-            p = np.random.permutation(len(trainIndices))
-
-            nrOfBatches = 0.0
-            totNrOfBatches = len(p) / self.batchSize
-            for batch in range(0, len(p), self.batchSize):
-                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
-                target = targets[p[batch:batch + self.batchSize], targetIndex].astype(np.float32)
-                hist = self.model.train_on_batch(input,target)
-                loss_values_temp = hist.history.values()[0]
-
-                loss_values += loss_values_temp
-                if batch + self.batchSize > len(p):
-                    nrOfBatches += (len(p) - batch) / self.batchSize
-                else:
-                    nrOfBatches += 1
-                estimateOfArrival = int((time.time() - tic) / nrOfBatches * (totNrOfBatches - nrOfBatches) / 60)
-                pbar.set_description(
-                    "epoch: {}, patch {}/{}, loss: {}, eta: {}min".format(e + 1, batch, len(p),
-                                                                          loss_values / nrOfBatches, estimateOfArrival))
-
-            # Validation
-            trainTime = (time.time() - tic) / 60
-            train_loss = loss_values / nrOfBatches
-
-            p = valIndices
-
-            tic = time.time()
-            val_loss = 0
-            nrOfBatches = 0.0
-            if saveBool:
-                self.model.save(self.checkpointPath + '/last')
-            for batch in range(0, len(p), self.batchSize):
-                input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
-                if batch + self.batchSize > len(p):
-                    nrOfBatches += (len(p) - batch) / self.batchSize
-                else:
-                    nrOfBatches += 1
-                val_loss += self.loss(self.model(input, training=False).numpy(),
-                                      targets[p[batch:batch + self.batchSize], targetIndex])
-            val_loss = np.sqrt(val_loss / nrOfBatches)
-            if val_loss < valLoss:
-                valLoss = val_loss
-                if saveBool:
-                    self.model.save(self.checkpointPath + '/best')
-            if self.wandbProject == "":
-                print("val_score after epoch {}: {}".format(e + 1, val_loss))
-            inferenceTime = (time.time() - tic) / len(valIndices)
-            if self.wandbProject != "":
-                wandb.log({"train_loss": train_loss, "val_score": val_loss,
-                           "train_time (min)": trainTime,
-                           "epoch": e + 1,
-                           "inference_time (s)": inferenceTime})
-
-        # Test
-        test_loss = 0
-        nrOfBatches = 0.0
-        for batch in range(0, len(testIndices), self.batchSize):
-            input = self.preprocess(inputs[testIndices[batch:batch + self.batchSize]])
-            if batch + self.batchSize > len(p):
-                nrOfBatches += (len(p) - batch) / self.batchSize
-            else:
-                nrOfBatches += 1
-            test_loss += self.loss(self.model(input, training=False).numpy(),
-                                   targets[testIndices[batch:batch + self.batchSize], targetIndex])
-        test_loss = np.sqrt(test_loss / nrOfBatches)
-        print("test_score: {}".format(test_loss))
-        trainingTime = time.time() - trainingTime
-        if self.wandbProject != "":
-            wandb.log({"test_score": test_loss, "runtime": trainingTime})
 
         if self.wandbProject != "":
             run.finish()

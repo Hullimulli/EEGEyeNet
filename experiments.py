@@ -11,6 +11,5 @@ args = parser.parse_args()
 
 task = method(task='angle', directory='./MultiDNet', batchSize=32, wandbProject='eegeye',name=args.name, seed=args.seed, convDimension=args.convDimension)
 # task = method(name='CNN_1D',directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed, convDimension=1,
-#               wandbProject='',batchSize=32, task='amplitude')
-#task.fit(nrOfEpochs=50, saveBool=False)
-task.fitNoMemOpt(nrOfEpochs=50, saveBool=False)
+#               wandbProject='',batchSize=32, task='angle')
+task.fit(nrOfEpochs=50, saveBool=False)
