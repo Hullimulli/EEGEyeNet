@@ -272,13 +272,13 @@ class method:
 
 
             #Test
-            test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices],batch_size=self.batchSize)),targets[testIndices]))
-            print("test_score: {}".format(test_loss))
-            trainingTime = time.time() - trainingTime
-            if self.wandbProject != "":
-                wandb.log({"test_score": test_loss,"runtime": trainingTime})
+        test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices],batch_size=self.batchSize)),targets[testIndices]))
+        print("test_score: {}".format(test_loss))
+        trainingTime = time.time() - trainingTime
+        if self.wandbProject != "":
+            wandb.log({"test_score": test_loss,"runtime": trainingTime})
 
-            if self.wandbProject != "":
-                run.finish()
-            print("Total training time of {}min".format(trainingTime / 60))
+        if self.wandbProject != "":
+            run.finish()
+        print("Total training time of {}min".format(trainingTime / 60))
 
