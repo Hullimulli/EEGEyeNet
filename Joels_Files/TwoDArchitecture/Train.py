@@ -163,7 +163,7 @@ class method:
                 else:
                     nrOfBatches += 1
                 if self.task == 'angle':
-                    val_loss = self.model.test_on_batch(input,targets[p[batch:batch + self.batchSize]])
+                    val_loss += self.model.test_on_batch(input,targets[p[batch:batch + self.batchSize]])
                 else:
                     val_loss += self.loss(self.model(input,training=False).numpy(),targets[p[batch:batch + self.batchSize]])
             val_loss = np.sqrt(val_loss / nrOfBatches)
@@ -192,7 +192,7 @@ class method:
             else:
                 nrOfBatches += 1
             if self.task == 'angle':
-                test_loss = self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
+                test_loss += self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
             else:
                 test_loss += self.loss(self.model(input, training=False).numpy(),
                                   targets[testIndices[batch:batch + self.batchSize]])
