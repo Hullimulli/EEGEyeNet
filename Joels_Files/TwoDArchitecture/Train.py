@@ -204,9 +204,9 @@ class method:
             wandb.run.name = self.name
             wandbConfig = wandb.config
         if self.task == 'amplitude':
-            targetIndex = 1
+            targetIndex = [1]
         elif self.task == 'angle':
-            targetIndex = 2
+            targetIndex = [2]
         else:
             targetIndex = [1,2]
         inputs, targets = IOHelper.get_npz_data(config['data_dir'], verbose=True)
@@ -242,7 +242,7 @@ class method:
         for e in pbar:
             tic = time.time()
             if not early_stopped:
-                hist = self.model.fit(inputs[trainIndices], targets[trainIndices], verbose=2, batch_size=self.batchSize, validation_data=(inputs[valIndices], targets[valIndices]),
+                hist = self.model.fit(inputs[trainIndices], targets[:,trainIndices], verbose=2, batch_size=self.batchSize, validation_data=(inputs[valIndices], targets[:,valIndices]),
                                         epochs=e+1, initial_epoch=e)
                 #W&B Logs
                 logs = {str(key): value[0] for key, value in hist.history.items()}
@@ -272,7 +272,7 @@ class method:
 
 
             #Test
-            test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices],batch_size=self.batchSize),targets[testIndices])))
+            test_loss = np.sqrt(self.loss(np.squeeze(self.model.predict(inputs[testIndices]),batch_size=self.batchSize),targets[:,testIndices]))
             print("test_score: {}".format(test_loss))
             trainingTime = time.time() - trainingTime
             if self.wandbProject != "":
