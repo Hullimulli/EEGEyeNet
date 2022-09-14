@@ -153,11 +153,7 @@ class method:
             for batch in range(0, len(p), self.batchSize):
                 input = self.preprocess(inputs[p[batch:batch + self.batchSize]])
                 target = targets[p[batch:batch + self.batchSize]].astype(np.float32)
-                if self.task == 'angle':
-                    loss_values_temp = self.model.train_on_batch(tf.convert_to_tensor(input), tf.convert_to_tensor(target))
-                else:
-                    loss_values_temp = self.update(model=self.model, input=tf.convert_to_tensor(input),
-                                                        ground=tf.convert_to_tensor(target), seed=tf.convert_to_tensor(self.seed+batch))
+                loss_values_temp = self.model.train_on_batch(tf.convert_to_tensor(input), tf.convert_to_tensor(target))
                 loss_values += loss_values_temp
                 if batch + self.batchSize > len(p):
                     nrOfBatches += (len(p) - batch) / self.batchSize
@@ -184,10 +180,7 @@ class method:
                     nrOfBatches += (len(p) - batch) / self.batchSize
                 else:
                     nrOfBatches += 1
-                if self.task == 'angle':
-                    val_loss += self.model.test_on_batch(input,targets[p[batch:batch + self.batchSize]])
-                else:
-                    val_loss += self.loss(self.model(input,training=False).numpy(),targets[p[batch:batch + self.batchSize]])
+                val_loss += self.model.test_on_batch(input,targets[p[batch:batch + self.batchSize]])
             val_loss = np.sqrt(val_loss / nrOfBatches)
             if val_loss < valLoss:
                 valLoss = val_loss
@@ -213,11 +206,8 @@ class method:
                 nrOfBatches += (len(p) - batch) / self.batchSize
             else:
                 nrOfBatches += 1
-            if self.task == 'angle':
-                test_loss += self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
-            else:
-                test_loss += self.loss(self.model(input, training=False).numpy(),
-                                  targets[testIndices[batch:batch + self.batchSize]])
+
+            test_loss += self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
         test_loss = np.sqrt(test_loss / nrOfBatches)
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
