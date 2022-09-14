@@ -49,11 +49,12 @@ def checkImageConfiguration():
     #37.5
 
 
-    plt.scatter(electrodePositions[:,0],electrodePositions[:,1])
+    plt.scatter(electrodePositions[:,0],electrodePositions[:,1],label="True Position")
     electrodePositions = electrodePositions.astype(np.int)
     coordMax = np.amax(np.abs(electrodePositions), axis=0)
     print(coordMax)
-    plt.scatter(electrodePositions[:, 0], electrodePositions[:, 1])
+    plt.scatter(electrodePositions[:, 0], electrodePositions[:, 1],label="Rounded Position")
+    plt.legend()
     plt.show()
     plt.cla()
     electrodePositions = electrodePositions.astype(np.int)

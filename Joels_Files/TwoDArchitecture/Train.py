@@ -1,8 +1,9 @@
 from .dataLoader import loadData, split
 from .resCNN import resCNN2D, CNN1D, resCNN3D
+from .deep4 import Deep4Net, Shallow4Net, Hybrid4Net
 from .PyramidalCNN import PyramidalCNN
 import os
-import tensorflow.keras as keras
+from tensorflow import keras
 import wandb
 from tqdm import tqdm
 import numpy as np
@@ -32,8 +33,21 @@ class method:
         np.random.seed(seed)
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
-            self.preprocess = convertToImage
-            self.architecture = resCNN2D(residualBool=True)
+            if name == "Deep4":
+                self.preprocess = lambda x: x[...,np.newaxis]
+                self.architecture = Deep4Net()
+                self.inputShape = (500, 129, 1)
+            elif name == "Shallow4":
+                self.preprocess = lambda x: x[...,np.newaxis]
+                self.architecture = Shallow4Net()
+                self.inputShape = (500, 129, 1)
+            elif name == "Hybrid4":
+                self.preprocess = lambda x: x[..., np.newaxis]
+                self.architecture = Hybrid4Net()
+                self.inputShape = (500, 129, 1)
+            else:
+                self.preprocess = convertToImage
+                self.architecture = resCNN2D(residualBool=True)
         elif convDimension == 3:
             self.preprocess = convertToVideo
             self.architecture = resCNN3D(residualBool=True)
