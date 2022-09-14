@@ -35,14 +35,17 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             if name == "Deep4":
                 self.preprocess = lambda x: x[...,np.newaxis]
+                self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Deep4Net()
                 self.inputShape = (500, 129, 1)
             elif name == "Shallow4":
                 self.preprocess = lambda x: x[...,np.newaxis]
+                self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Shallow4Net()
                 self.inputShape = (500, 129, 1)
             elif name == "Hybrid4":
                 self.preprocess = lambda x: x[..., np.newaxis]
+                self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Hybrid4Net()
                 self.inputShape = (500, 129, 1)
             else:
