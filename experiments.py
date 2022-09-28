@@ -18,4 +18,4 @@ elif args.electrodeConf == "All":
     electrodes = np.arange(1,130)
 task = method(task=args.task, directory='./MultiDNet', electrodes = electrodes, batchSize=64, wandbProject='Neurips_Sept2022',name=args.name, seed=args.seed, convDimension=args.convDimension, dataPostFix=args.dataset)
 #task = method(name='PyramidalCNN',task='lr',dataPostFix="max",directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed, electrodes=np.arange(1,130),convDimension=1, wandbProject='',batchSize=64)
-task.fit(nrOfEpochs=1, saveBool=True)
+task.fit(nrOfEpochs=50, saveBool=True)
