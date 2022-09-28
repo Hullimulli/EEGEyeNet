@@ -38,7 +38,7 @@ class PyramidalCNN(ConvNet):
         return x
 
     def buildModel(self,inputShape=None):
-        input_layer = tf.keras.layers.Input(self.input_shape)
+        input_layer = tf.keras.layers.Input(inputShape)
 
         if self.preprocessing:
             preprocessed = self._preprocessing(input_layer)

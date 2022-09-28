@@ -108,7 +108,7 @@ directory = "/Users/Hullimulli/Documents/ETH/SA2/debugFolder/"
 #electrode_plots.topoPlot(base,directory=directory,filename="SaliencyPFI_Ang",cmap='Purples',valueType = "Avg. Gradient")
 pathlist = electrode_math.modelPathsFromBenchmark("/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/DirectionTaskAll",["PyramidalCNN","Xception","InceptionTime","CNN"],angleArchitectureBool=True)
 #path = ['/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth']
-#model = modelLoader.returnTorchModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/torchModels/checkpoint/run1/ConvLSTM_nb_0.pth')
+model = getModel('/Users/Hullimulli/Documents/ETH/SA2/EEGEyeNet/runs/attentionModel/Amplitude/checkpoint/CNNMultiTask_nb_0_.pth', type='amplitude')
 
 model = keras.models.load_model(pathlist[1], compile=False)
 print(model.summary())

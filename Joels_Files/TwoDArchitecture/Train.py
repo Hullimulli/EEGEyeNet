@@ -1,7 +1,13 @@
 from .dataLoader import loadData, split
-from .resCNN import resCNN2D, CNN1D, resCNN3D
-from .deep4 import Deep4Net, Shallow4Net, Hybrid4Net
-from .PyramidalCNN import PyramidalCNN
+from .architectures.resCNN import resCNN2D, CNN1D, resCNN3D
+from .architectures.deep4 import Deep4Net, Shallow4Net, Hybrid4Net
+
+from .architectures.CNN import CNN
+from .architectures.PyramidalCNN import PyramidalCNN
+from .architectures.eegNet import EEGNet
+from .architectures.Xception import XCEPTION
+from .architectures.Inception import INCEPTION
+
 import os
 from tensorflow import keras
 import wandb
@@ -11,24 +17,30 @@ import time
 import tensorflow as tf
 from config import config
 from .preprocess import convertToImage, convertToVideo
-from sklearn.metrics import mean_squared_error
-from .updateModel import mseUpdate, angleLossUpdate, mse, angle_loss
+from sklearn.metrics import accuracy_score,mean_squared_error
+from .updateModel import angle_loss
 from utils.wandbHelper import getPredictionVisualisations
+import sys
 
 class method:
 
     def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
-                 batchSize: int = 32, wandbProject:str = "", continueTrainingBool: bool = False,
-                 loss:str = 'mse', convDimension: int = 2, seed: int = 0, task: str = 'amplitude'):
+                 batchSize: int = 64, wandbProject:str = "", continueTrainingBool: bool = False,
+                 loss:str = 'mse', convDimension: int = 2, seed: int = 0, task: str = 'amplitude',
+                 electrodes: np.ndarray = np.arange(1,130), dataPostFix: str = ''):
         config['framework'] = 'tensorflow'
         self.model = None
         self.name = name+'_{}D'.format(convDimension)
         self.batchSize = batchSize
         self.nrOfSamples = nrOfSamples
-        self.checkpointPath = os.path.join(directory, self.name)
+        self.checkpointPath = os.path.join(directory, self.name+"_{}_{}_{}_{}".format(task,str(len(electrodes)),dataPostFix,str(seed)))
         self.seed = seed
         self.convDimension = convDimension
         self.task = task
+        self.patience = 20
+        self.electrodes = electrodes - 1
+        self.dataPostFix = dataPostFix
+
         tf.random.set_seed(seed)
         np.random.seed(seed)
         if convDimension == 2:
@@ -37,17 +49,17 @@ class method:
                 self.preprocess = lambda x: x[...,np.newaxis]
                 self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Deep4Net()
-                self.inputShape = (500, 129, 1)
+                self.inputShape = (500, len(electrodes), 1)
             elif name == "Shallow4":
                 self.preprocess = lambda x: x[...,np.newaxis]
                 self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Shallow4Net()
-                self.inputShape = (500, 129, 1)
+                self.inputShape = (500, len(electrodes), 1)
             elif name == "Hybrid4":
                 self.preprocess = lambda x: x[..., np.newaxis]
                 self.inversePreprocess = lambda x: x[..., 0]
                 self.architecture = Hybrid4Net()
-                self.inputShape = (500, 129, 1)
+                self.inputShape = (500, len(electrodes), 1)
             else:
                 self.preprocess = convertToImage
                 self.architecture = resCNN2D(residualBool=True)
@@ -57,21 +69,44 @@ class method:
             self.inputShape = (imageShape[0], imageShape[1], self.nrOfSamples, 1)
         elif convDimension == 12:
             self.preprocess = lambda x: np.expand_dims(x,axis=-1)
-            self.inputShape = (500, 129, 1)
+            self.inputShape = (500, len(electrodes), 1)
             self.architecture = resCNN2D(residualBool=True,kernelSize=5)
             self.batchSize = self.batchSize // 4
         elif convDimension == 1:
-            self.inputShape = (500,129)
-            if self.name == 'CNN_N':
-                self.architecture = CNN1D(convFilters=[64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64], kernelSize=64,
-                                          maxPoolSize=9)
+            if self.name == "EEGNet_1D":
+                self.inputShape = (len(electrodes), 500)
+                self.preprocess = lambda x: np.transpose(x, axes=(0, 2, 1))
+                self.inversePreprocess = lambda x: np.transpose(x, axes=(0, 2, 1))
+                self.architecture = EEGNet(F1 = 16, F2 = 256, D=4, kernel_size=256, dropout_rate = 0.5,
+                norm_rate = 0.5, dropoutType = 'Dropout')
+            elif self.name == "InceptionTime_1D":
+                self.architecture = INCEPTION(kernelSize=64, convFilters=16, residualBool=True, depth=12, bottleneckSize=16)
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif self.name == "Xception_1D":
+                self.architecture = XCEPTION(kernelSize=40, convFilters=64, residualBool=True, depth=18)
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif self.name == "CNN_1D":
+                self.architecture = CNN(kernelSize=64, convFilters=16, residualBool=True, depth=12, regularization=0)
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif self.name == "PyramidalCNN_1D":
+                self.architecture = PyramidalCNN(kernelSize=16, convFilters=16,residualBool=False, depth=6)
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
             else:
                 self.architecture = CNN1D()
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
             #self.architecture = PyramidalCNN(batch_size=batchSize,input_shape=self.inputShape)
-            self.preprocess = lambda x: x
-            self.inversePreprocess = lambda x: x
         else:
-            self.inputShape = (129, 500)
+            self.inputShape = (len(electrodes), 500)
             self.preprocess = lambda x: np.transpose(x,axes=(0,2,1))
             self.inversePreprocess = lambda x: np.transpose(x, axes=(0, 2, 1))
             if self.name == 'CNN_N':
@@ -84,19 +119,58 @@ class method:
         self.wandbProject = wandbProject
         if self.task=='angle':
             loss = 'angle-loss'
+        elif self.task=='lr':
+            loss = "bce"
+
+
+
+        if self.task == 'amplitude':
+            self.targetIndex = 1
+            self.outputShape = 1
+            outputActivation = "linear"
+            self.taskSet = "direction"
+        elif self.task == 'angle':
+            self.targetIndex = 2
+            self.outputShape = 1
+            outputActivation = "linear"
+            self.taskSet = "direction"
+        elif self.task == "lr":
+            self.targetIndex = 1
+            self.outputShape = 1
+            outputActivation = "sigmoid"
+            self.taskSet = "lr"
+        elif self.task == "position":
+            self.targetIndex = [1,2]
+            self.outputShape = 2
+            outputActivation = "linear"
+            self.taskSet = "position"
+        else:
+            print("Not a valid task.")
+            self.targetIndex = [1,2]
+            self.outputShape = 2
+            outputActivation = "linear"
+            self.taskSet = ""
 
         if loss=='angle-loss':
-            self.update = angleLossUpdate
-            self.loss = angle_loss
+            self.score = (lambda y_pred, y: np.sqrt(angle_loss(y, y_pred.ravel())))
             self.lossForFit = angle_loss
             self.lossName = loss
+        elif loss == "bce":
+            self.score = (lambda y_pred, y: accuracy_score(y, np.rint(y_pred.ravel())))
+            self.lossForFit = 'binary_crossentropy'
+            self.lossName = 'binary_crossentropy'
         else:
-            self.update = mseUpdate
-            self.loss = (lambda y_pred, y: mean_squared_error(y, y_pred.ravel()))
+            if self.task == "amplitude":
+                self.score = (lambda y_pred, y: np.sqrt(mean_squared_error(y, y_pred.ravel())))
+            else:
+                self.score = (lambda y_pred, y: np.linalg.norm(y - y_pred, axis=1).mean())
             self.lossForFit = 'mse'
             self.lossName = 'mse'
 
-        self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
+
+        self.model = self.architecture.buildModel(inputShape=self.inputShape, outputShape = self.outputShape,
+                                                  loss=self.lossForFit,outputActivation=outputActivation)
+
         if not os.path.exists(self.checkpointPath):
             os.mkdir(self.checkpointPath)
         elif continueTrainingBool:
@@ -108,23 +182,17 @@ class method:
 
     def fit(self, nrOfEpochs: int = 50, saveBool: bool = True):
         if self.wandbProject != "":
-            run = wandb.init(project=self.wandbProject, entity='hullimulli')
+            run = wandb.init(project=self.wandbProject, entity='deepeye')
             wandb.run.name = self.name
             wandbConfig = wandb.config
-        inputPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_X.npy'
-        targetPath = config['data_dir'] + config['all_EEG_file'][:-4] + '_Y.npy'
-        if self.task == 'amplitude':
-            targetIndex = 1
-        elif self.task == 'angle':
-            targetIndex = 2
-        else:
-            targetIndex = [1,2]
+        inputPath = config['data_dir'] + "{}_{}/".format(self.taskSet,self.dataPostFix) + 'X.npy'
+        targetPath = config['data_dir'] + "{}_{}/".format(self.taskSet,self.dataPostFix) + 'Y.npy'
+
         inputs, targets = loadData(inputPath,targetPath)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
-        targets = targets[:,targetIndex]
-        if self.model is None:
-            self.model = self.architecture.buildModel(inputShape=self.inputShape, loss=self.lossForFit)
-
+        targets = targets[:,self.targetIndex]
+        if len(self.electrodes) != 129:
+            inputs = inputs[:,:,self.electrodes]
         self.model.summary()
 
         trainable_count = np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
@@ -139,11 +207,15 @@ class method:
                                 "Type": self.convDimension, "Batch_Size": self.batchSize,
                                 "Trainable_Params": trainable_count,
                                 "Non_Trainable_Params": non_trainable_count,
-                                "Nr_Of_Params": nr_params, "Model": stringlist})
+                                "Nr_Of_Params": nr_params, "Model": stringlist,
+                                "Electrodes": np.array2string(self.electrodes+1)})
 
         pbar = tqdm(range(nrOfEpochs))
         valLoss = np.inf
         trainingTime = time.time()
+        best_val_loss = sys.maxsize
+        patience = 0
+
         for e in pbar:
             loss_values = 0
             tic = time.time()
@@ -198,11 +270,20 @@ class method:
                            "epoch": e + 1,
                            "inference_time (s)": inferenceTime})
 
+            if patience > self.patience:
+                print("Early Stop after {} Epochs.".format(e+1))
+                break
+            if val_loss >= best_val_loss:
+                patience += 1
+            else:
+                best_val_loss = val_loss
+                patience = 0
+
 
 
         #Test
-        test_loss = 0
         nrOfBatches = 0.0
+        predictions = np.zeros([len(testIndices),self.outputShape])
         for batch in range(0, len(testIndices), self.batchSize):
             input = self.preprocess(inputs[testIndices[batch:batch + self.batchSize]])
             if batch + self.batchSize > len(p):
@@ -210,13 +291,13 @@ class method:
             else:
                 nrOfBatches += 1
 
-            test_loss += self.model.test_on_batch(input, targets[testIndices[batch:batch + self.batchSize]])
-        test_loss = np.sqrt(test_loss / nrOfBatches)
+            predictions[batch:batch + self.batchSize] = self.model.predict(input,verbose=0)
+        test_loss = self.score(predictions, targets[testIndices])
         print("test_score: {}".format(test_loss))
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
             logs = {"test_score": test_loss,"runtime": trainingTime}
-            prediction = self.model.predict(self.preprocess(inputs[[testIndices[:16]]]))
+            prediction = self.model.predict(self.preprocess(inputs[[testIndices[:16]]]),verbose=0)
             addLogs = getPredictionVisualisations(self.model,self.name,inputs[[testIndices[:16]]],
                                                   targets[[testIndices[:16]]],prediction,self.lossName,
                                                   preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
