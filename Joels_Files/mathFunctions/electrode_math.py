@@ -217,11 +217,17 @@ def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPath
         elif config['framework'] == 'pytorch':
             model = returnTorchModel(path=modelPath)
         baseModel = np.zeros(inputSignals.shape[2])
+
+        if "EEGNet" in modelPath:
+            inputSignals = np.transpose(inputSignals,axes=(0,2,1))
+
         for step in range(int(inputSignals.shape[0] / stepSize)+1):
             if "saliency" in method.lower():
-                baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
-                                                              inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
-                                                              groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
+                map = saliencyMap(model=model,loss=loss,inputSignals=inputSignals[step*stepSize:(step+1)*stepSize],
+                                  groundTruth=groundTruth[step*stepSize:(step+1)*stepSize])
+                if "EEGNet" in modelPath:
+                    map = np.transpose(map,axes=(0,2,1))
+                baseModel += np.squeeze(np.nanmean(np.nansum(map,
                                                   axis=0,keepdims=True),axis=1))
             elif "full" in method.lower() and "no" in method.lower():
                 baseModel += np.squeeze(np.nanmean(np.nansum(saliencyMap(model=model,loss=loss,
@@ -235,6 +241,9 @@ def gradientBasedFI(inputSignals: np.ndarray, groundTruth: np.ndarray, modelPath
                                                               groundTruth=groundTruth[step*stepSize:(step+1)*stepSize]),
                                                   axis=0,keepdims=True),axis=1))
         base += baseModel
+
+        if "EEGNet" in modelPath:
+            inputSignals = np.transpose(inputSignals,axes=(0,2,1))
 
     base = base / (len(modelPaths)*inputSignals.shape[0])
 

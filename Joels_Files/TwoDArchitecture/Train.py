@@ -27,7 +27,7 @@ class method:
     def __init__(self, name:str = 'resCNN',directory: str = "./", imageShape:(int,int)=(32,32), nrOfSamples:int = 500,
                  batchSize: int = 64, wandbProject:str = "", continueTrainingBool: bool = False,
                  loss:str = 'mse', convDimension: int = 2, seed: int = 0, task: str = 'amplitude',
-                 electrodes: np.ndarray = np.arange(1,130), dataPostFix: str = ''):
+                 electrodes: np.ndarray = np.arange(1,130), dataPostFix: str = '', memoryEfficientBool: bool = True):
         config['framework'] = 'tensorflow'
         self.model = None
         self.name = name+'_{}D'.format(convDimension)
@@ -40,6 +40,7 @@ class method:
         self.patience = 20
         self.electrodes = electrodes - 1
         self.dataPostFix = dataPostFix
+        self.memoryEfficientBool = memoryEfficientBool
 
         tf.random.set_seed(seed)
         np.random.seed(seed)
@@ -187,8 +188,11 @@ class method:
             wandbConfig = wandb.config
         inputPath = config['data_dir'] + "{}_{}/".format(self.taskSet,self.dataPostFix) + 'X.npy'
         targetPath = config['data_dir'] + "{}_{}/".format(self.taskSet,self.dataPostFix) + 'Y.npy'
-
-        inputs, targets = loadData(inputPath,targetPath)
+        if self.memoryEfficientBool:
+            mmapMode = 'c'
+        else:
+            mmapMode = 'r'
+        inputs, targets = loadData(inputPath,targetPath,mmapMode=mmapMode)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
         targets = targets[:,self.targetIndex]
         if len(self.electrodes) != 129:

@@ -2,10 +2,10 @@ from config import config
 import numpy as np
 import math
 
-def loadData(inputPath, targetPath):
-    trainX = np.load(inputPath, mmap_mode='c')
+def loadData(inputPath, targetPath, mmapMode = 'c'):
+    trainX = np.load(inputPath, mmap_mode=mmapMode)
 
-    trainY = np.load(targetPath, mmap_mode='c')
+    trainY = np.load(targetPath, mmap_mode=mmapMode)
 
     return trainX,trainY
 
