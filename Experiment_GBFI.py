@@ -5,10 +5,10 @@ from Joels_Files.plotFunctions.electrode_plots import electrodeBarPlot,topoPlot,
 from config import config
 ############################
 loadBool = False
-task = 'amplitude'
-dataPostFix = 'min'
-colours = "Purples"
-colour = "purple"
+task = 'lr'
+dataPostFix = 'max'
+colours = "Reds"
+colour = "red"
 ############################
 
 loss = 'mse'

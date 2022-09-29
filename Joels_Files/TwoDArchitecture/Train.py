@@ -191,7 +191,7 @@ class method:
         if self.memoryEfficientBool:
             mmapMode = 'c'
         else:
-            mmapMode = 'r'
+            mmapMode = None
         inputs, targets = loadData(inputPath,targetPath,mmapMode=mmapMode)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
         targets = targets[:,self.targetIndex]
