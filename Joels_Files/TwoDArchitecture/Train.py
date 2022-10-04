@@ -100,6 +100,21 @@ class method:
                 self.preprocess = lambda x: x
                 self.inversePreprocess = lambda x: x
                 self.inputShape = (500, len(electrodes))
+            elif name == "Deep4":
+                self.architecture = Deep4Net()
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif name == "Shallow4":
+                self.architecture = Shallow4Net()
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif name == "Hybrid4":
+                self.architecture = Hybrid4Net()
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
             else:
                 self.architecture = CNN1D()
                 self.preprocess = lambda x: x

@@ -62,13 +62,13 @@ class Shallow4Net:
     ):
         self.initializer = 'he_uniform'
 
-    def buildModel(self, inputShape: (int ,int ,int),loss):
-        inputs = keras.Input(shape=inputShape)
+    def buildModel(self, inputShape: (int ,int),loss,outputActivation,outputShape):
+        inputs = keras.Input(shape=(inputShape[0], inputShape[1], 1))
         x = inputs
         x = convPoolBlockOneShallow(x,kernelSizeSpatial=inputShape[1])
-        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
 
-        outputs = keras.layers.Dense(1, activation="linear",
+        outputs = keras.layers.Dense(outputShape, activation=outputActivation,
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
@@ -95,16 +95,16 @@ class Deep4Net:
     ):
         self.initializer = 'he_uniform'
 
-    def buildModel(self, inputShape: (int ,int ,int),loss):
-        inputs = keras.Input(shape=inputShape)
+    def buildModel(self, inputShape: (int ,int ,int),loss,outputActivation,outputShape):
+        inputs = keras.Input(shape=(inputShape[0], inputShape[1], 1))
         x = inputs
         x = convPoolBlockOne(x,kernelSizeSpatial=inputShape[1])
         x = convPoolBlockTwo(x,nrOfFilters=50)
         x = convPoolBlockTwo(x, nrOfFilters=100)
         x = convPoolBlockTwo(x, nrOfFilters=200)
-        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
 
-        outputs = keras.layers.Dense(1, activation="linear",
+        outputs = keras.layers.Dense(outputShape, activation=outputActivation,
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
@@ -132,8 +132,8 @@ class Hybrid4Net:
     ):
         self.initializer = 'he_uniform'
 
-    def buildModel(self, inputShape: (int ,int ,int),loss):
-        inputs = keras.Input(shape=inputShape)
+    def buildModel(self, inputShape: (int ,int ,int),loss,outputActivation,outputShape):
+        inputs = keras.Input(shape=(inputShape[0], inputShape[1], 1))
         x = inputs
 
         xDeep = convPoolBlockOne(x,kernelSizeSpatial=inputShape[1])
@@ -146,13 +146,14 @@ class Hybrid4Net:
                                 kernel_initializer=self.initializer)(xDeep)
 
         xShallow = convPoolBlockOneShallow(x,kernelSizeSpatial=inputShape[1])
+        xShallow = keras.layers.Dropout(0.5)(xShallow)
         xShallow = keras.layers.Conv2D(filters=40, kernel_size=(27,1), padding="valid",
                                     use_bias=True,
                                     kernel_initializer=self.initializer)(xShallow)
         x = keras.layers.concatenate([xDeep,xShallow])
-        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
 
-        outputs = keras.layers.Dense(1, activation="linear",
+        outputs = keras.layers.Dense(outputShape, activation=outputActivation,
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)

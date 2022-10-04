@@ -35,7 +35,6 @@ elif args.electrodeConf == "Top40":
 task = method(task=args.task, directory='./MultiDNet', electrodes = electrodes, batchSize=64,
               wandbProject='Neurips_Sept2022',name=args.name, seed=args.seed, convDimension=args.convDimension,
               dataPostFix=args.dataset, memoryEfficientBool=False)
-# task = method(name='PyramidalCNN',task='angle',dataPostFix="max",directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed,
-#               electrodes=np.array([50, 58, 59, 60, 65, 66, 70, 83, 84, 85, 90, 91, 96, 101, 129]),
-#               convDimension=1, wandbProject='Neurips_Sept2022',batchSize=64, memoryEfficientBool=False)
-task.fit(nrOfEpochs=50, saveBool=True)
+# task = method(name='Shallow4',task='angle',dataPostFix="min",directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed,
+#               convDimension=1, wandbProject='',batchSize=64, memoryEfficientBool=True)
+task.fit(nrOfEpochs=50, saveBool=False)
