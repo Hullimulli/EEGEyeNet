@@ -42,8 +42,8 @@ class method:
         self.dataPostFix = dataPostFix
         self.memoryEfficientBool = memoryEfficientBool
 
-        tf.random.set_seed(seed)
-        np.random.seed(seed)
+        tf.keras.utils.set_random_seed(seed)
+
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
             if name == "Deep4":
@@ -111,7 +111,7 @@ class method:
                 self.inversePreprocess = lambda x: x
                 self.inputShape = (500, len(electrodes))
             elif name == "Hybrid4":
-                self.architecture = Hybrid4Net()
+                self.architecture = Hybrid4Net(learningRate=1e-5)
                 self.preprocess = lambda x: x
                 self.inversePreprocess = lambda x: x
                 self.inputShape = (500, len(electrodes))
@@ -281,10 +281,10 @@ class method:
                 if saveBool:
                     self.model.save(self.checkpointPath + '/best')
             if self.wandbProject == "":
-                print("val_score after epoch {}: {}".format(e+1,val_loss))
+                print("val_loss after epoch {}: {}".format(e+1,val_loss))
             inferenceTime = (time.time() - tic) / len(valIndices)
             if self.wandbProject != "":
-                wandb.log({"train_loss": train_loss, "val_score": val_loss,
+                wandb.log({"train_loss": train_loss, "val_loss": val_loss,
                            "train_time (min)": trainTime,
                            "epoch": e + 1,
                            "inference_time (s)": inferenceTime})
@@ -316,11 +316,11 @@ class method:
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
             logs = {"test_score": test_loss,"runtime": trainingTime}
-            #prediction = self.model.predict(self.preprocess(inputs[[testIndices[:16]]]),verbose=0)
-            #addLogs = getPredictionVisualisations(self.model,self.name,inputs[[testIndices[:16]]],
-            #                                      targets[[testIndices[:16]]],prediction,self.lossName,
-            #                                      preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
-            #wandb.log({**logs, **addLogs})
+            prediction = self.model.predict(self.preprocess(inputs[testIndices[:16]]),verbose=0)
+            addLogs = getPredictionVisualisations(self.model,self.name,inputs[testIndices[:16]],
+                                                 targets[testIndices[:16]],prediction,self.lossName,
+                                                 preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
+            wandb.log({**logs, **addLogs})
             wandb.log(logs)
 
         if self.wandbProject != "":

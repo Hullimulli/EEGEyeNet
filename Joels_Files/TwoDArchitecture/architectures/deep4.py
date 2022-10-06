@@ -128,9 +128,10 @@ class Hybrid4Net:
     """
 
     def __init__(
-        self,
+        self, learningRate = 1e-4
     ):
         self.initializer = 'he_uniform'
+        self.learningRate = learningRate
 
     def buildModel(self, inputShape: (int ,int ,int),loss,outputActivation,outputShape):
         inputs = keras.Input(shape=(inputShape[0], inputShape[1], 1))
@@ -157,6 +158,6 @@ class Hybrid4Net:
                                kernel_initializer=self.initializer)(x)
 
         model = keras.Model(inputs, outputs)
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),loss=loss)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learningRate),loss=loss)
 
         return model
