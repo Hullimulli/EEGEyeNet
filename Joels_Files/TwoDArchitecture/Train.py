@@ -8,6 +8,7 @@ from .architectures.eegNet import EEGNet
 from .architectures.Xception import XCEPTION
 from .architectures.Inception import INCEPTION
 
+import random
 import os
 from tensorflow import keras
 import wandb
@@ -42,7 +43,9 @@ class method:
         self.dataPostFix = dataPostFix
         self.memoryEfficientBool = memoryEfficientBool
 
-        tf.keras.utils.set_random_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        tf.random.set_seed(seed)
 
         if convDimension == 2:
             self.inputShape = (imageShape[0], imageShape[1],self.nrOfSamples)
