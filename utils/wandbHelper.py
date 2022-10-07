@@ -1,6 +1,6 @@
 import numpy as np
 import wandb
-from Joels_Files.plotFunctions.prediction_visualisations import getVisualisation
+from Joels_Files.plotFunctions.prediction_visualisations import visualizePredictionLR,visualizePredictionAngle,visualizePredictionAmplitude,visualizePredictionPosition
 from Joels_Files.plotFunctions.attention_visualisations import saliencyMap, plotSaliencyMap
 import matplotlib.pyplot as plt
 
@@ -47,17 +47,25 @@ def getPredictionVisualisations(model, modelName: str, inputSignals: np.ndarray,
                                                                 saveBool=False))
 
     if loss == "angle-loss":
-        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
-                                                                 prediction=np.expand_dims(prediction, axis=(0, 1)),
-                                                                 modelName=modelName, anglePartBool=True))}
+        logs = {"Prediction Visualisation": wandb.Image(visualizePredictionAngle(groundTruth=groundTruth[:10],
+                                                                 prediction=np.expand_dims(prediction[:10], axis=(0, 1)),
+                                                                 modelNames=[modelName],directory="./",saveBool=False,
+                                                                 colourMap="cool"))}
     elif loss == 'bce':
-        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
-                                                                 prediction=np.expand_dims(prediction, axis=(0, 1)),
-                                                                 modelName=modelName, anglePartBool=False))}
+        logs = {"Prediction Visualisation": wandb.Image(visualizePredictionLR(groundTruth=groundTruth[:30],
+                                                                 prediction=np.expand_dims(prediction[:30], axis=(0, 1)),
+                                                                 modelNames=[modelName],directory="./",saveBool=False,
+                                                                 colourMap="cool"))}
+    elif groundTruth.shape[1] == 1:
+        logs = {"Prediction Visualisation": wandb.Image(visualizePredictionAmplitude(groundTruth=groundTruth[:10],
+                                                                 prediction=np.expand_dims(prediction[:10], axis=(0, 1)),
+                                                                 modelNames=[modelName],directory="./",saveBool=False,
+                                                                 colourMap="cool"))}
     else:
-        logs = {"Prediction Visualisation": wandb.Image(getVisualisation(groundTruth=groundTruth,
-                                                                 prediction=np.expand_dims(prediction, axis=(0, 1)),
-                                                                 modelName=modelName, anglePartBool=False))}
+        logs = {"Prediction Visualisation": wandb.Image(visualizePredictionPosition(groundTruth=groundTruth[:10],
+                                                                 prediction=np.expand_dims(prediction[:10], axis=(0, 1)),
+                                                                 modelNames=[modelName],directory="./",saveBool=False,
+                                                                 colourMap="cool"))}
     plt.close('all')
 
     return {**logs, **saliencyMaps}
