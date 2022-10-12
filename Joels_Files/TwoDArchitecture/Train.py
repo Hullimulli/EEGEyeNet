@@ -199,7 +199,7 @@ class method:
                 pass
 
 
-    def fit(self, nrOfEpochs: int = 50, saveBool: bool = True):
+    def fit(self, nrOfEpochs: int = 50, saveBool: bool = True, loadNpzBool: bool = False):
         if self.wandbProject != "":
             run = wandb.init(project=self.wandbProject, entity='deepeye')
             wandb.run.name = self.name
@@ -210,7 +210,13 @@ class method:
             mmapMode = 'c'
         else:
             mmapMode = None
-        inputs, targets = loadData(inputPath,targetPath,mmapMode=mmapMode)
+        if loadNpzBool:
+            datafilePath = config['data_dir'] + self.taskSet.capitalize()+"_with_dots_synchronised_"+self.dataPostFix+".npz"
+            with np.load(config['data_dir'] + datafilePath) as f:
+                inputs = f[config['trainX_variable']]
+                targets = f[config['trainY_variable']]
+        else:
+            inputs, targets = loadData(inputPath,targetPath,mmapMode=mmapMode)
         trainIndices, valIndices, testIndices = split(targets[:,0], 0.7, 0.15, 0.15)
         targets = targets[:,self.targetIndex]
         if len(self.electrodes) != 129:
@@ -325,6 +331,9 @@ class method:
                                                  preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
             wandb.log({**logs, **addLogs})
             wandb.log(logs)
+        else :
+            np.savetxt(os.path.join(self.checkpointPath,'score.csv'), [[self.name,test_loss,trainingTime]], fmt='%s', delimiter=',',
+                       header='Model,Score,Runtime', comments='')
 
         if self.wandbProject != "":
             run.finish()
