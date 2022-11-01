@@ -34,7 +34,7 @@ elif args.electrodeConf == "Top40":
     electrodes = np.array([1, 2, 8, 9, 14, 17, 21, 22, 25, 26, 27, 32, 33, 38, 39, 43, 50, 58, 59, 60, 65, 66, 70, 83, 84, 85, 90, 91, 96,101, 115, 120, 121, 122, 123, 125, 126, 127, 128, 129])
 
 ######################## Your Parameters ##########################
-modelDirectory = "" # Here you will save your model
+modelDirectory = './MultiDNet' # Here you will save your model
 
 ######################## How to run #####################
 # use “python experiments.py --name CNN --seed 1“
@@ -46,7 +46,7 @@ modelDirectory = "" # Here you will save your model
 
 
 task = method(task=args.task, directory=modelDirectory, electrodes = electrodes, batchSize=64,
-              wandbProject='',name=args.name, seed=args.seed, convDimension=args.convDimension,
+              wandbProject='Neurips_Sept2022',name=args.name, seed=args.seed, convDimension=args.convDimension,
               dataPostFix=args.dataset, memoryEfficientBool=False)
 # task = method(name='PyramidalCNN',task='lr',dataPostFix="min",directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed,
 #               convDimension=1, wandbProject='',batchSize=64, memoryEfficientBool=True)

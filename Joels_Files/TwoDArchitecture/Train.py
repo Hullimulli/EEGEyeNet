@@ -325,11 +325,11 @@ class method:
         trainingTime = time.time() - trainingTime
         if self.wandbProject != "":
             logs = {"test_score": test_loss,"runtime": trainingTime}
-            prediction = self.model.predict(self.preprocess(inputs[testIndices[:16]]),verbose=0)
-            addLogs = getPredictionVisualisations(self.model,self.name,inputs[testIndices[:16]],
-                                                 targets[testIndices[:16]],prediction,self.lossName,
-                                                 preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
-            wandb.log({**logs, **addLogs})
+            #prediction = self.model.predict(self.preprocess(inputs[testIndices[:16]]),verbose=0)
+            #addLogs = getPredictionVisualisations(self.model,self.name,inputs[testIndices[:16]],
+            #                                     targets[testIndices[:16]],prediction,self.lossName,
+            #                                     preprocess=self.preprocess,inversePreprocess=self.inversePreprocess)
+            #wandb.log({**logs, **addLogs})
             wandb.log(logs)
         else :
             np.savetxt(os.path.join(self.checkpointPath,'score.csv'), [[self.name,test_loss,trainingTime]], fmt='%s', delimiter=',',
