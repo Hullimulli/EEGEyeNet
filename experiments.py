@@ -50,4 +50,4 @@ task = method(task=args.task, directory=modelDirectory, electrodes = electrodes,
               dataPostFix=args.dataset, memoryEfficientBool=False)
 # task = method(name='PyramidalCNN',task='lr',dataPostFix="min",directory='/Users/Hullimulli/Documents/ETH/SA2/localRuns', seed=args.seed,
 #               convDimension=1, wandbProject='',batchSize=64, memoryEfficientBool=True)
-task.fit(nrOfEpochs=50, saveBool=True, loadNpzBool=True)
+task.fit(nrOfEpochs=50, saveBool=True, loadNpzBool=False)
