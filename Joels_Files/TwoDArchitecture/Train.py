@@ -20,6 +20,7 @@ from config import config
 from .preprocess import convertToImage, convertToVideo
 from sklearn.metrics import accuracy_score,mean_squared_error
 from .updateModel import angle_loss
+from .Baseline import baselineBuilder
 from utils.wandbHelper import getPredictionVisualisations
 import sys
 
@@ -115,6 +116,11 @@ class method:
                 self.inputShape = (500, len(electrodes))
             elif name == "Hybrid4":
                 self.architecture = Hybrid4Net(learningRate=1e-5)
+                self.preprocess = lambda x: x
+                self.inversePreprocess = lambda x: x
+                self.inputShape = (500, len(electrodes))
+            elif name == "Mean":
+                self.architecture = baselineBuilder()
                 self.preprocess = lambda x: x
                 self.inversePreprocess = lambda x: x
                 self.inputShape = (500, len(electrodes))
